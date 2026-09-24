@@ -1,12 +1,10 @@
 /**
  * Histórico de conversas, no IndexedDB da própria página do painel.
  *
- * Guarda SÓ A TRANSCRIÇÃO — o que apareceu na tela. Ficam de fora, de
- * propósito, o histórico que vai ao modelo e o mapa de pseudônimos (a tabela
- * que liga `[PESSOA_1]` ao nome real): em disco, seriam a parte mais sensível
- * da conversa, legível por quem tiver acesso ao perfil do navegador — e um
- * computador de unidade costuma ser compartilhado. Por isso uma conversa
- * antiga abre para LER e EXPORTAR, nunca para continuar.
+ * Conversas novas guardam também o estado necessário para continuar o diálogo:
+ * histórico enviado ao modelo, pseudônimos, uso e tarefas. Tudo permanece no
+ * perfil local do navegador. Registros antigos, que têm somente a transcrição,
+ * continuam disponíveis para leitura e exportação.
  *
  * Duas lojas: `conversas` guarda o resumo (título, data, gasto) e `itens`
  * guarda a transcrição. Assim a lista da tela não carrega megabytes de texto
@@ -16,7 +14,20 @@
  * função falha em silêncio e o agente segue funcionando sem histórico.
  */
 
-import type { Uso } from "../motor/tipos";
+import type { Pseudonimos } from "@nucleo/privacidade/anonimizar";
+import type { Mensagem, RegistroUsoChamada, Tarefa, Uso } from "../motor/tipos";
+
+export const VERSAO_ESTADO_CONVERSA = 1 as const;
+
+export interface EstadoConversa {
+  versao: typeof VERSAO_ESTADO_CONVERSA;
+  historico: Mensagem[];
+  transcricao: unknown[];
+  uso: Uso;
+  registrosUso: RegistroUsoChamada[];
+  pseudonimos: ReturnType<Pseudonimos["exportar"]>;
+  tarefas: Tarefa[];
+}
 
 export interface ResumoConversa {
   id: string;
@@ -27,10 +38,13 @@ export interface ResumoConversa {
   host?: string;
   uso: Uso;
   mensagens: number;
+  /** Ausente nos registros antigos, que são somente para leitura. */
+  versaoEstado?: typeof VERSAO_ESTADO_CONVERSA;
 }
 
 export interface ConversaSalva extends ResumoConversa {
   itens: unknown[];
+  estado?: EstadoConversa;
 }
 
 const BANCO = "agenteIA";
@@ -73,10 +87,14 @@ const comoPromessa = <T>(p: IDBRequest<T>): Promise<T> =>
   });
 
 export async function salvar(c: ConversaSalva): Promise<void> {
-  const { itens, ...resumo } = c;
+  const { itens, estado, ...dadosResumo } = c;
+  const resumo: ResumoConversa = {
+    ...dadosResumo,
+    ...(estado ? { versaoEstado: estado.versao } : {}),
+  };
   await transacao([RESUMOS, ITENS], "readwrite", (t) => {
     t.objectStore(RESUMOS).put(resumo);
-    t.objectStore(ITENS).put({ id: c.id, itens });
+    t.objectStore(ITENS).put({ id: c.id, itens, ...(estado ? { estado } : {}) });
   });
 }
 
@@ -92,9 +110,17 @@ export async function obter(id: string): Promise<ConversaSalva | null> {
   return transacao([RESUMOS, ITENS], "readonly", async (t) => {
     const resumo = (await comoPromessa(t.objectStore(RESUMOS).get(id))) as ResumoConversa | undefined;
     if (!resumo) return null;
-    const corpo = (await comoPromessa(t.objectStore(ITENS).get(id))) as { itens: unknown[] } | undefined;
-    return { ...resumo, itens: corpo?.itens ?? [] };
+    const corpo = (await comoPromessa(t.objectStore(ITENS).get(id))) as { itens: unknown[]; estado?: EstadoConversa } | undefined;
+    return { ...resumo, itens: corpo?.itens ?? [], ...(corpo?.estado ? { estado: corpo.estado } : {}) };
   });
+}
+
+/** Devolve o estado somente quando resumo e corpo usam o schema retomável atual. */
+export function estadoRetomavel(c: ConversaSalva): EstadoConversa | null {
+  const estado = c.estado;
+  if (c.versaoEstado !== VERSAO_ESTADO_CONVERSA || estado?.versao !== VERSAO_ESTADO_CONVERSA) return null;
+  if (!Array.isArray(estado.historico) || !Array.isArray(estado.transcricao) || !Array.isArray(estado.registrosUso) || !Array.isArray(estado.tarefas)) return null;
+  return estado;
 }
 
 export async function remover(id: string): Promise<void> {

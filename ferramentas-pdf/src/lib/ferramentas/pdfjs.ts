@@ -32,6 +32,14 @@ const BASE = "vendor/ferramentas-pdf/pdfjs";
  */
 const CMAPS_EMBUTIDOS = false;
 
+/**
+ * O Chrome lista `console.warn` de workers como erros da extensão. O pdf.js
+ * avisa ao reparar detalhes toleráveis de PDFs reais (por exemplo, bytecode
+ * inválido em uma fonte TrueType), embora consiga continuar a leitura.
+ * `VerbosityLevel.ERRORS` vale 0; exceções reais continuam sendo propagadas.
+ */
+export const VERBOSIDADE_PDFJS = 0;
+
 export const CAMINHOS_PDFJS = {
   worker: recursoDaExtensao(`${BASE}/pdf.worker.min.mjs`),
   standardFontDataUrl: recursoDaExtensao(`${BASE}/standard_fonts/`),
@@ -57,6 +65,7 @@ export function opcoesDocumento(dados: Uint8Array, senha?: string) {
   return {
     data: dados,
     password: senha,
+    verbosity: VERBOSIDADE_PDFJS,
     ...(CMAPS_EMBUTIDOS
       ? { cMapUrl: recursoDaExtensao(`${BASE}/cmaps/`), cMapPacked: true }
       : {}),

@@ -3,8 +3,8 @@
  *
  * Guarda a chave do OpenRouter em `chrome.storage.local` (só neste navegador,
  * nunca sincronizada, nunca no mundo da página do SEI) e a conversa em
- * `chrome.storage.session` (some ao fechar o navegador; acessível só a
- * páginas da extensão — content scripts não leem a área de sessão).
+ * `chrome.storage.session`. Quando o histórico está habilitado, o estado
+ * retomável também fica no IndexedDB local do painel.
  *
  * Telas: só uma. A conversa é a tela; a configuração é um <dialog> modal por
  * cima dela (na primeira vez, sem como fechar antes de salvar a chave).
@@ -15,7 +15,7 @@ import { Motor, type TelaAtual } from "../motor/motor";
 import { promptSistema } from "../motor/prompt";
 import { COMPATIVEIS, conferirChave, criarProvedor, DOC_CHAVES, enderecoDoServico, listarModelos, MODELO_PADRAO, normalizarUrl, SERVICOS, TEMPERATURA_PADRAO, type Ajustes, type Servico } from "../motor/provedor";
 import { RegistroTools } from "../motor/tools";
-import type { DecisaoPlano, InterfaceMotor, Mensagem, PlanoPrevisto, RegistroUsoChamada, Tarefa, Uso } from "../motor/tipos";
+import type { DecisaoPlano, InterfaceMotor, PlanoPrevisto, RegistroUsoChamada, Tarefa, Uso } from "../motor/tipos";
 import { normalizarUso, somarUso, usoVazio } from "../motor/uso";
 import { PontePainel } from "../ponte/cliente";
 import { toolsMotor } from "../tools/motor";
@@ -164,7 +164,7 @@ class App {
   private registrosUso: RegistroUsoChamada[] = [];
   private tarefas: Tarefa[] = [];
   private anexo: { nome: string; texto: string } | null = null;
-  private idConversa = crypto.randomUUID();
+  private idConversa: string = crypto.randomUUID();
   /** Skills do usuário (configurações), disponíveis por `/slug` e por `skill_ler`. */
   private skills: SkillUsuario[] = [];
 
@@ -193,7 +193,7 @@ class App {
   private chaveTela = "";
   /** Cotação do dólar para o medidor; `null` enquanto não chega (ou sem rede). */
   private cambio: Cotacao | null = null;
-  /** Conversa antiga aberta para leitura (sem como continuar: ver `historico.ts`). */
+  /** Registro antigo, sem estado retomável, aberto somente para leitura. */
   private arquivada: historico.ConversaSalva | null = null;
 
   // elementos da tela
@@ -652,7 +652,7 @@ class App {
 
   // ------------------------------------------------------------- histórico
 
-  /** Conversas guardadas: abrir para ler, exportar em Markdown ou apagar. */
+  /** Conversas guardadas: continuar (quando possível), exportar ou apagar. */
   private async abrirHistorico(): Promise<void> {
     const lista = await historico.listar().catch(() => []);
     const corpo = h("div", { class: "conversas" });
@@ -678,9 +678,17 @@ class App {
             { class: "linha" },
             h(
               "button",
-              { class: "abrir", onclick: () => void this.verArquivada(c.id, dlg) },
+              {
+                class: "abrir",
+                title: c.versaoEstado === historico.VERSAO_ESTADO_CONVERSA ? "Continuar conversa" : "Abrir somente para leitura",
+                onclick: () => void this.verArquivada(c.id, dlg),
+              },
               h("b", {}, c.titulo),
-              h("small", {}, `${new Date(c.quando).toLocaleString("pt-BR")} \u00B7 ${c.mensagens} mensagem(ns)${c.uso.custo || c.uso.entrada ? ` \u00B7 ${formatarUso(c.uso)}` : ""}${c.host ? ` \u00B7 ${c.host}` : ""}`),
+              h(
+                "small",
+                {},
+                `${c.versaoEstado === historico.VERSAO_ESTADO_CONVERSA ? "Continuar conversa" : "S\u00F3 leitura"} \u00B7 ${new Date(c.quando).toLocaleString("pt-BR")} \u00B7 ${c.mensagens} mensagem(ns)${c.uso.custo || c.uso.entrada ? ` \u00B7 ${formatarUso(c.uso)}` : ""}${c.host ? ` \u00B7 ${c.host}` : ""}`,
+              ),
             ),
             h("button", { class: "icone pequeno", title: "Exportar em Markdown", "aria-label": "Exportar", onclick: () => void this.exportar(c.id) }, icone("baixar", 15)),
             h(
@@ -715,16 +723,40 @@ class App {
     });
   }
 
-  /** Abre uma conversa guardada para leitura. */
+  /** Retoma uma conversa nova ou abre um registro antigo somente para leitura. */
   private async verArquivada(id: string, dlg?: HTMLDialogElement): Promise<void> {
+    await this.guardarConversa();
     const c = await historico.obter(id).catch(() => null);
     if (!c) return;
     this.motor?.parar();
     this.pensar(false);
-    this.arquivada = c;
-    this.tarefas = [];
+
+    const estado = historico.estadoRetomavel(c);
+    if (estado) {
+      try {
+        const uso = normalizarUso(estado.uso);
+        this.idConversa = c.id;
+        this.arquivada = null;
+        this.motor = this.criarMotor(Pseudonimos.importar(estado.pseudonimos, { nomes: this.config.nomes, cnpj: this.config.cnpj }));
+        this.motor.restaurar([...estado.historico], uso);
+        this.transcricao = (estado.transcricao as Item[]).map((i) =>
+          i.tipo === "tool" && i.estado === "rodando" ? { ...i, estado: "falha", detalhe: "interrompido" } : i,
+        );
+        this.uso = uso;
+        this.registrosUso = estado.registrosUso;
+        this.tarefas = estado.tarefas;
+        await this.gravarSessaoAtual();
+      } catch {
+        this.arquivada = c;
+        this.tarefas = [];
+      }
+    } else {
+      this.arquivada = c;
+      this.tarefas = [];
+    }
     dlg?.close();
     this.redesenhar();
+    if (!this.arquivada) this.elEntrada.focus();
   }
 
   /** Baixa a conversa em Markdown — o que dá para juntar num processo ou guardar fora. */
@@ -1470,7 +1502,7 @@ class App {
           h(
             "div",
             { class: "campo" },
-            h("label", { class: "linha-switch" }, guardar, h("span", {}, "Guardar as conversas neste navegador", h("small", {}, "Para reler e exportar depois, pelo rel\u00F3gio no topo do painel."))),
+            h("label", { class: "linha-switch" }, guardar, h("span", {}, "Guardar as conversas neste navegador", h("small", {}, "Para continuar, reler e exportar depois, pelo rel\u00F3gio no topo do painel."))),
             h("div", { class: "com-botao" }, h("span", { class: "ajuda" }, "Apagar depois de"), dias),
             h(
               "div",
@@ -2245,6 +2277,7 @@ Voc\u00EA \u00E9 um AUXILIAR: recebeu uma tarefa de leitura de outro agente e n\
   private async novaConversa(): Promise<void> {
     this.motor?.parar();
     this.pensar(false);
+    await this.guardarConversa();
     this.motor = this.criarMotor();
     this.idConversa = crypto.randomUUID();
     this.arquivada = null;
@@ -2600,10 +2633,7 @@ Voc\u00EA \u00E9 um AUXILIAR: recebeu uma tarefa de leitura de outro agente e n\
 
   // ------------------------------------------------------------- sessão
 
-  /**
-   * Grava a transcrição no histórico do navegador. Só ela: o histórico do
-   * modelo e o mapa de pseudônimos ficam na sessão, que morre com o navegador.
-   */
+  /** Grava a transcrição e o estado retomável no histórico local do navegador. */
   private async guardarConversa(): Promise<void> {
     if (!this.config.guardar || this.arquivada || !this.transcricao.length) return;
     const primeira = this.transcricao.find((i) => i.tipo === "usuario");
@@ -2617,23 +2647,38 @@ Voc\u00EA \u00E9 um AUXILIAR: recebeu uma tarefa de leitura de outro agente e n\
         uso: this.uso,
         mensagens: this.transcricao.filter((i) => i.tipo === "usuario" || i.tipo === "agente").length,
         itens: this.transcricao,
+        ...(this.motor ? { estado: this.capturarEstado() } : {}),
       })
       .catch(() => undefined);
   }
 
+  private capturarEstado(): historico.EstadoConversa {
+    if (!this.motor) throw new Error("Motor indispon\u00EDvel para guardar a conversa.");
+    return {
+      versao: historico.VERSAO_ESTADO_CONVERSA,
+      historico: [...this.motor.mensagens()],
+      transcricao: this.transcricao,
+      uso: this.uso,
+      registrosUso: this.registrosUso,
+      pseudonimos: this.privacidade.exportar(),
+      tarefas: this.tarefas,
+    };
+  }
+
+  private async gravarSessaoAtual(): Promise<void> {
+    if (!this.motor) return;
+    await chrome.storage.session?.set({ [CHAVE_SESSAO]: this.capturarEstado() }).catch(() => undefined);
+  }
+
   private async salvarSessao(): Promise<void> {
     await this.guardarConversa();
-    if (!this.motor) return;
-    const dados = { historico: this.motor.mensagens(), transcricao: this.transcricao, uso: this.uso, registrosUso: this.registrosUso, pseudonimos: this.privacidade.exportar(), tarefas: this.tarefas };
     // storage.session não existe em navegadores antigos (Firefox < 115): a conversa só não sobrevive à recarga.
-    await chrome.storage.session?.set({ [CHAVE_SESSAO]: dados }).catch(() => undefined);
+    await this.gravarSessaoAtual();
   }
 
   private async restaurarSessao(): Promise<void> {
     const bruto: Record<string, unknown> = (await chrome.storage.session?.get(CHAVE_SESSAO).catch(() => ({}))) ?? {};
-    const d = bruto[CHAVE_SESSAO] as
-      | { historico: Mensagem[]; transcricao: Item[]; uso: Uso; registrosUso?: RegistroUsoChamada[]; pseudonimos: ReturnType<Pseudonimos["exportar"]>; tarefas: Tarefa[] }
-      | undefined;
+    const d = bruto[CHAVE_SESSAO] as (Omit<historico.EstadoConversa, "versao" | "transcricao"> & { versao?: number; transcricao: Item[]; registrosUso?: RegistroUsoChamada[] }) | undefined;
     if (!d || !this.motor || this.transcricao.length) return;
     this.motor = this.criarMotor(Pseudonimos.importar(d.pseudonimos, { nomes: this.config.nomes, cnpj: this.config.cnpj }));
     const uso = normalizarUso(d.uso);

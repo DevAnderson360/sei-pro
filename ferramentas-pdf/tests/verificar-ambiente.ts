@@ -16,7 +16,7 @@ import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { CAMINHOS_PDFJS } from "@/lib/ferramentas/pdfjs";
+import { CAMINHOS_PDFJS, opcoesDocumento, VERBOSIDADE_PDFJS } from "@/lib/ferramentas/pdfjs";
 import { CAMINHOS_TESSERACT, suportaSimd } from "@/lib/ferramentas/tesseract";
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
@@ -59,6 +59,10 @@ function main() {
       url.slice(0, 80),
     );
   }
+
+  console.log("\n== diagnosticos do pdf.js ==");
+  const opcoesPdf = opcoesDocumento(new Uint8Array());
+  checar("mantem somente erros reais no console", VERBOSIDADE_PDFJS === 0 && opcoesPdf.verbosity === 0);
 
   console.log("\n== a armadilha do corePath ==");
   // Verificado dentro do worker.min.js: se o corePath NAO termina em "js", o
