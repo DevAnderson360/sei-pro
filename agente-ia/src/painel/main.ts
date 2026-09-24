@@ -15,7 +15,8 @@ import { Motor, type TelaAtual } from "../motor/motor";
 import { promptSistema } from "../motor/prompt";
 import { COMPATIVEIS, conferirChave, criarProvedor, DOC_CHAVES, enderecoDoServico, listarModelos, MODELO_PADRAO, normalizarUrl, SERVICOS, TEMPERATURA_PADRAO, type Ajustes, type Servico } from "../motor/provedor";
 import { RegistroTools } from "../motor/tools";
-import type { DecisaoPlano, InterfaceMotor, Mensagem, PlanoPrevisto, Tarefa, Uso } from "../motor/tipos";
+import type { DecisaoPlano, InterfaceMotor, Mensagem, PlanoPrevisto, RegistroUsoChamada, Tarefa, Uso } from "../motor/tipos";
+import { normalizarUso, somarUso, usoVazio } from "../motor/uso";
 import { PontePainel } from "../ponte/cliente";
 import { toolsMotor } from "../tools/motor";
 import { TOOLS_SEI } from "../tools/sei";
@@ -159,7 +160,8 @@ class App {
   private privacidade = new Pseudonimos();
   private motor: Motor | null = null;
   private transcricao: Item[] = [];
-  private uso: Uso = { entrada: 0, saida: 0, custo: 0 };
+  private uso: Uso = usoVazio();
+  private registrosUso: RegistroUsoChamada[] = [];
   private tarefas: Tarefa[] = [];
   private anexo: { nome: string; texto: string } | null = null;
   private idConversa = crypto.randomUUID();
@@ -1749,9 +1751,10 @@ Voc\u00EA \u00E9 um AUXILIAR: recebeu uma tarefa de leitura de outro agente e n\
         consentir: async () => false,
         perguntar: async () => "Sem resposta: responda com o que conseguiu apurar.",
         tarefas: () => undefined,
-        uso: (u) => {
+        uso: (_total, chamada) => {
           // O gasto do auxiliar é gasto da conversa: soma no mesmo contador.
-          this.uso = { entrada: this.uso.entrada + u.entrada, saida: this.uso.saida + u.saida, custo: this.uso.custo + u.custo, cache: (this.uso.cache ?? 0) + (u.cache ?? 0) };
+          this.uso = somarUso(this.uso, chamada);
+          this.registrosUso.push({ ...chamada, conversaId: this.idConversa });
           this.mostrarUso();
         },
         aviso: () => undefined,
@@ -2246,7 +2249,8 @@ Voc\u00EA \u00E9 um AUXILIAR: recebeu uma tarefa de leitura de outro agente e n\
     this.idConversa = crypto.randomUUID();
     this.arquivada = null;
     this.transcricao = [];
-    this.uso = { entrada: 0, saida: 0, custo: 0 };
+    this.uso = usoVazio();
+    this.registrosUso = [];
     this.tarefas = [];
     await chrome.storage.session?.remove(CHAVE_SESSAO).catch(() => undefined);
     this.redesenhar();
@@ -2419,8 +2423,9 @@ Voc\u00EA \u00E9 um AUXILIAR: recebeu uma tarefa de leitura de outro agente e n\
         this.tarefas = lista;
         this.desenharTarefas();
       },
-      uso: (u) => {
+      uso: (u, chamada) => {
         this.uso = u;
+        this.registrosUso.push({ ...chamada, conversaId: this.idConversa });
         this.mostrarUso();
       },
       aviso: (t) => (this.fecharBolha(), void this.adicionar({ tipo: "aviso", texto: t })),
@@ -2619,7 +2624,7 @@ Voc\u00EA \u00E9 um AUXILIAR: recebeu uma tarefa de leitura de outro agente e n\
   private async salvarSessao(): Promise<void> {
     await this.guardarConversa();
     if (!this.motor) return;
-    const dados = { historico: this.motor.mensagens(), transcricao: this.transcricao, uso: this.uso, pseudonimos: this.privacidade.exportar(), tarefas: this.tarefas };
+    const dados = { historico: this.motor.mensagens(), transcricao: this.transcricao, uso: this.uso, registrosUso: this.registrosUso, pseudonimos: this.privacidade.exportar(), tarefas: this.tarefas };
     // storage.session não existe em navegadores antigos (Firefox < 115): a conversa só não sobrevive à recarga.
     await chrome.storage.session?.set({ [CHAVE_SESSAO]: dados }).catch(() => undefined);
   }
@@ -2627,13 +2632,15 @@ Voc\u00EA \u00E9 um AUXILIAR: recebeu uma tarefa de leitura de outro agente e n\
   private async restaurarSessao(): Promise<void> {
     const bruto: Record<string, unknown> = (await chrome.storage.session?.get(CHAVE_SESSAO).catch(() => ({}))) ?? {};
     const d = bruto[CHAVE_SESSAO] as
-      | { historico: Mensagem[]; transcricao: Item[]; uso: Uso; pseudonimos: ReturnType<Pseudonimos["exportar"]>; tarefas: Tarefa[] }
+      | { historico: Mensagem[]; transcricao: Item[]; uso: Uso; registrosUso?: RegistroUsoChamada[]; pseudonimos: ReturnType<Pseudonimos["exportar"]>; tarefas: Tarefa[] }
       | undefined;
     if (!d || !this.motor || this.transcricao.length) return;
     this.motor = this.criarMotor(Pseudonimos.importar(d.pseudonimos, { nomes: this.config.nomes, cnpj: this.config.cnpj }));
-    this.motor.restaurar(d.historico, d.uso);
+    const uso = normalizarUso(d.uso);
+    this.motor.restaurar(d.historico, uso);
     this.transcricao = d.transcricao.map((i) => (i.tipo === "tool" && i.estado === "rodando" ? { ...i, estado: "falha", detalhe: "interrompido" } : i));
-    this.uso = d.uso;
+    this.uso = uso;
+    this.registrosUso = d.registrosUso ?? [];
     this.tarefas = d.tarefas ?? [];
   }
 

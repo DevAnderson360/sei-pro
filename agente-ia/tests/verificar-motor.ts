@@ -9,7 +9,7 @@ import { s, validar } from "../src/motor/esquema";
 import { Motor, resolverReferencias } from "../src/motor/motor";
 import { Acumulador } from "../src/motor/provedor";
 import { RegistroTools } from "../src/motor/tools";
-import type { DecisaoPlano, InterfaceMotor, Mensagem, PlanoPrevisto, Provedor, RespostaLLM } from "../src/motor/tipos";
+import type { DecisaoPlano, InterfaceMotor, Mensagem, PlanoPrevisto, Provedor, RegistroUsoChamada, RespostaLLM, Uso } from "../src/motor/tipos";
 import { TOOLS_MOTOR } from "../src/tools/motor";
 import { TOOLS_SEI } from "../src/tools/sei";
 import { checar, secao } from "./util";
@@ -31,12 +31,16 @@ function provedor(rodadas: Rodada[], vistos: Mensagem[][]): Provedor {
 
 const chamada = (nome: string, args: unknown, id = nome) => ({ id, type: "function" as const, function: { name: nome, arguments: JSON.stringify(args) } });
 
-function ui(decisao: Partial<DecisaoPlano> = { aprovado: true }): InterfaceMotor & { planos: PlanoPrevisto[]; avisos: string[] } {
+function ui(decisao: Partial<DecisaoPlano> = { aprovado: true }): InterfaceMotor & { planos: PlanoPrevisto[]; avisos: string[]; usos: RegistroUsoChamada[]; totais: Uso[] } {
   const planos: PlanoPrevisto[] = [];
   const avisos: string[] = [];
+  const usos: RegistroUsoChamada[] = [];
+  const totais: Uso[] = [];
   return {
     planos,
     avisos,
+    usos,
+    totais,
     texto: () => undefined,
     fimDaResposta: () => undefined,
     toolIniciada: () => undefined,
@@ -46,7 +50,7 @@ function ui(decisao: Partial<DecisaoPlano> = { aprovado: true }): InterfaceMotor
     consentir: async () => true,
     perguntar: async () => "sim",
     tarefas: () => undefined,
-    uso: () => undefined,
+    uso: (total, chamada) => void (totais.push(total), usos.push(chamada)),
     aviso: (t) => avisos.push(t),
   };
 }
@@ -75,10 +79,34 @@ export async function verificarMotor(): Promise<void> {
   const acc = new Acumulador();
   acc.somar({ choices: [{ delta: { content: "Ol" } }] });
   acc.somar({ choices: [{ delta: { content: "á", tool_calls: [{ index: 0, id: "c1", function: { name: "processo_", arguments: '{"proc' } }] } }] });
-  acc.somar({ choices: [{ delta: { tool_calls: [{ index: 0, function: { name: "consultar", arguments: 'esso":"1"}' } }] }, finish_reason: "tool_calls" }], usage: { prompt_tokens: 10, completion_tokens: 5, cost: 0.001 } });
+  acc.somar({ choices: [{ delta: { tool_calls: [{ index: 0, function: { name: "consultar", arguments: 'esso":"1"}' } }] }, finish_reason: "tool_calls" }], usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15, cost: 0.001, prompt_tokens_details: { cached_tokens: 4, cache_write_tokens: 3 }, completion_tokens_details: { reasoning_tokens: 2 } } });
   const r = acc.resposta();
   checar("junta texto e tool call fragmentados", r.texto === "Olá" && r.chamadas[0].function.name === "processo_consultar" && r.chamadas[0].function.arguments === '{"processo":"1"}');
-  checar("uso e custo", r.uso?.custo === 0.001);
+  checar("uso detalhado e custo", r.uso?.custo === 0.001 && r.uso.total === 15 && r.uso.cache === 4 && r.uso.gravacaoCache === 3 && r.uso.raciocinio === 2, r.uso);
+
+  secao("motor: um registro por chamada");
+  {
+    const u = ui();
+    const uso1: Uso = { entrada: 10, cache: 4, gravacaoCache: 0, saida: 5, raciocinio: 2, total: 15, custo: 0.001 };
+    const uso2: Uso = { entrada: 20, cache: 0, gravacaoCache: 8, saida: 7, raciocinio: 3, total: 27, custo: 0.002 };
+    const m = new Motor({
+      provedor: provedor(
+        [
+          () => ({ texto: "", chamadas: [chamada("processo_consultar", { processo: "1" })], fim: "tool_calls", uso: uso1 }),
+          () => ({ texto: "pronto", chamadas: [], fim: "stop", uso: uso2 }),
+        ],
+        [],
+      ),
+      tools: new RegistroTools([...TOOLS_SEI, ...TOOLS_MOTOR]),
+      ui: u,
+      privacidade: new Pseudonimos(),
+      sei: seiFalso([]),
+      sistema: () => "s",
+    });
+    await m.enviar("consulte");
+    checar("duas chamadas geram dois registros distintos", u.usos.length === 2 && u.usos[0].id !== u.usos[1].id && u.usos.every((x) => x.modelo === "teste"), u.usos);
+    checar("total acumula categorias sem duplicar reasoning", u.totais[1]?.entrada === 30 && u.totais[1]?.saida === 12 && u.totais[1]?.raciocinio === 5 && u.totais[1]?.total === 42, u.totais[1]);
+  }
 
   secao("referencias");
   const res = [{ itens: [{ numero: "0200001" }] }];

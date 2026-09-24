@@ -15,6 +15,7 @@ import { criarProvedor, MODELO_PADRAO, type Servico } from "../src/motor/provedo
 import { promptSistema } from "../src/motor/prompt";
 import { RegistroTools } from "../src/motor/tools";
 import type { InterfaceMotor, PlanoPrevisto, Uso } from "../src/motor/tipos";
+import { usoVazio } from "../src/motor/uso";
 import { TOOLS_SEI } from "../src/tools/sei";
 import { toolsMotor } from "../src/tools/motor";
 import { CASOS, CASOS_FLUXO, TELA_BASE, type Caso, type CasoFluxo } from "./casos";
@@ -56,7 +57,7 @@ function interfaceDeTeste(r: Registro): InterfaceMotor {
 }
 
 async function rodarCaso(caso: Caso): Promise<{ ok: boolean; falhas: string[]; reg: Registro }> {
-  const reg: Registro = { tools: [], planos: [], perguntas: [], texto: "", uso: { entrada: 0, saida: 0, custo: 0 } };
+  const reg: Registro = { tools: [], planos: [], perguntas: [], texto: "", uso: usoVazio() };
   const privacidade = new Pseudonimos({ nomes: true, cnpj: false });
   const motor = new Motor({
     provedor: criarProvedor({ servico, chave, modelo }),
@@ -102,7 +103,7 @@ async function rodarCasoFluxo(caso: CasoFluxo): Promise<{ ok: boolean; falhas: s
   for (const t of caso.espera.etapas) if (!fala(t)) falhas.push(`nao criou etapa para "${t}"`);
   for (const t of caso.espera.naoEtapas) if (fala(t)) falhas.push(`criou etapa para "${t}", que e documento acessorio`);
   if (caso.espera.maxEtapas && etapas.length > caso.espera.maxEtapas) falhas.push(`${etapas.length} etapas, teto era ${caso.espera.maxEtapas}`);
-  return { ok: !falhas.length, falhas, texto: etapas.map((e) => e.nome).join(" > "), uso: r.uso ?? { entrada: 0, saida: 0, custo: 0 } };
+  return { ok: !falhas.length, falhas, texto: etapas.map((e) => e.nome).join(" > "), uso: r.uso ?? usoVazio() };
 }
 
 const so = process.argv[2];

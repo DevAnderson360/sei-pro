@@ -16,6 +16,8 @@
  * função falha em silêncio e o agente segue funcionando sem histórico.
  */
 
+import type { Uso } from "../motor/tipos";
+
 export interface ResumoConversa {
   id: string;
   titulo: string;
@@ -23,7 +25,7 @@ export interface ResumoConversa {
   quando: number;
   /** Host do SEI em que a conversa aconteceu. */
   host?: string;
-  uso: { entrada: number; saida: number; custo: number; cache?: number };
+  uso: Uso;
   mensagens: number;
 }
 

@@ -35,7 +35,7 @@ const BOA = JSON.stringify({
 
 const provedorQueResponde = (texto: string): Provedor => ({
   modelo: "teste",
-  conversar: async (): Promise<RespostaLLM> => ({ texto, chamadas: [], fim: "stop", uso: { entrada: 10, saida: 20, custo: 0 } }),
+  conversar: async (): Promise<RespostaLLM> => ({ texto, chamadas: [], fim: "stop", uso: { entrada: 10, cache: 0, gravacaoCache: 0, saida: 20, raciocinio: 0, total: 30, custo: 0 } }),
 });
 
 export async function verificarInferirFluxo(): Promise<void> {

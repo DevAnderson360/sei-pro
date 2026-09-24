@@ -22,10 +22,25 @@ export type Mensagem =
 export interface Uso {
   entrada: number;
   saida: number;
+  /** Total informado pelo provedor; na ausência dele, entrada + saída. */
+  total: number;
   /** Custo em dólares informado pelo OpenRouter (`usage.cost`). */
   custo: number;
   /** Tokens de entrada que vieram do cache do provedor (não foram reprocessados). */
-  cache?: number;
+  cache: number;
+  /** Tokens de entrada gravados no cache do provedor. */
+  gravacaoCache: number;
+  /** Parte da saída usada em raciocínio. Já está incluída em `saida`. */
+  raciocinio: number;
+}
+
+/** Fotografia do consumo de uma única chamada bem-sucedida ao modelo. */
+export interface RegistroUsoChamada extends Uso {
+  id: string;
+  modelo: string;
+  criadoEm: number;
+  conversaId?: string;
+  processoId?: string;
 }
 
 export interface RespostaLLM {
@@ -33,6 +48,7 @@ export interface RespostaLLM {
   chamadas: ChamadaTool[];
   fim: "stop" | "tool_calls" | "length" | "error" | string;
   uso?: Uso;
+  registroUso?: RegistroUsoChamada;
 }
 
 export interface PedidoLLM {
@@ -110,6 +126,6 @@ export interface InterfaceMotor {
   consentir(tipo: "restrito", detalhe: string): Promise<boolean>;
   perguntar(pergunta: string, opcoes: string[]): Promise<string>;
   tarefas(lista: Tarefa[]): void;
-  uso(total: Uso): void;
+  uso(total: Uso, chamada: RegistroUsoChamada): void;
   aviso(texto: string): void;
 }

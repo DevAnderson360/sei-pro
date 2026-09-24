@@ -18,7 +18,7 @@
  */
 
 import { etapaNova, fluxoNovo, type Etapa, type Fluxo } from "./modelo";
-import type { Provedor, Uso } from "../motor/tipos";
+import type { Provedor, RegistroUsoChamada, Uso } from "../motor/tipos";
 
 export interface DocumentoModelo {
   /** Posição na árvore (a ordem é cronológica). */
@@ -180,6 +180,7 @@ export interface Inferencia {
   divergencias: string[];
   avisos: string[];
   uso?: Uso;
+  registroUso?: RegistroUsoChamada;
 }
 
 /**
@@ -202,5 +203,5 @@ export async function inferirFluxo(provedor: Provedor, modelos: ProcessoModelo[]
     modelos: modelos.map((m) => ({ protocolo: m.protocolo, quando: Date.now() })),
     origem: "inferido",
   };
-  return { fluxo, divergencias: proposta.divergencias, avisos: proposta.avisos, uso: r.uso };
+  return { fluxo, divergencias: proposta.divergencias, avisos: proposta.avisos, uso: r.uso, registroUso: r.registroUso };
 }

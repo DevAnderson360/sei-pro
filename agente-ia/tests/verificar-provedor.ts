@@ -4,7 +4,7 @@
  * `fetch` é substituído por um que grava o que recebeu.
  */
 
-import { criarProvedor, enderecoDoServico, listarModelos, parametroRecusado, serveParaConversar, SERVICOS, TEMPERATURA_PADRAO } from "../src/motor/provedor";
+import { criarProvedor, enderecoDoServico, exigeReasoningNoneComTools, listarModelos, parametroRecusado, serveParaConversar, SERVICOS, TEMPERATURA_PADRAO } from "../src/motor/provedor";
 import { promptSistema } from "../src/motor/prompt";
 import type { PedidoLLM } from "../src/motor/tipos";
 import { checar, secao } from "./util";
@@ -48,6 +48,43 @@ export async function verificarProvedor(): Promise<void> {
   checar("anthropic vai para o endereco dela", anth.chamadas[0].url === "https://api.anthropic.com/v1/chat/completions");
   checar("anthropic leva os dois cabecalhos proprios", anth.chamadas[0].cabecalhos["anthropic-version"] === "2023-06-01" && anth.chamadas[0].cabecalhos["anthropic-dangerous-direct-browser-access"] === "true");
   checar("so o openrouter manda politica de dados", anth.chamadas[0].corpo.provider === undefined);
+
+  secao("provedor: registro de uso por chamada");
+  const comUso = espiao([
+    {
+      status: 200,
+      corpo:
+        'data: {"choices":[{"delta":{"content":"ok"},"finish_reason":"stop"}]}\n\ndata: {"usage":{"prompt_tokens":8033,"completion_tokens":201,"total_tokens":8234,"cost":0.0011,"prompt_tokens_details":{"cached_tokens":0,"cache_write_tokens":8030},"completion_tokens_details":{"reasoning_tokens":88}}}\n\ndata: [DONE]\n\n',
+    },
+  ]);
+  const respostaComUso = await criarProvedor({ servico: "openai", chave: "k", modelo: "gpt-6-luna", fetch: comUso.f }).conversar(PEDIDO, new AbortController().signal, () => {});
+  checar(
+    "captura todas as categorias sem somar reasoning de novo",
+    respostaComUso.uso?.entrada === 8033 && respostaComUso.uso.gravacaoCache === 8030 && respostaComUso.uso.saida === 201 && respostaComUso.uso.raciocinio === 88 && respostaComUso.uso.total === 8234,
+    respostaComUso.uso,
+  );
+  checar(
+    "cria um registro identificado para a chamada",
+    Boolean(respostaComUso.registroUso?.id) && respostaComUso.registroUso?.modelo === "gpt-6-luna" && respostaComUso.registroUso.criadoEm > 0,
+    respostaComUso.registroUso,
+  );
+
+  secao("provedor: reasoning com function tools");
+  checar("luna e sol exigem none", exigeReasoningNoneComTools("gpt-6-luna") && exigeReasoningNoneComTools("openai/gpt-6-sol"));
+  checar("outros modelos não recebem a regra", !exigeReasoningNoneComTools("gpt-5") && !exigeReasoningNoneComTools("gpt-6-astra"));
+  const pedidoComTools: PedidoLLM = {
+    ...PEDIDO,
+    tools: [{ type: "function", function: { name: "consultar", description: "Consulta", parameters: { type: "object", properties: {} } } }],
+  };
+  const lunaComTools = espiao([]);
+  await criarProvedor({ servico: "openai", chave: "k", modelo: "gpt-6-luna", fetch: lunaComTools.f }).conversar(pedidoComTools, new AbortController().signal, () => {});
+  checar("luna com tools envia reasoning_effort none", lunaComTools.chamadas[0].corpo.reasoning_effort === "none", lunaComTools.chamadas[0].corpo);
+  const lunaSemTools = espiao([]);
+  await criarProvedor({ servico: "openai", chave: "k", modelo: "gpt-6-luna", fetch: lunaSemTools.f }).conversar(PEDIDO, new AbortController().signal, () => {});
+  checar("luna sem tools preserva o padrão do modelo", !("reasoning_effort" in lunaSemTools.chamadas[0].corpo), lunaSemTools.chamadas[0].corpo);
+  const alias = espiao([{ status: 400, corpo: '{"error":{"message":"Function tools with reasoning_effort are not supported for modelo-local. Set reasoning_effort to \'none\'.","param":"reasoning_effort"}}' }]);
+  await criarProvedor({ servico: "compativel", url: "http://localhost:11434/v1", chave: "k", modelo: "modelo-local", fetch: alias.f }).conversar(pedidoComTools, new AbortController().signal, () => {});
+  checar("erro explícito ensina a capacidade de um alias", alias.chamadas.length === 2 && alias.chamadas[1].corpo.reasoning_effort === "none", alias.chamadas);
 
   secao("provedor: controle fino");
   const semAjuste = espiao([]);

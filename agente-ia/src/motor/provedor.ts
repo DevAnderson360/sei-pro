@@ -26,6 +26,7 @@
  */
 
 import type { ChamadaTool, PedidoLLM, Provedor, RespostaLLM, Uso } from "./tipos";
+import { criarRegistroUsoChamada } from "./uso";
 
 export const URL_OPENROUTER = "https://openrouter.ai/api/v1";
 export const MODELO_PADRAO = "anthropic/claude-sonnet-5";
@@ -37,7 +38,14 @@ interface Delta {
 
 interface Pedaco {
   choices?: Array<{ delta?: Delta; finish_reason?: string | null }>;
-  usage?: { prompt_tokens?: number; completion_tokens?: number; cost?: number; prompt_tokens_details?: { cached_tokens?: number } };
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+    cost?: number;
+    prompt_tokens_details?: { cached_tokens?: number; cache_write_tokens?: number };
+    completion_tokens_details?: { reasoning_tokens?: number };
+  };
   error?: { message?: string; code?: number | string };
 }
 
@@ -96,8 +104,11 @@ export class Acumulador {
       this.uso = {
         entrada: p.usage.prompt_tokens ?? 0,
         saida: p.usage.completion_tokens ?? 0,
+        total: p.usage.total_tokens ?? (p.usage.prompt_tokens ?? 0) + (p.usage.completion_tokens ?? 0),
         custo: p.usage.cost ?? 0,
-        ...(p.usage.prompt_tokens_details?.cached_tokens ? { cache: p.usage.prompt_tokens_details.cached_tokens } : {}),
+        cache: p.usage.prompt_tokens_details?.cached_tokens ?? 0,
+        gravacaoCache: p.usage.prompt_tokens_details?.cache_write_tokens ?? 0,
+        raciocinio: p.usage.completion_tokens_details?.reasoning_tokens ?? 0,
       };
     }
   }
@@ -254,6 +265,11 @@ function parametrosDoModelo(o: OpcoesProvedor): Record<string, number> {
   return Object.fromEntries(pares.filter(([, v]) => typeof v === "number" && Number.isFinite(v))) as Record<string, number>;
 }
 
+/** Modelos que, em Chat Completions, só aceitam function tools sem reasoning. */
+export function exigeReasoningNoneComTools(modelo: string): boolean {
+  return /(^|\/)gpt-6-(luna|sol)(?:$|[-:])/i.test(modelo);
+}
+
 /**
  * Parâmetro que o serviço recusou, pelo texto do erro 400.
  *
@@ -264,7 +280,7 @@ function parametrosDoModelo(o: OpcoesProvedor): Record<string, number> {
  * que a mensagem citou.
  */
 export function parametroRecusado(corpo: string): string | null {
-  const nomes = ["temperature", "top_p", "max_tokens", "frequency_penalty", "presence_penalty", "stream_options"];
+  const nomes = ["temperature", "top_p", "max_tokens", "frequency_penalty", "presence_penalty", "reasoning_effort", "stream_options"];
   const texto = corpo.toLowerCase();
   return nomes.find((n) => texto.includes(n)) ?? null;
 }
@@ -340,6 +356,7 @@ export function criarProvedor(o: OpcoesProvedor): Provedor {
       // o OpenRouter usa `usage: {include: true}`, que já vai abaixo.
       const parametros: Record<string, unknown> = {
         ...parametrosDoModelo(o),
+        ...(pedido.tools.length && exigeReasoningNoneComTools(modelo) ? { reasoning_effort: "none" } : {}),
         ...(openrouter ? {} : { stream_options: { include_usage: true } }),
       };
       const recusados = new Set<string>();
@@ -370,6 +387,13 @@ export function criarProvedor(o: OpcoesProvedor): Provedor {
         }
         if (r.status === 400) {
           const texto = await r.text();
+          // Alguns serviços usam aliases próprios para Luna/Sol. Se o erro
+          // explicita a combinação tools + reasoning, adota a capacidade
+          // informada pelo próprio serviço e repete a chamada.
+          if (pedido.tools.length && /reasoning_effort[\s\S]*none/i.test(texto) && parametros.reasoning_effort !== "none") {
+            parametros.reasoning_effort = "none";
+            continue;
+          }
           // Caso conhecido da OpenAI: os modelos novos trocaram `max_tokens`
           // por `max_completion_tokens`. Renomear preserva o teto que o usuário
           // pediu; descartar o campo o perderia em silêncio.
@@ -389,7 +413,8 @@ export function criarProvedor(o: OpcoesProvedor): Provedor {
         if (!r.ok || !r.body) throw new Error(mensagemDeErro(r.status, await r.text(), servico));
         const acc = new Acumulador();
         for await (const pedaco of lerSSE(r.body)) acc.somar(pedaco, aoTexto);
-        return acc.resposta();
+        const resposta = acc.resposta();
+        return resposta.uso ? { ...resposta, registroUso: criarRegistroUsoChamada(modelo, resposta.uso) } : resposta;
       }
     },
   };

@@ -27,8 +27,10 @@ import type {
   PlanoPrevisto,
   PreviaItem,
   Provedor,
+  RegistroUsoChamada,
   Uso,
 } from "./tipos";
+import { criarRegistroUsoChamada, normalizarUso, somarUso, usoVazio } from "./uso";
 
 export interface OpcoesMotor {
   provedor: Provedor;
@@ -82,7 +84,7 @@ export class ErroMotor extends Error {}
 export class Motor {
   private historico: Mensagem[] = [];
   private controlador: AbortController | null = null;
-  private usoTotal: Uso = { entrada: 0, saida: 0, custo: 0 };
+  private usoTotal: Uso = usoVazio();
   readonly estado: EstadoConversa = { consentimentoRestrito: null, anexos: [] };
 
   constructor(private readonly o: OpcoesMotor) {}
@@ -98,7 +100,7 @@ export class Motor {
   /** Recomeça a conversa (o mapa de pseudônimos é do painel e é trocado junto). */
   limpar(): void {
     this.historico = [];
-    this.usoTotal = { entrada: 0, saida: 0, custo: 0 };
+    this.usoTotal = usoVazio();
     this.estado.consentimentoRestrito = null;
     this.estado.anexos = [];
   }
@@ -114,7 +116,7 @@ export class Motor {
 
   restaurar(historico: Mensagem[], uso?: Uso): void {
     this.historico = historico;
-    if (uso) this.usoTotal = uso;
+    if (uso) this.usoTotal = normalizarUso(uso);
   }
 
   parar(): void {
@@ -144,13 +146,9 @@ export class Motor {
           (d) => this.o.ui.texto(d),
         );
         if (resposta.uso) {
-          this.usoTotal = {
-            entrada: this.usoTotal.entrada + resposta.uso.entrada,
-            saida: this.usoTotal.saida + resposta.uso.saida,
-            custo: this.usoTotal.custo + resposta.uso.custo,
-            cache: (this.usoTotal.cache ?? 0) + (resposta.uso.cache ?? 0),
-          };
-          this.o.ui.uso(this.usoTotal);
+          const registro: RegistroUsoChamada = resposta.registroUso ?? criarRegistroUsoChamada(this.o.provedor.modelo, resposta.uso);
+          this.usoTotal = somarUso(this.usoTotal, registro);
+          this.o.ui.uso(this.usoTotal, registro);
         }
         this.historico.push({ role: "assistant", content: resposta.texto || null, ...(resposta.chamadas.length ? { tool_calls: resposta.chamadas } : {}) });
         if (!resposta.chamadas.length) {
