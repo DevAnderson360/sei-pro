@@ -23,7 +23,7 @@
 import { build } from "esbuild";
 import { cp, mkdir, rm, stat, readdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
@@ -98,7 +98,7 @@ async function copiarAssets() {
     await mkdir(dirname(destino), { recursive: true });
     await cp(origem, destino, {
       recursive: true,
-      filter: (src) => !excluir.some((nome) => src.endsWith(`/${nome}`)),
+      filter: (src) => !excluir.includes(basename(src)),
     });
     const t = await tamanhoDe(destino);
     total += t;
