@@ -44,7 +44,7 @@ verificarHistoricoDoModelo();
 verificarTextoDoDiagnostico();
 verificarCartaoDeFluxo();
 verificarCartaoDaCapa();
-verificarDom();
+await verificarDom();
 verificarPonte();
 await verificarOpFluxoAvaliar();
 verificarDepoisDaEscrita();

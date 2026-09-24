@@ -100,6 +100,101 @@ export function markdown(texto: string): DocumentFragment {
   return frag;
 }
 
+/** O mesmo subconjunto de Markdown exibido no painel, convertido para colagem como texto simples. */
+export function markdownParaTexto(texto: string): string {
+  const emLinha = (valor: string) =>
+    valor
+      .replace(/\*\*([^*\n]+)\*\*/g, "$1")
+      .replace(/`([^`\n]+)`/g, "$1")
+      .replace(/\*([^*\s][^*\n]*)\*/g, "$1");
+  const celulas = (linha: string) => linha.trim().replace(/^\||\|$/g, "").split("|").map((c) => emLinha(c.trim()));
+  const linhas = texto.replace(/\r/g, "").split("\n");
+  const blocos: string[] = [];
+  let i = 0;
+
+  while (i < linhas.length) {
+    const linha = linhas[i];
+    if (!linha.trim()) {
+      i += 1;
+      continue;
+    }
+    const titulo = /^#{1,6}\s+(.*)$/.exec(linha);
+    if (titulo) {
+      blocos.push(emLinha(titulo[1]));
+      i += 1;
+      continue;
+    }
+    if (/^\s*\|.*\|\s*$/.test(linha) && /^\s*\|[\s:|-]+\|\s*$/.test(linhas[i + 1] ?? "")) {
+      const tabela = [celulas(linha).join("\t")];
+      i += 2;
+      while (i < linhas.length && /^\s*\|.*\|\s*$/.test(linhas[i])) {
+        tabela.push(celulas(linhas[i]).join("\t"));
+        i += 1;
+      }
+      blocos.push(tabela.join("\n"));
+      continue;
+    }
+    const item = /^\s*(?:[-*\u2022]|(\d+)[.)])\s+(.*)$/.exec(linha);
+    if (item) {
+      const lista: string[] = [];
+      while (i < linhas.length) {
+        const atual = /^\s*(?:[-*\u2022]|(\d+)[.)])\s+(.*)$/.exec(linhas[i]);
+        if (!atual) break;
+        lista.push(`${atual[1] ? `${atual[1]}.` : "\u2022"} ${emLinha(atual[2])}`);
+        i += 1;
+      }
+      blocos.push(lista.join("\n"));
+      continue;
+    }
+    const paragrafo: string[] = [];
+    while (i < linhas.length && linhas[i].trim() && !/^#{1,6}\s|^\s*(?:[-*\u2022]|\d+[.)])\s|^\s*\|/.test(linhas[i])) {
+      paragrafo.push(emLinha(linhas[i]));
+      i += 1;
+    }
+    blocos.push(paragrafo.join("\n"));
+  }
+
+  return blocos.join("\n\n").trim();
+}
+
+type OpcoesCopia = {
+  clipboard?: { writeText: (texto: string) => Promise<void> } | null;
+  fallback?: (texto: string) => boolean;
+};
+
+/** Fallback para navegadores que não expõem a API assíncrona no painel da extensão. */
+function copiarComCampoTemporario(texto: string): boolean {
+  const foco = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  const campo = document.createElement("textarea");
+  campo.value = texto;
+  campo.setAttribute("readonly", "");
+  campo.style.position = "fixed";
+  campo.style.opacity = "0";
+  document.body.append(campo);
+  campo.select();
+  try {
+    return document.execCommand("copy");
+  } finally {
+    campo.remove();
+    foco?.focus();
+  }
+}
+
+/** Copia texto sob gesto do usuário, tentando a API moderna antes do fallback local. */
+export async function copiarTexto(texto: string, opcoes: OpcoesCopia = {}): Promise<void> {
+  const clipboard = opcoes.clipboard === undefined ? globalThis.navigator?.clipboard : opcoes.clipboard;
+  if (clipboard) {
+    try {
+      await clipboard.writeText(texto);
+      return;
+    } catch {
+      // Permissão ou implementação indisponível: tenta a cópia síncrona abaixo.
+    }
+  }
+  const fallback = opcoes.fallback ?? copiarComCampoTemporario;
+  if (!fallback(texto)) throw new Error("N\u00E3o foi poss\u00EDvel copiar o texto.");
+}
+
 /**
  * O que mostrar no medidor do cabeçalho: o gasto em reais quando há cotação,
  * em dólares quando não há, e em tokens quando o serviço nem informa custo
@@ -163,6 +258,7 @@ const ICONES: Record<string, Forma[]> = {
   lampada: [["path", { d: "M9.5 18h5" }], ["path", { d: "M10.5 21h3" }], ["path", { d: "M12 3a6 6 0 0 0-3.6 10.8c.6.5.9 1.2.9 2V16h5.4v-.2c0-.8.3-1.5.9-2A6 6 0 0 0 12 3z" }]],
   alerta: [["path", { d: "M10.3 4.4 2.8 17.6a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3L13.7 4.4a2 2 0 0 0-3.4 0z" }], ["path", { d: "M12 9.5v4" }], ["circle", { cx: "12", cy: "16.8", r: "1", fill: "currentColor", stroke: "none" }]],
   voltar: [["path", { d: "M9 14 4 9l5-5" }], ["path", { d: "M4 9h9a7 7 0 0 1 7 7v4" }]],
+  copiar: [["rect", { x: "8", y: "8", width: "11", height: "11", rx: "2" }], ["path", { d: "M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" }]],
   lapis: [["path", { d: "M17.5 3.5a2.1 2.1 0 0 1 3 3L9 18l-4.5 1.5L6 15z" }], ["path", { d: "M15 6l3 3" }]],
   olho: [["path", { d: "M2.5 12S6 5.8 12 5.8 21.5 12 21.5 12 18 18.2 12 18.2 2.5 12 2.5 12z" }], ["circle", { cx: "12", cy: "12", r: "2.8" }]],
   olhoCorte: [["path", { d: "M4 4l16 16" }], ["path", { d: "M9.6 6.3A9.6 9.6 0 0 1 12 6c6 0 9.5 6 9.5 6a17 17 0 0 1-2.8 3.5" }], ["path", { d: "M6.4 8.1A16.6 16.6 0 0 0 2.5 12S6 18 12 18c1 0 1.9-.2 2.7-.4" }], ["path", { d: "M9.6 10.3a3 3 0 0 0 4.2 4.2" }]],

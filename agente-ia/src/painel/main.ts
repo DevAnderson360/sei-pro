@@ -20,7 +20,7 @@ import { normalizarUso, somarUso, usoVazio } from "../motor/uso";
 import { PontePainel } from "../ponte/cliente";
 import { toolsMotor } from "../tools/motor";
 import { TOOLS_SEI } from "../tools/sei";
-import { duracao, formatarUso, h, icone, markdown, moeda } from "./dom";
+import { copiarTexto, duracao, formatarUso, h, icone, markdown, markdownParaTexto, moeda } from "./dom";
 import * as historico from "./historico";
 import { cotacaoDolar, type Cotacao } from "./cambio";
 import { sugestoesPara } from "./sugestoes";
@@ -82,12 +82,13 @@ interface Config {
   modeloAuxiliar: string;
 }
 
-type Item =
-  /** `ms` (só na resposta do agente): quanto a rodada inteira demorou, do envio à resposta pronta. */
-  | { tipo: "usuario" | "agente" | "aviso" | "erro" | "decisao"; texto: string; ms?: number }
-  | { tipo: "tool"; rotulo: string; estado: "rodando" | "ok" | "falha"; detalhe?: string; acao?: string; desfeita?: boolean };
-
+/** `ms`: quanto a rodada inteira demorou, do envio à resposta pronta. */
 type ItemAgente = { tipo: "agente"; texto: string; ms?: number };
+
+type Item =
+  | ItemAgente
+  | { tipo: "usuario" | "aviso" | "erro" | "decisao"; texto: string }
+  | { tipo: "tool"; rotulo: string; estado: "rodando" | "ok" | "falha"; detalhe?: string; acao?: string; desfeita?: boolean };
 
 const CHAVE_CONFIG = "agenteIA_config";
 const CHAVE_SESSAO = "agenteIA_conversa";
@@ -2270,7 +2271,7 @@ Voc\u00EA \u00E9 um AUXILIAR: recebeu uma tarefa de leitura de outro agente e n\
     this.ultimaResposta = null;
     if (!resposta || resposta.item.ms) return;
     resposta.item.ms = ms;
-    resposta.el.append(carimboDeTempo(ms));
+    resposta.el.replaceWith(this.desenharResposta(resposta.item));
     this.rolar();
   }
 
@@ -2320,14 +2321,45 @@ Voc\u00EA \u00E9 um AUXILIAR: recebeu uma tarefa de leitura de outro agente e n\
       );
     }
     if (item.tipo === "agente") {
-      const el = h("div", { class: "msg agente" });
-      el.append(markdown(item.texto));
-      if (item.ms) el.append(carimboDeTempo(item.ms));
-      return el;
+      return this.desenharResposta(item);
     }
     if (item.tipo === "aviso" || item.tipo === "decisao") return h("div", { class: "msg aviso" }, icone("alerta", 14), h("span", {}, item.texto));
     if (item.tipo === "erro") return h("div", { class: "msg erro" }, icone("alerta", 14), h("span", {}, item.texto));
     return h("div", { class: "msg usuario" }, item.texto);
+  }
+
+  private desenharResposta(item: ItemAgente): HTMLElement {
+    const copiar = h("button", { class: "icone pequeno copiar-resposta", title: "Copiar resposta", "aria-label": "Copiar resposta" }, icone("copiar", 14));
+    copiar.addEventListener("click", async () => {
+      copiar.disabled = true;
+      let ok = false;
+      try {
+        await copiarTexto(markdownParaTexto(item.texto));
+        ok = true;
+        copiar.classList.add("copiado");
+        copiar.title = "Copiado";
+        copiar.setAttribute("aria-label", "Copiado");
+        copiar.replaceChildren(icone("check", 14), h("span", {}, "Copiado"));
+      } catch {
+        copiar.classList.add("falhou");
+        copiar.title = "N\u00E3o foi poss\u00EDvel copiar";
+        copiar.setAttribute("aria-label", "N\u00E3o foi poss\u00EDvel copiar");
+        copiar.replaceChildren(icone("alerta", 14), h("span", {}, "N\u00E3o foi poss\u00EDvel copiar"));
+      }
+      setTimeout(() => {
+        copiar.classList.remove(ok ? "copiado" : "falhou");
+        copiar.title = "Copiar resposta";
+        copiar.setAttribute("aria-label", "Copiar resposta");
+        copiar.replaceChildren(icone("copiar", 14));
+        copiar.disabled = false;
+      }, 2000);
+    });
+    return h(
+      "div",
+      { class: "msg agente" },
+      h("div", { class: "conteudo-resposta" }, markdown(item.texto)),
+      h("div", { class: "rodape-resposta", "aria-live": "polite" }, item.ms ? carimboDeTempo(item.ms) : null, copiar),
+    );
   }
 
   private redesenhar(): void {
@@ -2416,7 +2448,7 @@ Voc\u00EA \u00E9 um AUXILIAR: recebeu uma tarefa de leitura de outro agente e n\
             // A bolha pode ter fechado entre o agendamento e agora; redesenhar
             // aqui apagaria o que veio depois (o carimbo de tempo, por exemplo).
             if (b.fechada) return;
-            b.el.replaceChildren(markdown(b.texto));
+            b.el.replaceChildren(h("div", { class: "conteudo-resposta" }, markdown(b.texto)));
             this.rolar();
           });
         }
@@ -2473,8 +2505,9 @@ Voc\u00EA \u00E9 um AUXILIAR: recebeu uma tarefa de leitura de outro agente e n\
     if (b.texto.trim()) {
       const item: ItemAgente = { tipo: "agente", texto: b.texto };
       this.transcricao.push(item);
-      b.el.replaceChildren(markdown(b.texto));
-      this.ultimaResposta = { el: b.el, item };
+      const el = this.desenharResposta(item);
+      b.el.replaceWith(el);
+      this.ultimaResposta = { el, item };
     } else b.el.remove();
   }
 
