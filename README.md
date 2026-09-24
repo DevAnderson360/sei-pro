@@ -1,3 +1,22 @@
+# SEI Pro personalizado
+
+[![Validar customização](https://github.com/DevAnderson360/sei-pro/actions/workflows/validar-customizacao.yml/badge.svg?branch=homolog)](https://github.com/DevAnderson360/sei-pro/actions/workflows/validar-customizacao.yml)
+
+Este fork mantém uma versão personalizada do **SEI Pro 2.2**, identificada como
+**2.2.0.1**, com estas customizações no Agente de IA:
+
+- registros detalhados de uso e compatibilidade de `reasoning`;
+- retomada de conversas arquivadas sem nova chamada automática à IA;
+- cópia de respostas em texto limpo, inclusive no histórico.
+
+Consulte o [inventário detalhado das customizações](./docs/customizacao-agente-ia.md)
+e o [guia de manutenção do fork](./docs/manutencao-fork.md).
+
+> **Importante:** os links das lojas apresentados na documentação original
+> abaixo instalam a versão oficial do SEI Pro, não esta edição personalizada.
+
+---
+
 # Bem vindo ao SEI Pro ![SEI Pro](/img/icon-32.png)
 
 **SEI Pro!** adiciona ao [Sistema Eletrônico de Informações (SEI)](https://softwarepublico.gov.br/social/sei) diversas funções avançadas na página inicial e no editor de textos:
