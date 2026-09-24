@@ -1,0 +1,51 @@
+name: Validar customizacao
+
+on:
+  push:
+    branches: [homolog]
+  pull_request:
+    branches: [homolog]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validar:
+    name: ${{ matrix.modulo }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        modulo: [sei-nucleo, ferramentas-pdf, agente-ia]
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # O agente importa codigo-fonte compartilhado das ferramentas de PDF.
+      - name: Instalar dependencia compartilhada do agente
+        if: matrix.modulo == 'agente-ia'
+        working-directory: ferramentas-pdf
+        run: npm install --no-audit --no-fund
+
+      - name: Instalar dependencias
+        working-directory: ${{ matrix.modulo }}
+        run: npm install --no-audit --no-fund
+
+      - name: Verificar tipos
+        working-directory: ${{ matrix.modulo }}
+        run: npm run tipos
+
+      - name: Executar testes
+        working-directory: ${{ matrix.modulo }}
+        run: npm run verificar
+
+      - name: Gerar distribuicao
+        working-directory: ${{ matrix.modulo }}
+        run: npm run build
+
+      - name: Conferir artefatos versionados
+        run: git diff --exit-code -- dist

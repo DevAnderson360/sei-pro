@@ -3,7 +3,8 @@
 ## Estado do projeto encontrado
 
 A auditoria inicial mostrou que o repositorio ja estava alem da extensao antiga
-descrita no levantamento original. A distribuicao atual e a **SEI Pro Lab 2.2**,
+descrita no levantamento original. A distribuicao atual e a **SEI Pro Lab
+2.2.0.1**, baseada na versao oficial 2.2,
 em Manifest V3, e ja possui painel lateral, motor com ferramentas, multiplos
 provedores, historico local de leitura, Estudio de Fluxos, regras, memoria,
 rotinas e ferramentas de PDF.
@@ -71,7 +72,7 @@ calculo financeiro detalhado por categoria ainda nao faz parte desta fase.
 - `agente-ia/tests/verificar-provedor.ts` e
   `agente-ia/tests/verificar-motor.ts`: cobertura do novo comportamento.
 
-## Validacao
+## Validacao original da fase 1A
 
 - `npm run tipos`: aprovado.
 - `npm run verificar`: 531 testes aprovados, 0 falhas.
@@ -95,3 +96,78 @@ calculo financeiro detalhado por categoria ainda nao faz parte desta fase.
 - tabela configuravel de precos e estimativa financeira;
 - controles visuais de reasoning por capacidade do modelo;
 - migracao de Chat Completions para Responses API.
+
+## Fase 1B - retomada de conversas arquivadas
+
+Commit original: `f2f90c3`
+
+### Alteracoes realizadas
+
+- O historico passou a guardar uma versao explicita do estado retomavel da
+  conversa, alem da transcricao de leitura.
+- Conversas compativeis podem ser retomadas com mensagens, uso, pseudonimos e
+  tarefas restaurados.
+- Registros antigos ou incompletos continuam abrindo somente para leitura, sem
+  tentar reconstruir um estado que nao existe.
+- Restaurar ou apenas abrir uma conversa nao chama o provedor de IA.
+- Chamadas de ferramenta interrompidas pelo fechamento do navegador voltam
+  marcadas como falha, em vez de permanecerem eternamente em execucao.
+
+### Arquivos sensiveis
+
+- `agente-ia/src/painel/historico.ts`: versao e validacao do estado salvo.
+- `agente-ia/src/painel/main.ts`: restauracao da conversa e da sessao.
+- `agente-ia/tests/verificar-historico.ts`: compatibilidade e retomada.
+- `ferramentas-pdf/src/lib/ferramentas/pdfjs.ts`: resolucao compartilhada do
+  PDF.js usada pelo build.
+
+## Fase 1C - copia de respostas
+
+Commit original: `eccc518`
+
+### Alteracoes realizadas
+
+- Cada resposta concluida do agente recebe um botao de copiar no rodape.
+- O botao tambem aparece em conversas restauradas do historico.
+- Respostas ainda em streaming nao exibem o botao, para evitar copia parcial.
+- A copia produz texto simples, removendo a marcacao Markdown e preservando
+  paragrafos, listas e tabelas legiveis.
+- A API moderna de clipboard possui fallback local para Chrome e Firefox.
+- O painel informa sucesso ou falha sem incluir controles ou duracao no texto
+  copiado.
+
+### Arquivos sensiveis
+
+- `agente-ia/src/painel/dom.ts`: conversao para texto e acesso ao clipboard.
+- `agente-ia/src/painel/main.ts`: rodape e estado visual da copia.
+- `agente-ia/estatico/agente.css`: apresentacao do rodape.
+- `agente-ia/tests/verificar-dom.ts`: conversao e fallbacks.
+
+## Politica de manutencao
+
+- `master` e um espelho sem customizacoes de `upstream/master`.
+- `homolog` contem a versao personalizada e recebe merges revisados da
+  `master` a cada release oficial.
+- As branches permanentes nunca recebem rebase nem force-push.
+- Conflitos em arquivos gerados de `dist/js` nao sao resolvidos manualmente:
+  primeiro se resolvem os fontes, depois o build regenera a distribuicao.
+- A versao do manifesto usa quatro numeros. Para uma base oficial `X.Y.Z`, as
+  revisoes proprias sao `X.Y.Z.1`, `X.Y.Z.2` e assim por diante. A tag
+  correspondente e `vX.Y.Z-custom.N`.
+
+O procedimento completo esta em [manutencao-fork.md](manutencao-fork.md).
+
+## Validacao atual
+
+- `npm run tipos`: aprovado.
+- `npm run verificar`: 541 testes aprovados, 0 falhas.
+- `npm run build`: aprovado; distribuicao atualizada em `dist/`.
+
+## Testes manuais obrigatorios apos atualizar o upstream
+
+1. Usar GPT-6 Luna em uma pergunta com ferramentas e confirmar um registro de
+   uso por chamada em `chrome.storage.session`.
+2. Guardar uma conversa, recarregar o navegador e retoma-la sem nova chamada
+   automatica ao provedor.
+3. Copiar uma resposta atual e outra arquivada, conferindo que o texto colado
+   nao inclui Markdown, duracao nem controles da interface.
