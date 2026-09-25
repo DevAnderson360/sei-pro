@@ -13,6 +13,7 @@
  */
 
 import { abridorDe, precisaConectar } from "../src/ponte/protocolo";
+import { abaPertenceAoPainel, origemPainelDaUrl } from "../src/ponte/cliente";
 import { checar, secao } from "./util";
 
 export function verificarPonte(): void {
@@ -40,4 +41,16 @@ export function verificarPonte(): void {
   checar("aviso antigo conecta uma vez", precisaConectar(1790202322314, false, antigos));
   antigos.add("1790202322314");
   checar("e o mesmo numero nao reconecta", precisaConectar(1790202322314, true, antigos) === false);
+
+  secao("ponte: origem da janela flutuante");
+  const origem = origemPainelDaUrl("chrome-extension://abc/html/agente.html?origemTabId=123&origemWindowId=456");
+  checar("le aba e janela de origem", origem.aba === 123 && origem.janela === 456);
+  checar("ignora ids invalidos", origemPainelDaUrl("chrome-extension://abc/html/agente.html?origemTabId=x&origemWindowId=-1").aba === null);
+  checar("side panel nao tem origem", origemPainelDaUrl("chrome-extension://abc/html/agente.html").janela === null);
+
+  secao("ponte: abas da janela de trabalho");
+  checar("side panel aceita sua propria janela", abaPertenceAoPainel({ id: 1, janela: 10 }, 10, null, null));
+  checar("popup aceita aba SEI fixada", abaPertenceAoPainel({ id: 123, janela: 456 }, 99, 456, 123));
+  checar("popup aceita editor da janela SEI", abaPertenceAoPainel({ id: 124, janela: 456 }, 99, 456, 123));
+  checar("popup ignora outra janela", abaPertenceAoPainel({ id: 125, janela: 777 }, 99, 456, 123) === false);
 }

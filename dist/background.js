@@ -54,15 +54,46 @@ if(!isChrome && typeof browser.runtime.getBrowserInfo === "function") {
 }
 
 /******************************************************************************
- * Agente de IA: o item "Agente de IA" no menu do SEI (js/init_agente.js) pede
- * para abrir o painel lateral. O clique do usuario e o gesto que o Chrome
- * exige para sidePanel.open; por isso a chamada e feita direto no listener.
+ * Agente de IA: o item no menu do SEI pede ao worker para abrir o modo salvo.
+ * O painel lateral continua sendo o padrao; a janela flutuante recebe a aba e
+ * a janela SEI de origem para manter a ponte mesmo em outro monitor.
  ******************************************************************************/
 browser.runtime.onMessage.addListener(function (msg, sender) {
   if (!msg || msg.tipo !== "abrirAgente" || !sender || !sender.tab) return;
-  if (typeof chrome !== "undefined" && chrome.sidePanel && chrome.sidePanel.open) {
-    chrome.sidePanel.open({ tabId: sender.tab.id }).catch(function (e) { console.log(e); });
-  } else if (browser.sidebarAction && browser.sidebarAction.open) {
-    browser.sidebarAction.open();
+  if (typeof chrome === "undefined" || !chrome.sidePanel || !chrome.sidePanel.open) {
+    if (browser.sidebarAction && browser.sidebarAction.open) browser.sidebarAction.open();
+    return;
   }
+
+  var tabId = sender.tab.id;
+  var windowId = sender.tab.windowId;
+  function abrir(modoJanela) {
+    if (modoJanela !== "flutuante") {
+      chrome.sidePanel.open({ tabId: tabId }).catch(function (e) { console.log(e); });
+      return;
+    }
+    var params = new URLSearchParams({ origemTabId: String(tabId) });
+    if (typeof windowId === "number" && windowId >= 0) params.set("origemWindowId", String(windowId));
+    chrome.windows.create({
+      type: "popup",
+      url: chrome.runtime.getURL("html/agente.html") + "?" + params.toString(),
+      width: 460,
+      height: 760,
+      focused: true
+    }).catch(function (e) { console.log(e); });
+  }
+
+  // O content script acompanha a configuracao para que o caminho comum seja
+  // sincrono e preserve o gesto exigido por sidePanel.open. Mensagens antigas,
+  // que trazem apenas { tipo: "abrirAgente" }, continuam compativeis.
+  if (msg.modoJanela === "painel" || msg.modoJanela === "flutuante") {
+    abrir(msg.modoJanela);
+    return;
+  }
+  chrome.storage.local.get("agenteIA_config").then(function (itens) {
+    abrir((itens.agenteIA_config || {}).modoJanela);
+  }).catch(function (e) {
+    console.log(e);
+    chrome.sidePanel.open({ tabId: tabId }).catch(function (erro) { console.log(erro); });
+  });
 });

@@ -1,5 +1,5 @@
 /**
- * Painel lateral do Agente de IA.
+ * Interface do Agente de IA (painel lateral ou janela flutuante).
  *
  * Guarda a chave do OpenRouter em `chrome.storage.local` (só neste navegador,
  * nunca sincronizada, nunca no mundo da página do SEI) e a conversa em
@@ -54,6 +54,8 @@ import { CHAVE_FLUXOS, comIgnorada, guardarFluxos, guardarIgnorados, listarFluxo
 import type { RespostaFluxo, SugestaoDeFluxo } from "../ponte/operacoes";
 
 interface Config {
+  /** Onde a interface abre no Chrome. Ausente em configuracoes antigas = painel. */
+  modoJanela?: "painel" | "flutuante";
   /** Mostrar o gasto em reais, pela cotação do dia. */
   reais: boolean;
   /** Guardar a transcrição das conversas neste navegador. */
@@ -116,7 +118,7 @@ const PENSANDO = [
 ];
 
 
-/** Marca do agente: o robô do SEI Pro, o mesmo ícone que abre o painel no SEI. */
+/** Marca do agente: o robô do SEI Pro, o mesmo ícone que abre o agente no SEI. */
 const marca = (tamanho: number) =>
   h("img", { class: "logo", src: chrome.runtime.getURL("icons/menu/botpro_icon.svg"), alt: "", width: String(tamanho), height: String(tamanho) });
 
@@ -157,7 +159,7 @@ function ajudaDoServico(svc: Servico): Node[] {
 class App {
   private readonly raiz = document.getElementById("app")!;
   private readonly ponte = new PontePainel();
-  private config: Config = { reais: true, guardar: true, dias: 30, servico: "openrouter", url: "", chave: "", modelo: MODELO_PADRAO, nomes: true, cnpj: false, ajustes: {}, instrucoes: "", limites: SEM_LIMITE, cache: true, memoria: true, modeloAuxiliar: "" };
+  private config: Config = { modoJanela: "painel", reais: true, guardar: true, dias: 30, servico: "openrouter", url: "", chave: "", modelo: MODELO_PADRAO, nomes: true, cnpj: false, ajustes: {}, instrucoes: "", limites: SEM_LIMITE, cache: true, memoria: true, modeloAuxiliar: "" };
   private privacidade = new Pseudonimos();
   private motor: Motor | null = null;
   private transcricao: Item[] = [];
@@ -808,6 +810,12 @@ class App {
     const modeloAux = h("select", { "aria-label": "Modelo das tarefas auxiliares" }, h("option", { value: "" }, "O mesmo da conversa"));
     const modeloAuxLivre = h("input", { type: "text", placeholder: "o mesmo da conversa", value: this.config.modeloAuxiliar, spellcheck: "false", "aria-label": "Modelo das tarefas auxiliares" });
     const modeloLivre = h("input", { type: "text", placeholder: "nome do modelo no servi\u00E7o", value: this.config.modelo, list: "modelosCompativeis", spellcheck: "false", "aria-label": "Modelo" });
+    const modoJanela = h(
+      "select",
+      { "aria-label": "Onde abrir o agente" },
+      h("option", { value: "painel", ...(this.config.modoJanela !== "flutuante" ? { selected: true } : {}) }, "Painel lateral do Chrome"),
+      h("option", { value: "flutuante", ...(this.config.modoJanela === "flutuante" ? { selected: true } : {}) }, "Janela flutuante"),
+    );
     const listaModelos = h("datalist", { id: "modelosCompativeis" });
     const buscar = h("button", { title: "Buscar a lista de modelos do servi\u00E7o" }, "Atualizar");
     const ajudaModelo = h("div", { class: "ajuda" });
@@ -1372,6 +1380,7 @@ class App {
      */
     const resumos = {
       ia: h("small", {}),
+      interface: h("small", {}),
       sabe: h("small", {}),
       pode: h("small", {}),
       gasto: h("small", {}),
@@ -1395,6 +1404,7 @@ class App {
       const svc = SERVICOS[(servico.value as Servico) ?? this.config.servico];
       const nomeModelo = ((servico.value as Servico) === "compativel" ? modeloLivre.value : modelo.value) || this.config.modelo;
       resumos.ia.textContent = `${svc.nome.replace(/ \(.*\)$/, "")} \u00B7 ${nomeModelo || "sem modelo"}`;
+      resumos.interface.textContent = modoJanela.value === "flutuante" ? "janela flutuante" : "painel lateral";
       const colecoes = this.colecoes.length ? `, ${qtd2(this.colecoes.length, "cole\u00E7\u00E3o", "cole\u00E7\u00F5es")}` : "";
       resumos.sabe.textContent = `${qtd2(this.skills.length, "skill", "skills")}${colecoes} \u00B7 mem\u00F3ria ${usarMemoria.checked ? `com ${qtd2(this.memoria.length, "lembran\u00E7a", "lembran\u00E7as")}` : "desligada"}`;
       const ativas = this.regras.filter((r) => r.ativa).length;
@@ -1408,7 +1418,7 @@ class App {
       resumos.conversas.textContent = `${guardar.checked ? `guarda ${dias.value === "0" ? "sem limite" : `${dias.value} dias`}` : "n\u00E3o guarda"} \u00B7 ${ativa ? qtd2(ativa, "rotina", "rotinas") : "sem rotina"}`;
     };
     atualizarResumos();
-    for (const el of [servico, modelo, modeloLivre, nomes, cnpj, usarCache, usarMemoria, guardar, dias, limiteConversa, limiteDia])
+    for (const el of [servico, modelo, modeloLivre, modoJanela, nomes, cnpj, usarCache, usarMemoria, guardar, dias, limiteConversa, limiteDia])
       el.addEventListener("change", atualizarResumos);
 
     const salvar = h("button", { class: "primario" }, obrigatorio ? "Salvar e come\u00E7ar" : "Salvar");
@@ -1450,6 +1460,17 @@ class App {
             ),
           ),
           controleDoModelo,
+        ),
+        grupo(
+          "Interface",
+          resumos.interface,
+          h(
+            "div",
+            { class: "campo" },
+            h("label", {}, "Onde abrir o agente"),
+            modoJanela,
+            h("div", { class: "ajuda" }, "A janela flutuante pode ser movida para outro monitor e continua ligada ao SEI que a abriu."),
+          ),
         ),
         grupo("O que o agente sabe", resumos.sabe, secaoSkills, secaoMemoria, campoInstrucoes),
         grupo(
@@ -1503,7 +1524,7 @@ class App {
           h(
             "div",
             { class: "campo" },
-            h("label", { class: "linha-switch" }, guardar, h("span", {}, "Guardar as conversas neste navegador", h("small", {}, "Para continuar, reler e exportar depois, pelo rel\u00F3gio no topo do painel."))),
+            h("label", { class: "linha-switch" }, guardar, h("span", {}, "Guardar as conversas neste navegador", h("small", {}, "Para continuar, reler e exportar depois, pelo rel\u00F3gio no topo do agente."))),
             h("div", { class: "com-botao" }, h("span", { class: "ajuda" }, "Apagar depois de"), dias),
             h(
               "div",
@@ -1577,7 +1598,10 @@ class App {
         const r = await conferirChave({ chave: k, servico: svc, url: endereco }).catch(() => ({ ok: false }));
         if (!r.ok) return erro(catalogo ? "A chave n\u00E3o foi aceita pelo OpenRouter." : `O ${SERVICOS[svc].nome.replace(/ \(.*\)$/, "")} n\u00E3o aceitou a chave${comp ? " (ou o endere\u00E7o est\u00E1 errado)" : ""}.`);
       }
+      const modoAnterior = this.config.modoJanela ?? "painel";
+      const novoModo = modoJanela.value as "painel" | "flutuante";
       await this.aplicarConfig({
+        modoJanela: novoModo,
         reais: emReais.checked,
         guardar: guardar.checked,
         dias: Number(dias.value),
@@ -1595,6 +1619,26 @@ class App {
         modeloAuxiliar: (comp ? modeloAuxLivre.value : modeloAux.value).trim(),
       });
       dlg.close();
+      if (novoModo !== modoAnterior) {
+        const confirmar = h("button", { class: "primario" }, "Entendi");
+        const aviso = this.abrirModal({
+          titulo: "Modo de abertura alterado",
+          corpo: [
+            h(
+              "div",
+              { class: "nota atencao" },
+              icone("alerta", 15),
+              h(
+                "span",
+                {},
+                `A prefer\u00EAncia foi alterada para ${novoModo === "flutuante" ? "Janela flutuante" : "Painel lateral do Chrome"}. Feche esta interface e abra novamente o Agente de IA pelo SEI para usar o novo modo.`,
+              ),
+            ),
+          ],
+          acoes: [confirmar],
+        });
+        confirmar.addEventListener("click", () => aviso.close());
+      }
     });
     ajustarServico();
     void carregarModelos(false);

@@ -22,6 +22,35 @@ export interface AbaSei {
   porta: chrome.runtime.Port;
 }
 
+export interface OrigemPainel {
+  aba: number | null;
+  janela: number | null;
+}
+
+/** Origem informada pelo service worker quando o agente abre como popup. */
+export function origemPainelDaUrl(url: string): OrigemPainel {
+  const id = (valor: string | null): number | null => {
+    const n = Number(valor);
+    return valor !== null && Number.isInteger(n) && n > 0 ? n : null;
+  };
+  try {
+    const params = new URL(url).searchParams;
+    return { aba: id(params.get("origemTabId")), janela: id(params.get("origemWindowId")) };
+  } catch {
+    return { aba: null, janela: null };
+  }
+}
+
+/** Decide quais conexoes pertencem a esta instancia do agente. */
+export function abaPertenceAoPainel(
+  aba: Pick<AbaSei, "id" | "janela">,
+  janelaPainel: number,
+  janelaOrigem: number | null,
+  abaFixada: number | null,
+): boolean {
+  return janelaPainel < 0 || aba.janela === janelaPainel || aba.janela === janelaOrigem || aba.id === abaFixada;
+}
+
 export class ErroPonte extends Error {
   constructor(
     readonly codigo: string,
@@ -36,6 +65,7 @@ export class PontePainel {
   private readonly abas = new Map<number, AbaSei>();
   private readonly pendentes = new Map<string, { ok: (v: unknown) => void; erro: (e: Error) => void; aba: AbaSei }>();
   private janela = -1;
+  private janelaOrigem: number | null = null;
   /**
    * Id desta INSTÂNCIA de página. O painel e o Estúdio de Fluxo são páginas
    * diferentes da mesma extensão, e a aba do SEI precisa saber que apareceu
@@ -46,6 +76,9 @@ export class PontePainel {
   private ouvintes: Array<() => void> = [];
 
   async iniciar(): Promise<void> {
+    const origem = origemPainelDaUrl(location.href);
+    this.janelaOrigem = origem.janela;
+    this.fixada = origem.aba;
     try {
       this.janela = (await chrome.windows.getCurrent()).id ?? -1;
     } catch {
@@ -106,7 +139,7 @@ export class PontePainel {
   }
 
   lista(): AbaSei[] {
-    return [...this.abas.values()].filter((a) => this.janela < 0 || a.janela === this.janela || this.fixada === a.id);
+    return [...this.abas.values()].filter((a) => abaPertenceAoPainel(a, this.janela, this.janelaOrigem, this.fixada));
   }
 
   fixar(id: number | null): void {
@@ -137,7 +170,7 @@ export class PontePainel {
       return Promise.reject(
         doEditor
           ? new ErroPonte("SEI_SEM_EDITOR", `Nenhuma janela de editor ${args.numero ? `do documento ${args.numero} ` : ""}aberta. Pe\u00E7a ao usu\u00E1rio para abrir o documento no editor (ou use documento_editar, que grava sem abrir).`)
-          : new ErroPonte("SEI_SEM_ABA", "Nenhuma aba do SEI conectada. Abra o SEI nesta janela (ou recarregue a p\u00E1gina do SEI)."),
+          : new ErroPonte("SEI_SEM_ABA", "Nenhuma aba do SEI conectada. Abra ou recarregue a p\u00E1gina do SEI usada para abrir o agente."),
       );
     }
     const id = crypto.randomUUID();

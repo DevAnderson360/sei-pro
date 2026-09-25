@@ -26,6 +26,21 @@ declare global {
   }
 }
 
+type ModoJanela = "painel" | "flutuante";
+let modoJanela: ModoJanela = "painel";
+
+/** Mantem o clique sincronizado para preservar o gesto exigido pelo Side Panel. */
+function acompanharModoJanela(): void {
+  const atualizar = (config: unknown) => {
+    const modo = (config as { modoJanela?: unknown } | undefined)?.modoJanela;
+    modoJanela = modo === "flutuante" ? "flutuante" : "painel";
+  };
+  void chrome.storage.local.get("agenteIA_config").then((itens) => atualizar(itens.agenteIA_config)).catch(() => undefined);
+  chrome.storage.onChanged.addListener((mudancas, area) => {
+    if (area === "local" && mudancas.agenteIA_config) atualizar(mudancas.agenteIA_config.newValue);
+  });
+}
+
 /**
  * Assinatura do que está na tela, só com leituras baratas de DOM: a tela
  * inteira (`lerTela`) custa caro para ficar mandando a cada apresentação.
@@ -169,15 +184,14 @@ function abrirCanal(
 }
 
 /**
- * Abre o painel. Chrome: o service worker chama sidePanel.open (o clique do
- * usuário é o gesto exigido). Firefox (sem service worker): abre a página do
- * painel numa aba.
+ * Abre o agente. No Chrome, o service worker escolhe entre o Side Panel e a
+ * janela flutuante configurada. No Firefox, abre a página do agente numa aba.
  */
 function abrirPainel(): void {
-  chrome.runtime.sendMessage({ tipo: "abrirAgente" }).catch(() => window.open(chrome.runtime.getURL("html/agente.html"), "seiProAgente"));
+  chrome.runtime.sendMessage({ tipo: "abrirAgente", modoJanela }).catch(() => window.open(chrome.runtime.getURL("html/agente.html"), "seiProAgente"));
 }
 
-/** O legado (ícone da barra do processo, botão do editor) pede o painel por postMessage. */
+/** O legado (ícone da barra do processo, botão do editor) pede o agente por postMessage. */
 function escutarPedidoDeAbertura(): void {
   window.addEventListener("message", (ev: MessageEvent) => {
     const m = ev.data as { __seiProAgente?: string } | null;
@@ -187,6 +201,7 @@ function escutarPedidoDeAbertura(): void {
 
 function iniciar(): void {
   if (window.top !== window || window.__seiProAgente) return;
+  acompanharModoJanela();
   if (/[?&]acao=editor_montar\b/.test(location.search)) {
     window.__seiProAgente = true;
     escutarPedidoDeAbertura();
@@ -258,7 +273,7 @@ function iniciarEditor(): void {
   });
 }
 
-/** Item "Agente de IA" no menu do SEI; o clique pede ao service worker que abra o painel. */
+/** Item "Agente de IA" no menu do SEI; o clique pede sua abertura ao service worker. */
 function instalarEntradaNoMenu(): void {
   // Mesmo lugar em que o legado põe os itens do SEI Pro (`idMenu` em sei-functions-pro.js):
   // a lista de primeiro nível do menu lateral (SEI 4/5) ou da área esquerda (SEI 3).
@@ -273,13 +288,13 @@ function instalarEntradaNoMenu(): void {
   a.id = "seiProAgenteMenu";
   a.href = "#";
   a.className = "newLinksMenuPro";
-  a.title = "Abrir o Agente de IA do SEI Pro no painel lateral";
+  a.title = "Abrir o Agente de IA do SEI Pro";
   rotulo.textContent = "Agente de IA";
   a.append(rotulo);
   // Firefox (manifest v2, sem service worker): o item é um link comum para a
-  // página do painel (web_accessible_resource) — o Firefox recusa window.open
+  // página do agente (web_accessible_resource) — o Firefox recusa window.open
   // de endereço da extensão feito pelo content script. Chrome: o service
-  // worker abre o painel lateral, e o clique precisa ser o gesto do usuário.
+  // worker abre o modo configurado, e o clique precisa ser o gesto do usuário.
   const painel = chrome.runtime.getURL("html/agente.html");
   if (painel.startsWith("moz-extension://")) {
     a.href = painel;
