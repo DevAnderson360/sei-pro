@@ -16,6 +16,9 @@
  * dois links, que produzia hash inválido e encerrava a sessão).
  */
 
+import { ErroSei } from "../sessao/erros";
+import type { Pagina } from "../sessao/http";
+
 const RE_LINK = /controlador(?:_ajax)?\.php\?acao=[^"'\s<>\\]*?infra_hash=[0-9a-f]{64,192}/g;
 
 /** Todos os links assinados de um HTML (em atributos, scripts ou texto), sem repetição. */
@@ -60,4 +63,22 @@ export function linkDaAcao(
 /** Remove `infra_hash` e ids de sessão de um texto que vai sair do SEI (para o modelo, para log). */
 export function semAssinaturas(texto: string): string {
   return texto.replace(/(controlador(?:_ajax)?\.php\?)[^\s"'<>]*/g, "$1\u2026").replace(/infra_hash=[0-9a-f]+/g, "infra_hash=\u2026");
+}
+
+/**
+ * Link assinado de um item do menu principal (ex.: `procedimento_controlar`), colhido da tela `base`
+ * (uma tela com o menu). Procura primeiro no menu: a mesma ação aparece em outros lugares da tela com
+ * parâmetros extras (ex.: `procedimento_controlar&tipo_filtro=M` é a caixa filtrada por marcador, e
+ * usá-la mudaria a visão do usuário). Fora do `Sei` para quem só precisa do menu (o armazém de Texto
+ * Padrão no content script dos Projetos, sem levar a árvore do processo para o pacote).
+ */
+export function linkDoMenu(base: Pick<Pagina, "doc" | "html">, acao: string): string {
+  const menu = [...base.doc.querySelectorAll("#infraMenu a[href], #main-menu a[href], .infraMenu a[href]")]
+    .map((a) => a.getAttribute("href") ?? "")
+    .join("\n");
+  const candidatos = linksAssinados(menu).filter((l) => parametros(l).get("acao") === acao);
+  const todos = candidatos.length ? candidatos : linksAssinados(base.html).filter((l) => parametros(l).get("acao") === acao);
+  const l = todos.sort((a, b) => [...parametros(a).keys()].length - [...parametros(b).keys()].length)[0];
+  if (!l) throw new ErroSei("SEI_ACAO_INDISPONIVEL", `O menu do SEI não oferece "${acao}" para este usuário.`);
+  return l;
 }

@@ -18,7 +18,7 @@
  * `responseURL`, e os `replace` do cabeçalho `<?xml ... iso-8859-1?>`.
  */
 
-import { codificarLatin1, decodificarLatin1, TIPO_FORMULARIO, type ModoLatin1 } from "./codificacao";
+import { codificarLatin1, codificarUtf8, decodificarLatin1, TIPO_FORMULARIO, TIPO_FORMULARIO_AJAX, type ModoLatin1 } from "./codificacao";
 import { analisarHtml, textoDe } from "./dom";
 import { comoErroSei, ErroSei } from "./erros";
 
@@ -40,6 +40,11 @@ export interface OpcoesHttp {
    * mensagem da operação anterior e para quem quer ler a mensagem sozinho.
    */
   aceitarValidacao?: boolean;
+  /**
+   * Corpo do POST em UTF-8 (como o `infraAjaxPost`), para o `controlador_ajax.php`, que decodifica o POST de
+   * UTF-8. Sem ele, o corpo vai em ISO-8859-1, como os formulários do `controlador.php` esperam.
+   */
+  utf8?: boolean;
 }
 
 export interface Http {
@@ -162,7 +167,9 @@ export function criarHttp(base: string | URL, deps: DependenciasHttp = {}): Http
     enviar: (url, campos, op = {}) =>
       requisitar(
         url,
-        { method: "POST", headers: { "Content-Type": TIPO_FORMULARIO }, body: codificarLatin1(campos, op.modos) },
+        op.utf8
+          ? { method: "POST", headers: { "Content-Type": TIPO_FORMULARIO_AJAX }, body: codificarUtf8(campos) }
+          : { method: "POST", headers: { "Content-Type": TIPO_FORMULARIO }, body: codificarLatin1(campos, op.modos) },
         op,
       ),
   };

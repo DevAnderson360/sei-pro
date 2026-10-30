@@ -5,6 +5,7 @@ ABRIRLINKS: unlink
 ACOESEMLOTE: list-checks
 AGRUPAR: kanban
 ALINHARTEXTO: align-left
+ANOTACAOCONTROLE: sticky-note
 AUMENTARFONTE: a-large-small
 AUTOPREENCHERSENHA: key-round
 BAIXARDOCUMENTO: download
@@ -21,6 +22,7 @@ COPIARFORMATACAO: paintbrush
 CORESMARCADORES: palette
 DADOSPROCESSO: braces
 DEBUGPAGE: bug
+DEMANDAS: list-checks
 DESATIVACONSULTAS: toggle-left
 DESATIVARFUNCOES: sliders-horizontal
 DITADO: mic
@@ -35,10 +37,11 @@ ESCRITAINTERATIVA: at-sign
 ESPECIFICACAOPROCESSO: spro-coluna
 ESTILOAVANCADO: sun-moon
 ESTILOTABELA: table-properties
-FAVORITOS: star
+FAVORITOS: spro-alvo
 AGENTEIA: bot
 FERRAMENTASPDF: file-cog
 FLUXOS: workflow
+GRADECONTROLE: table-properties
 HASHCODE: fingerprint
 HISTORICO: history
 HISTORICOPROC: history
@@ -99,3 +102,4 @@ URGENTE: siren
 URLAMIGAVEL: globe
 VALDEFAULT: wand-sparkles
 VISUALIZARZIP: file-archive
+PESQUISARAPIDA: search

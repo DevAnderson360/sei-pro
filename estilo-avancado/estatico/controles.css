@@ -1,0 +1,413 @@
+/*
+ * Tabelas e botões do SEI e do SEI Pro no vocabulário dos painéis refatorados (Favoritos, Projetos,
+ * Demandas): as medidas, os raios e os estados de .spro-botao (sei-comum/src/ui/base.css) e de
+ * .dem-tabela (demandas.css), só que sobre os elementos nativos. Só var(--spro-*): nenhuma cor
+ * literal e nenhum !important aqui. Vem depois da base e da casca, então ganha dela no empate.
+ */
+
+/* ---------- Botões nativos (infraButton) ---------- */
+:root[data-spro-tema-ativo] input.infraButton,
+:root[data-spro-tema-ativo] button.infraButton,
+:root[data-spro-tema-ativo] a.infraAnchorButton {
+  min-height: 36px;
+  padding: 0 18px;
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: 0.1px;
+  line-height: 1.2;
+  color: var(--spro-texto);
+  background-color: var(--spro-fundo);
+  border: 1px solid var(--spro-borda-forte);
+  border-radius: 10px;
+  box-shadow: var(--spro-sombra-1);
+  cursor: pointer;
+  transition:
+    background-color var(--spro-dur) var(--spro-curva),
+    border-color var(--spro-dur) var(--spro-curva),
+    box-shadow var(--spro-dur) var(--spro-curva),
+    transform var(--spro-dur) var(--spro-curva),
+    color var(--spro-dur);
+}
+:root[data-spro-tema-ativo] input.infraButton:hover,
+:root[data-spro-tema-ativo] button.infraButton:hover,
+:root[data-spro-tema-ativo] a.infraAnchorButton:hover {
+  color: var(--spro-texto);
+  background-color: var(--spro-fundo-2);
+  border-color: color-mix(in srgb, var(--spro-destaque) 45%, var(--spro-borda-forte));
+  box-shadow: var(--spro-sombra-2);
+  transform: translateY(-1px);
+}
+:root[data-spro-tema-ativo] input.infraButton:active,
+:root[data-spro-tema-ativo] button.infraButton:active,
+:root[data-spro-tema-ativo] a.infraAnchorButton:active {
+  background-color: var(--spro-fundo-3);
+  box-shadow: none;
+  transform: translateY(0);
+}
+:root[data-spro-tema-ativo] input.infraButton:focus-visible,
+:root[data-spro-tema-ativo] button.infraButton:focus-visible,
+:root[data-spro-tema-ativo] a.infraAnchorButton:focus-visible {
+  outline: none;
+  box-shadow: var(--spro-anel);
+}
+/* O botão que envia o formulário (Salvar, Pesquisar...) é o primário: gradiente, brilho interno e halo na cor de destaque */
+:root[data-spro-tema-ativo] input[type="submit"].infraButton,
+:root[data-spro-tema-ativo] button[type="submit"].infraButton {
+  color: var(--spro-destaque-texto);
+  background-color: var(--spro-destaque);
+  background-image: linear-gradient(180deg, color-mix(in srgb, var(--spro-destaque-texto) 16%, transparent), transparent 60%);
+  border-color: transparent;
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--spro-destaque-texto) 28%, transparent),
+    0 6px 14px -6px color-mix(in srgb, var(--spro-destaque) 70%, transparent);
+}
+:root[data-spro-tema-ativo] input[type="submit"].infraButton:hover,
+:root[data-spro-tema-ativo] button[type="submit"].infraButton:hover {
+  color: var(--spro-destaque-texto);
+  background-color: color-mix(in srgb, var(--spro-destaque) 90%, var(--spro-texto));
+  border-color: transparent;
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--spro-destaque-texto) 28%, transparent),
+    0 10px 20px -8px color-mix(in srgb, var(--spro-destaque) 80%, transparent);
+}
+:root[data-spro-tema-ativo] input.infraButton:disabled,
+:root[data-spro-tema-ativo] button.infraButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ---------- Grupo de botões da tabela (Baixar, Copiar, Pesquisar) e botões dos diálogos do SEI Pro ---------- */
+:root[data-spro-tema-ativo] .btn-group.filterIfraTable .btn,
+:root[data-spro-tema-ativo] .ui-dialog .ui-dialog-buttonpane button {
+  min-height: 34px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--spro-texto);
+  background-color: var(--spro-fundo);
+  border: 1px solid var(--spro-borda-forte);
+  box-shadow: var(--spro-sombra-1);
+  transition:
+    background-color var(--spro-dur),
+    border-color var(--spro-dur);
+}
+:root[data-spro-tema-ativo] .ui-dialog .ui-dialog-buttonpane button {
+  border-radius: 10px;
+  padding: 0 16px;
+  cursor: pointer;
+}
+:root[data-spro-tema-ativo] .btn-group.filterIfraTable .btn:hover,
+:root[data-spro-tema-ativo] .ui-dialog .ui-dialog-buttonpane button:hover {
+  background-color: var(--spro-fundo-2);
+  border-color: color-mix(in srgb, var(--spro-borda-forte) 60%, var(--spro-texto));
+}
+:root[data-spro-tema-ativo] .btn-group.filterIfraTable .btn:focus-visible,
+:root[data-spro-tema-ativo] .ui-dialog .ui-dialog-buttonpane button:focus-visible {
+  outline: none;
+  box-shadow: var(--spro-anel);
+}
+:root[data-spro-tema-ativo] .btn-group.filterIfraTable .btn:first-child {
+  border-radius: var(--spro-raio) 0 0 var(--spro-raio);
+}
+:root[data-spro-tema-ativo] .btn-group.filterIfraTable .btn:last-child {
+  border-radius: 0 var(--spro-raio) var(--spro-raio) 0;
+}
+
+/* ---------- Tabelas (infraTable): a caixa, o cabeçalho e as linhas como em .dem-tabela ---------- */
+:root[data-spro-tema-ativo] table.infraTable {
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid var(--spro-borda);
+  border-radius: var(--spro-raio-g);
+}
+/* Os cantos são das células das pontas (overflow: hidden cortaria o grupo de botões que mora na legenda da tabela) */
+:root[data-spro-tema-ativo] table.infraTable > thead > tr:first-child > th:first-child {
+  border-top-left-radius: calc(var(--spro-raio-g) - 1px);
+}
+:root[data-spro-tema-ativo] table.infraTable > thead > tr:first-child > th:last-child {
+  border-top-right-radius: calc(var(--spro-raio-g) - 1px);
+}
+:root[data-spro-tema-ativo] table.infraTable > tbody > tr:last-child > td:first-child {
+  border-bottom-left-radius: calc(var(--spro-raio-g) - 1px);
+}
+:root[data-spro-tema-ativo] table.infraTable > tbody > tr:last-child > td:last-child {
+  border-bottom-right-radius: calc(var(--spro-raio-g) - 1px);
+}
+:root[data-spro-tema-ativo] table.infraTable thead tr,
+:root[data-spro-tema-ativo] table.infraTable tr > th.infraTh,
+:root[data-spro-tema-ativo] th.infraTh {
+  padding: 8px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--spro-suave);
+  background-color: var(--spro-fundo-2);
+  border-top: 0;
+  border-bottom: 1px solid var(--spro-borda);
+}
+:root[data-spro-tema-ativo] th.infraTh a,
+:root[data-spro-tema-ativo] th.infraTh span {
+  color: inherit;
+}
+:root[data-spro-tema-ativo] th.infraTh div.tablesorter-header-inner,
+:root[data-spro-tema-ativo] th.infraTh div.infraDivRotuloOrdenacao,
+:root[data-spro-tema-ativo] th.infraTh div.infraDivThCheckRotulo {
+  color: inherit;
+}
+:root[data-spro-tema-ativo] table.infraTable td {
+  padding: 8px 10px;
+  border-top: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--spro-borda) 60%, transparent);
+}
+:root[data-spro-tema-ativo] table.infraTable tr:last-child > td {
+  border-bottom: 0;
+}
+/* Sem zebra, como nos painéis */
+:root[data-spro-tema-ativo] tr.infraTrClara,
+:root[data-spro-tema-ativo] td.infraTdClara,
+:root[data-spro-tema-ativo] tr.infraTrEscura,
+:root[data-spro-tema-ativo] td.infraTdEscura {
+  background-color: var(--spro-fundo);
+}
+:root[data-spro-tema-ativo] tr.infraTrClara:hover,
+:root[data-spro-tema-ativo] tr.infraTrEscura:hover {
+  background-color: var(--spro-destaque-suave);
+}
+
+/* ---------- Campos e formulários ---------- */
+:root[data-spro-tema-ativo] input.infraText,
+:root[data-spro-tema-ativo] select.infraSelect,
+:root[data-spro-tema-ativo] input[type="text"],
+:root[data-spro-tema-ativo] input[type="password"],
+:root[data-spro-tema-ativo] input[type="search"],
+:root[data-spro-tema-ativo] input[type="date"],
+:root[data-spro-tema-ativo] input[type="number"],
+:root[data-spro-tema-ativo] select {
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 10px;
+  transition:
+    border-color var(--spro-dur),
+    box-shadow var(--spro-dur);
+}
+:root[data-spro-tema-ativo] textarea.infraTextarea,
+:root[data-spro-tema-ativo] textarea {
+  padding: 10px 12px;
+  border-radius: 10px;
+}
+:root[data-spro-tema-ativo] label.infraLabelObrigatorio,
+:root[data-spro-tema-ativo] label.infraLabelOpcional {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.1px;
+  color: var(--spro-suave);
+}
+/* Respiro entre rótulo e campo, e entre um campo e o rótulo seguinte (nas telas internas eles vinham colados) */
+:root[data-spro-tema-ativo] label.infraLabelObrigatorio:has(+ :is(input, select, textarea, .chosen-container, div.infraAreaDados)),
+:root[data-spro-tema-ativo] label.infraLabelOpcional:has(+ :is(input, select, textarea, .chosen-container, div.infraAreaDados)) {
+  display: inline-block;
+  margin-bottom: 6px;
+}
+:root[data-spro-tema-ativo] :is(input.infraText, select.infraSelect, textarea.infraTextarea, .chosen-container):has(+ label) {
+  margin-bottom: 16px;
+}
+
+/* Quadros de formulário viram cartões; a legenda vira uma etiqueta pequena */
+:root[data-spro-tema-ativo] fieldset.infraFieldset {
+  padding: 16px 18px 14px;
+  border: 1px solid var(--spro-borda);
+  border-radius: var(--spro-raio-g);
+  box-shadow: var(--spro-sombra-1);
+}
+:root[data-spro-tema-ativo] legend.infraLegend {
+  padding: 3px 12px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  border-radius: 999px;
+}
+:root[data-spro-tema-ativo] input[type="checkbox"],
+:root[data-spro-tema-ativo] input[type="radio"] {
+  accent-color: var(--spro-destaque);
+}
+
+/* ---------- Diálogos (jQuery UI e do SEI Pro) ---------- */
+:root[data-spro-tema-ativo] .ui-dialog {
+  border-radius: 16px;
+  box-shadow: var(--spro-sombra-3);
+  overflow: hidden;
+}
+:root[data-spro-tema-ativo] .ui-dialog .ui-dialog-titlebar {
+  padding: 14px 18px;
+  font-size: 15px;
+  font-weight: 650;
+  background-color: var(--spro-fundo);
+  border: 0;
+  border-bottom: 1px solid var(--spro-borda);
+  border-radius: 0;
+}
+:root[data-spro-tema-ativo] .ui-dialog .ui-dialog-buttonpane {
+  padding: 12px 18px;
+  background-color: var(--spro-fundo-2);
+  border-top: 1px solid var(--spro-borda);
+}
+:root[data-spro-tema-ativo] .ui-widget-overlay {
+  backdrop-filter: blur(3px);
+}
+
+/* ---------- Seleção de texto e barras de rolagem ---------- */
+:root[data-spro-tema-ativo] ::selection {
+  background-color: var(--spro-destaque-medio);
+}
+:root[data-spro-tema-ativo] ::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+:root[data-spro-tema-ativo] ::-webkit-scrollbar-thumb {
+  background-color: var(--spro-borda-forte);
+  background-clip: padding-box;
+  border: 3px solid transparent;
+  border-radius: 999px;
+}
+:root[data-spro-tema-ativo] ::-webkit-scrollbar-thumb:hover {
+  background-color: var(--spro-fraco);
+}
+:root[data-spro-tema-ativo] ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ---------- O documento como papel (só nas telas de leitura) ---------- */
+:root[data-spro-tema-ativo][data-spro-papel] {
+  background-color: var(--spro-pagina);
+}
+:root[data-spro-tema-ativo][data-spro-papel] body {
+  box-sizing: border-box;
+  max-width: 940px;
+  margin: 52px auto 28px;
+  padding: 40px 56px;
+  background-color: var(--spro-fundo);
+  border: 1px solid var(--spro-borda);
+  border-radius: var(--spro-raio-g);
+  box-shadow: var(--spro-sombra-2);
+}
+
+/* ---------- Visualização do documento: uma caixa só (o papel), e a largura escolhida ---------- */
+/* A tela de fora (arvore_visualizar) tinha um cartão branco com sombra em volta do iframe, e o papel de dentro
+   outro: ficam só o papel (estreito) ou o documento em toda a largura. */
+:root[data-spro-tema-ativo] #divArvoreConteudoIfr {
+  padding: 0;
+  background-color: transparent;
+  border-radius: 0;
+  box-shadow: none;
+}
+:root[data-spro-tema-ativo] #divArvoreConteudoIfr iframe.ifrVisualizacao {
+  background-color: transparent;
+}
+:root[data-spro-tema-ativo][data-spro-papel][data-spro-papel-largo] body {
+  max-width: none;
+  margin: 52px 16px 16px;
+}
+/* Grupo de botões no canto do documento: o de largura e os do SEI Pro, no mesmo estilo (aba presa ao papel) */
+:root[data-spro-tema-ativo] div.spro-doc-acoes {
+  position: absolute;
+  z-index: 2;
+  right: 28px;
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  margin-top: 10px;
+}
+:root[data-spro-tema-ativo] .spro-doc-acao {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  min-width: 0;
+  border: 1px solid var(--spro-borda);
+  font: 600 12px/1 var(--spro-fonte);
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background-color var(--spro-dur) var(--spro-curva),
+    color var(--spro-dur) var(--spro-curva);
+}
+:root[data-spro-tema-ativo] button.spro-largura {
+  margin: 0;
+  padding: 0 12px;
+  border-radius: var(--spro-raio) var(--spro-raio) 0 0;
+  background-color: var(--spro-fundo-2);
+  color: var(--spro-texto);
+}
+:root[data-spro-tema-ativo] .spro-doc-acao[data-spro-rotulo]::after {
+  content: attr(data-spro-rotulo);
+}
+:root[data-spro-tema-ativo] .spro-doc-acao img {
+  width: 16px;
+  height: 16px;
+}
+:root[data-spro-tema-ativo] button.spro-largura::before {
+  content: "\2194";
+  font-size: 14px;
+  color: var(--spro-destaque);
+}
+:root[data-spro-tema-ativo] .spro-doc-acao:hover {
+  background-color: var(--spro-destaque-suave);
+}
+:root[data-spro-tema-ativo] button.spro-largura[aria-pressed="true"] {
+  background-color: var(--spro-destaque-suave);
+  border-color: color-mix(in srgb, var(--spro-destaque) 45%, transparent);
+}
+:root[data-spro-tema-ativo] button.spro-largura:focus-visible {
+  outline: none;
+  box-shadow: var(--spro-anel);
+}
+
+/* O iframe da visualização não mostra um documento (formulário, capa): sem botões de largura, nova aba e baixar */
+:root[data-spro-tema-ativo] div.spro-doc-acoes[data-spro-sem-documento] {
+  display: none;
+}
+
+/* Documento rolado: os botões do canto ficam só com o ícone, encostados à direita (os rótulos continuam nos tooltips) */
+:root[data-spro-tema-ativo] div.spro-doc-acoes {
+  transition: gap var(--spro-dur) var(--spro-curva);
+}
+:root[data-spro-tema-ativo] .spro-doc-acao {
+  transition:
+    background-color var(--spro-dur) var(--spro-curva),
+    color var(--spro-dur) var(--spro-curva),
+    font-size var(--spro-nav-dur, 380ms) var(--spro-nav-curva, ease),
+    width var(--spro-nav-dur, 380ms) var(--spro-nav-curva, ease),
+    padding var(--spro-nav-dur, 380ms) var(--spro-nav-curva, ease),
+    gap var(--spro-nav-dur, 380ms) var(--spro-nav-curva, ease);
+}
+:root[data-spro-tema-ativo] div.spro-doc-acoes[data-spro-compacto] {
+  justify-content: flex-end;
+  gap: 4px;
+}
+:root[data-spro-tema-ativo] div.spro-doc-acoes[data-spro-compacto] > .spro-doc-acao {
+  gap: 0;
+  width: 32px;
+  justify-content: center;
+  font-size: 0;
+}
+:root[data-spro-tema-ativo] div.spro-doc-acoes[data-spro-compacto] > button.spro-largura::before {
+  font-size: 15px;
+}
+/* O texto some com font-size 0, mas o ícone (fonte de ícones ou imagem) mantém o tamanho dele */
+:root[data-spro-tema-ativo] div.spro-doc-acoes[data-spro-compacto] > a.spro-doc-acao > * {
+  font-size: 14px;
+}
+/* Largura "auto" também anima (o botão encolhe até o ícone em vez de saltar) */
+:root[data-spro-tema-ativo] .spro-doc-acao {
+  interpolate-size: allow-keywords;
+  width: auto;
+  overflow: hidden;
+}
+:root[data-spro-tema-ativo] div.spro-doc-acoes[data-spro-compacto] > .spro-doc-acao {
+  width: 32px;
+}

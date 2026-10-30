@@ -55,7 +55,10 @@ validar ao vivo · ⏳ ainda não existe (ver fase no plano).
 | `reopenProcessAjax`, `execConcluirReabrirProcessoPro` | `concluirProcesso`, `reabrirProcesso` | ✅ |
 | ação Assinar das Ações em Lote (senha no DOM de iframe oculto) | `assinarDocumento` (senha só no POST; prova = assinatura na árvore) | ✅ |
 | ações Excluir, Cancelar assinatura e Ciência das Ações em Lote | `excluirDocumento`, `cancelarDocumento` (motivo), `cancelarAssinatura`, `darCiencia` (documento ou processo); disponibilidade pelos botões da barra, prova por releitura | ✅ |
-| ação Duplicar das Ações em Lote, `dialogCopyNewDoc` | ⏳ | ⏳ |
+| ação Duplicar das Ações em Lote, `getDadosDoc`/`getDuplicateDoc`/`saveDuplicateArvore` | `duplicarDocumento` (mesmo miolo de `criarDocumento`) | 🟡 |
+| `dialogCopyNewDoc` (duplicar em outro processo) | ⏳ | ⏳ |
+| ação Mover das Ações em Lote | `resolverProcessoDestino` (AJAX `protocolo_RI1023`) + `moverDocumento` | 🟡 (tela de mover sintética) |
+| PDF dos documentos escolhidos | `gerarPdfDocumentos` (ids conferidos na lupa; os demais em `foraDoPdf`) | 🟡 |
 | blocos (interno e de assinatura), sobrestamento, ciências | ⏳ fase 3 (sem script legado) | ⏳ |
 
 ## Como migrar uma funcionalidade

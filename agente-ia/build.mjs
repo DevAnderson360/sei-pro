@@ -15,6 +15,7 @@
 
 import { build } from "esbuild";
 import { copyFile, mkdir, rm, readdir, stat } from "node:fs/promises";
+import { execFileSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -71,6 +72,17 @@ await build({
   outfile: join(DIST, "js", "sei-pro-agente-editor.js"),
   format: "iife",
 });
+
+// O esbuild escapa o acento de string e de template, mas NAO o de literal de regex (/habilita[çc][ãa]o/).
+// A regra do projeto vale para todo o JS da extensao, então o que sobrou é escapado aqui (\uXXXX no
+// regex é o mesmo caractere). Idempotente.
+const gerados = [
+  ...(await readdir(SAIDA_PAINEL)).map((f) => join(SAIDA_PAINEL, f)),
+  ...(await readdir(SAIDA_ESTUDIO)).map((f) => join(SAIDA_ESTUDIO, f)),
+  join(DIST, "js", "init_agente.js"),
+  join(DIST, "js", "sei-pro-agente-editor.js"),
+].filter((f) => f.endsWith(".js"));
+execFileSync(process.execPath, [resolve(AQUI, "escape-nonascii.mjs"), ...gerados], { stdio: "inherit" });
 
 await copyFile(resolve(AQUI, "estatico/agente.html"), join(DIST, "html", "agente.html"));
 await copyFile(resolve(AQUI, "estatico/fluxos.html"), join(DIST, "html", "fluxos.html"));

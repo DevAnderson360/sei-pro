@@ -1,0 +1,724 @@
+/*
+ * Folha base do Estilo Avançado (sub-projeto 1): barra, página, links, tabelas, campos,
+ * botões e diálogos. Só var(--spro-*): nenhuma cor literal aqui (há um teste que confere).
+ * Tudo sob :root[data-spro-tema-ativo], que só existe com a opção ligada.
+ *
+ * Seletores do SEI 4.1.5 e do 5.0.x (infra-global-esquema-3.css). A casca completa
+ * (menu, árvore, barra de ações) é do sub-projeto 2; telas nativas, do 3.
+ */
+
+/*
+ * Tema nativo do SEI (esquemas de cor do infra): o SEI define as cores da barra, do menu e do
+ * título dos diálogos em classes com !important e em variáveis no :root. Só aqui o !important
+ * é permitido (o teste confere): é a única forma de uma regra de tema vencer outra de tema.
+ */
+:root[data-spro-tema-ativo] {
+  --infra-esquema-cor-barra-superior: var(--spro-barra-borda);
+  --infra-esquema-cor-barra-sistema: var(--spro-barra);
+  --infra-esquema-cor-clara: var(--spro-destaque);
+  --infra-esquema-cor-escura: var(--spro-barra-borda);
+  --infra-esquema-cor-texto: var(--spro-texto);
+}
+/* No escuro, a "cor escura" do esquema serve de texto de destaque (rótulos de cartões do Painel de Controle): precisa ser clara */
+:root[data-spro-tema="escuro"] {
+  --infra-esquema-cor-escura: var(--spro-destaque);
+}
+:root[data-spro-tema-ativo] .infraCorBarraSuperior {
+  background-color: var(--spro-barra-borda) !important;
+}
+:root[data-spro-tema-ativo] .infraCorBarraSistema:not(img):not(#divInfraBarraSistemaPadraoE) {
+  background-color: var(--spro-barra) !important;
+  color: var(--spro-barra-texto);
+}
+/* O SEI Pro põe infraCorBarraSistema nas imagens dos botões que injeta (Monitorados, PDF, Agente de IA, Fluxos):
+   o esquema do SEI as pintaria com a cor da barra. Ícone é ícone: sem fundo, como os botões nativos. */
+:root[data-spro-tema-ativo] img.infraCorBarraSistema,
+:root[data-spro-tema-ativo] .botaoSEI img {
+  background-color: transparent !important;
+}
+:root[data-spro-tema-ativo] .infraCorMenu {
+  background-color: var(--spro-menu) !important;
+}
+:root[data-spro-tema-ativo] .sparkling-modal-title {
+  background-color: var(--spro-barra) !important;
+  color: var(--spro-barra-texto);
+}
+:root[data-spro-tema-ativo] div.pesquisaPaginaSelecionada {
+  background-color: var(--spro-destaque) !important;
+  color: var(--spro-destaque-texto);
+}
+:root[data-spro-tema-ativo] .divInfraAreaTelaE,
+:root[data-spro-tema-ativo] #divInfraPesquisarMenu {
+  background-color: var(--spro-menu);
+  color: var(--spro-menu-texto);
+}
+
+/* O botão da unidade e os da barra conjugada têm cor fixa com !important no SEI */
+:root[data-spro-tema-ativo] a.infraAcaoBarraConjugada {
+  color: var(--spro-texto) !important;
+}
+
+/* Página */
+:root[data-spro-tema-ativo] body,
+:root[data-spro-tema-ativo] #divInfraAreaGlobal,
+:root[data-spro-tema-ativo] div.infraAreaGlobal,
+:root[data-spro-tema-ativo] #divInfraAreaTela,
+:root[data-spro-tema-ativo] div.infraAreaTela {
+  background-color: var(--spro-pagina);
+  color: var(--spro-texto);
+  font-family: var(--spro-fonte);
+}
+:root[data-spro-tema-ativo] div.infraAreaTela {
+  background-image: none;
+}
+:root[data-spro-tema-ativo] div.infraBarraLocalizacao,
+:root[data-spro-tema-ativo] label,
+:root[data-spro-tema-ativo] .infraLegend,
+:root[data-spro-tema-ativo] legend {
+  color: var(--spro-texto);
+}
+
+/* Barra superior */
+:root[data-spro-tema-ativo] #divInfraBarraSistemaPadrao,
+:root[data-spro-tema-ativo] #divInfraBarraSistema,
+:root[data-spro-tema-ativo] div.infraBarraSistema,
+:root[data-spro-tema-ativo] .infraBarraSistemaPadraoE,
+:root[data-spro-tema-ativo] .infraCorBarraSistema {
+  background-color: var(--spro-barra);
+  color: var(--spro-barra-texto);
+}
+/* O bloco da logo não tem cor própria: deixa o degradê da barra (no pai) aparecer */
+:root[data-spro-tema-ativo] #divInfraBarraSistemaPadraoE {
+  background-color: transparent;
+  color: var(--spro-barra-texto);
+}
+:root[data-spro-tema-ativo] #divInfraBarraSistemaLinha {
+  background-color: var(--spro-barra-borda);
+}
+:root[data-spro-tema-ativo] #divInfraBarraSistemaPadrao a,
+:root[data-spro-tema-ativo] #divInfraBarraSistema a,
+:root[data-spro-tema-ativo] div.infraBarraSistema a,
+:root[data-spro-tema-ativo] div.infraBarraSistema h6,
+:root[data-spro-tema-ativo] #spnInfraIdentificacaoSistema,
+:root[data-spro-tema-ativo] .infraBarraSistemaPadraoE span {
+  color: var(--spro-barra-texto);
+}
+:root[data-spro-tema-ativo] #divInfraBarraSistemaPadrao a:hover,
+:root[data-spro-tema-ativo] div.infraAcaoBarraSistema a:hover {
+  background-color: var(--spro-barra-hover);
+}
+
+/* Painel de visualização (SEI 4.1 aninha a tela da árvore dentro dele; o 5 usa os mesmos contêineres) */
+:root[data-spro-tema-ativo] #divArvoreConteudo,
+:root[data-spro-tema-ativo] #divArvoreConteudoIfr,
+:root[data-spro-tema-ativo] #divArvoreAcoes,
+:root[data-spro-tema-ativo] div.barraBotoesSEI,
+:root[data-spro-tema-ativo] iframe.ifrVisualizacao {
+  background-color: var(--spro-fundo);
+  color: var(--spro-texto);
+}
+
+/* Títulos de bloco dos formulários (o esquema do SEI pinta com a cor dele) */
+:root[data-spro-tema-ativo] label.infraLabelTitulo,
+:root[data-spro-tema-ativo] legend.infraLegend {
+  background: var(--spro-barra);
+  color: var(--spro-barra-texto);
+  border-radius: var(--spro-raio-p);
+}
+
+/* Área ao redor do documento, árvore do processo e capa (SEI Pro e SEI 4.1/5) */
+:root[data-spro-tema-ativo] #divInfraAreaTelaD,
+:root[data-spro-tema-ativo] .divInfraAreaTelaD {
+  background-color: var(--spro-pagina);
+}
+:root[data-spro-tema-ativo] span.noVisitado,
+:root[data-spro-tema-ativo] span.noVisitado a {
+  background-color: var(--spro-destaque-suave);
+  color: var(--spro-texto);
+  border-radius: var(--spro-raio-p);
+}
+:root[data-spro-tema-ativo] a.newLink,
+:root[data-spro-tema-ativo] .newLink {
+  color: var(--spro-texto);
+}
+:root[data-spro-tema-ativo] a.newLink:hover {
+  color: var(--spro-destaque);
+}
+:root[data-spro-tema-ativo] .txt_cinza,
+:root[data-spro-tema-ativo] .label.txt_cinza {
+  color: var(--spro-suave);
+}
+:root[data-spro-tema-ativo] a#lnkInfraUnidade {
+  background-color: var(--spro-fundo);
+  color: var(--spro-texto);
+  border: 1px solid var(--spro-borda-forte);
+}
+
+/* Capa do processo (o SEI Pro injeta cores fixas com #capaProcessoPro) */
+:root[data-spro-tema-ativo] div#capaProcessoPro .data a.newLink,
+:root[data-spro-tema-ativo] div#capaProcessoPro a.newLink {
+  color: var(--spro-texto);
+}
+:root[data-spro-tema-ativo] div#capaProcessoPro .label,
+:root[data-spro-tema-ativo] div#capaProcessoPro .label i {
+  color: var(--spro-suave);
+}
+
+/* Destaques e superfícies que o SEI e o SEI Pro pintam de claro */
+:root[data-spro-tema-ativo] a.infraArvoreNo.highlight,
+:root[data-spro-tema-ativo] .highlight,
+:root[data-spro-tema-ativo] .highlight span {
+  background-color: var(--spro-destaque-medio);
+  color: var(--spro-texto);
+}
+:root[data-spro-tema-ativo] a.openNewTab {
+  background-color: var(--spro-fundo-2) !important;
+  color: var(--spro-texto) !important;
+}
+:root[data-spro-tema-ativo] table.infraTable {
+  background-color: var(--spro-fundo);
+}
+:root[data-spro-tema-ativo] span.spanRealce {
+  background-color: var(--spro-destaque-medio);
+  color: var(--spro-texto);
+}
+
+/* Tooltips do SEI (o que aparece ao passar o mouse) e caixas de alerta */
+:root[data-spro-tema-ativo] div.infraTooltip,
+:root[data-spro-tema-ativo] div#divInfraTooltip {
+  background-color: var(--spro-fundo-3);
+  color: var(--spro-texto);
+  border: 1px solid var(--spro-borda-forte);
+  border-radius: var(--spro-raio);
+  box-shadow: var(--spro-sombra-2);
+}
+:root[data-spro-tema-ativo] .infoAlerta {
+  background-color: color-mix(in srgb, var(--spro-perigo) 18%, var(--spro-fundo));
+  color: var(--spro-texto);
+  border-color: color-mix(in srgb, var(--spro-perigo) 45%, transparent);
+}
+/* O fundo deste alerta é inline (gravado pelo SEI Pro): só !important vence */
+:root[data-spro-tema-ativo] #checkNaoAssinados {
+  background-color: color-mix(in srgb, var(--spro-perigo) 18%, var(--spro-fundo)) !important;
+  color: var(--spro-texto);
+  border-color: color-mix(in srgb, var(--spro-perigo) 45%, transparent);
+}
+
+/* Linhas de status das listas (o SEI Pro injeta o fundo rosado das atrasadas com !important) */
+:root[data-spro-tema-ativo] tr.infraTrAtrasada,
+:root[data-spro-tema-ativo] td.infraTdAtrasada,
+:root[data-spro-tema-ativo] tr.infraTrVermelha {
+  background-color: color-mix(in srgb, var(--spro-perigo) 16%, var(--spro-fundo)) !important;
+}
+:root[data-spro-tema-ativo] tr.infraTrAlerta {
+  background-color: color-mix(in srgb, var(--spro-aviso) 16%, var(--spro-fundo)) !important;
+}
+/* Caixa do menu do SEI 5 (aplicativo do SEI) com fundo claro inline */
+:root[data-spro-tema-ativo] #divInfraAreaTelaE div[style*="f5f6f7"] {
+  background-color: var(--spro-fundo-2) !important;
+  color: var(--spro-menu-texto) !important;
+}
+/* Botões claros do Bootstrap do SEI 5 e o quadro do modal */
+:root[data-spro-tema-ativo] .btn-light,
+:root[data-spro-tema-ativo] .btn-default {
+  background-color: var(--spro-fundo-3);
+  color: var(--spro-texto);
+  border-color: var(--spro-borda-forte);
+}
+:root[data-spro-tema-ativo] .btn-light.active,
+:root[data-spro-tema-ativo] .btn-light:hover,
+:root[data-spro-tema-ativo] .btn-default:hover {
+  background-color: var(--spro-destaque-medio);
+}
+:root[data-spro-tema-ativo] .sparkling-modal-frame {
+  background-color: var(--spro-fundo);
+}
+
+/* Selos de prazo do SEI Pro e botões do Bootstrap: as variantes escuras deles são do modo noturno antigo (.seiSlim.dark-mode) */
+:root[data-spro-tema="escuro"] .dateboxDisplay.spro-prazo-atrasado,
+:root[data-spro-tema="escuro"] .dateboxDisplay.spro-prazo-atrasado .spro-prazo-icone {
+  color: var(--spro-perigo);
+}
+:root[data-spro-tema="escuro"] .dateboxDisplay.spro-prazo-concluido {
+  color: var(--spro-suave);
+}
+:root[data-spro-tema="escuro"] .dateboxDisplay.spro-prazo-concluido .spro-prazo-icone {
+  color: var(--spro-ok);
+}
+:root[data-spro-tema="escuro"] .dateboxDisplay.spro-prazo-hoje .spro-prazo-icone {
+  color: var(--spro-aviso);
+}
+:root[data-spro-tema="escuro"] .dateboxDisplay.spro-prazo-desde .spro-prazo-icone {
+  color: var(--spro-suave);
+}
+:root[data-spro-tema-ativo] .btn-light *,
+:root[data-spro-tema-ativo] .btn-default * {
+  color: inherit;
+}
+
+/* O SEI Pro reinjeta cor fixa em .btn-light:not(:disabled):not(.disabled):active; precisa da mesma especificidade */
+:root[data-spro-tema-ativo] .btn-light:not(:disabled):not(.disabled),
+:root[data-spro-tema-ativo] .btn-default:not(:disabled):not(.disabled) {
+  color: var(--spro-texto);
+}
+:root[data-spro-tema-ativo] .btn-light:not(:disabled):not(.disabled):active,
+:root[data-spro-tema-ativo] .btn-default:not(:disabled):not(.disabled):active {
+  background-color: var(--spro-destaque-medio);
+}
+
+/* Listagens do SEI: a tabela ordenável (tablesorter) traz fundo #ccc inline, e a legenda fica sobre ele */
+:root[data-spro-tema-ativo] table.tablesorter,
+:root[data-spro-tema-ativo] table.infraTable {
+  background-color: var(--spro-fundo) !important;
+}
+:root[data-spro-tema-ativo] caption.infraCaption {
+  color: var(--spro-suave);
+  background-color: transparent;
+}
+/* Linhas de destaque das listas (Blocos de Assinatura etc.): tom do tema, texto normal */
+:root[data-spro-tema-ativo] tr.trVermelha,
+:root[data-spro-tema-ativo] tr.trVermelha > td {
+  background-color: color-mix(in srgb, var(--spro-perigo) 16%, var(--spro-fundo));
+}
+/* Os !important do SEI para a linha marcada (ciano) e o destaque de "sigiloso" (vermelho puro) */
+:root[data-spro-tema-ativo] tr.infraTrMarcada,
+:root[data-spro-tema-ativo] tr.infraTrMarcada td,
+:root[data-spro-tema-ativo] td.infraTdMarcada {
+  background-color: var(--spro-destaque-medio) !important;
+}
+/* Iniciar Processo: a lista de tipos (SEI 5 força branco com !important) e os tipos sigilosos (vermelho do SEI) */
+:root[data-spro-tema-ativo] table.tabelaOpcoes,
+:root[data-spro-tema-ativo] table.tabelaOpcoes tr {
+  background-color: var(--spro-fundo) !important;
+}
+:root[data-spro-tema-ativo] td.tdOpcaoSigiloso,
+:root[data-spro-tema-ativo] td.tdOpcaoSigiloso a {
+  background-color: color-mix(in srgb, var(--spro-perigo) 24%, var(--spro-fundo)) !important;
+  color: var(--spro-texto);
+}
+/* Calendário do SEI (Retorno Programado, datas) */
+:root[data-spro-tema-ativo] #divCalendario td.diaUtil {
+  background-color: var(--spro-fundo-3);
+  color: var(--spro-texto);
+}
+:root[data-spro-tema-ativo] #divCalendario td.diaFimDeSemana {
+  background-color: var(--spro-fundo-2);
+  color: var(--spro-texto);
+}
+/* Texto vermelho inline (#ed1c24) do Painel de Controle: no escuro usa o vermelho do tema */
+:root[data-spro-tema="escuro"] [style*="color:#ed1c24"] {
+  color: var(--spro-perigo) !important;
+}
+
+/* Bootstrap do SEI 5 (telas de administração e dos módulos): campos, fieldsets, alertas e rótulos */
+:root[data-spro-tema-ativo] .form-control,
+:root[data-spro-tema-ativo] fieldset.infraFieldset {
+  background-color: var(--spro-fundo);
+  color: var(--spro-texto);
+  border-color: var(--spro-borda-forte);
+}
+:root[data-spro-tema-ativo] .input-group-text {
+  background-color: var(--spro-fundo-3);
+  color: var(--spro-texto);
+  border-color: var(--spro-borda-forte);
+}
+:root[data-spro-tema-ativo] .alert {
+  color: var(--spro-texto);
+}
+:root[data-spro-tema-ativo] .alert-danger {
+  background-color: color-mix(in srgb, var(--spro-perigo) 16%, var(--spro-fundo));
+  border-color: color-mix(in srgb, var(--spro-perigo) 40%, transparent);
+}
+:root[data-spro-tema-ativo] .alert-warning {
+  background-color: color-mix(in srgb, var(--spro-aviso) 16%, var(--spro-fundo));
+  border-color: color-mix(in srgb, var(--spro-aviso) 40%, transparent);
+}
+:root[data-spro-tema-ativo] .alert-success {
+  background-color: color-mix(in srgb, var(--spro-ok) 16%, var(--spro-fundo));
+  border-color: color-mix(in srgb, var(--spro-ok) 40%, transparent);
+}
+:root[data-spro-tema-ativo] .alert-info {
+  background-color: var(--spro-destaque-suave);
+  border-color: var(--spro-destaque-medio);
+}
+:root[data-spro-tema-ativo] label.input-label-first,
+:root[data-spro-tema-ativo] label.input-label-second {
+  color: var(--spro-suave) !important;
+}
+:root[data-spro-tema-ativo] .cke_inner,
+:root[data-spro-tema-ativo] iframe.cke_wysiwyg_frame {
+  background-color: var(--spro-fundo);
+}
+/* Linha de destaque laranja que um módulo grava no atributo bgcolor (#F4A460) */
+:root[data-spro-tema-ativo] tr[bgcolor="#f4a460" i],
+:root[data-spro-tema-ativo] tr[bgcolor="#f4a460" i] > td {
+  background-color: color-mix(in srgb, var(--spro-aviso) 18%, var(--spro-fundo));
+}
+/* Linha de destaque verde que um módulo grava inline (#d8f5b9) */
+:root[data-spro-tema-ativo] tr[style*="d8f5b9"] {
+  background-color: color-mix(in srgb, var(--spro-ok) 16%, var(--spro-fundo)) !important;
+}
+
+/* Seletor múltiplo (multiple-select), campos somente leitura e cartões do Bootstrap (Painel de Controle) */
+:root[data-spro-tema-ativo] button.ms-choice,
+:root[data-spro-tema-ativo] .ms-drop {
+  background-color: var(--spro-fundo);
+  color: var(--spro-texto);
+  border-color: var(--spro-borda-forte);
+}
+:root[data-spro-tema-ativo] input.infraReadOnly,
+:root[data-spro-tema-ativo] input.infraText[readonly],
+:root[data-spro-tema-ativo] input.infraText:disabled {
+  background-color: var(--spro-fundo-2);
+  color: var(--spro-suave);
+}
+:root[data-spro-tema-ativo] .card,
+:root[data-spro-tema-ativo] .card-body,
+:root[data-spro-tema-ativo] .card-header {
+  background-color: var(--spro-fundo);
+  color: var(--spro-texto);
+  border-color: var(--spro-borda);
+}
+
+/* O SEI pinta o rótulo do menu de branco com !important (div.infraSidebarMenu span); o menu agora é uma superfície neutra */
+:root[data-spro-tema-ativo] #infraMenu li > a {
+  color: var(--spro-texto) !important;
+}
+:root[data-spro-tema-ativo] #infraMenu li > a > span {
+  color: inherit !important;
+}
+:root[data-spro-tema-ativo] #infraMenu li > a.infraMenuSelecionado,
+:root[data-spro-tema-ativo] #infraMenu li > a[aria-current] {
+  color: var(--spro-destaque) !important;
+}
+
+/* Controles do Estilo Avançado v1 (interruptor do modo noturno e paleta) no mesmo eixo dos ícones da barra.
+   O SEI Pro os escreve com style inline (display, float, margin): só !important vence. */
+:root[data-spro-tema-ativo] div[data-ref="infraAcaoBarraSistema"] {
+  display: flex !important;
+  align-items: center;
+  float: none !important;
+  gap: 10px;
+  height: 40px;
+  margin: 5px 10px 0 4px !important;
+}
+:root[data-spro-tema-ativo] div[data-ref="infraAcaoBarraSistema"] > i {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background-color var(--spro-dur) var(--spro-curva);
+}
+:root[data-spro-tema-ativo] div[data-ref="infraAcaoBarraSistema"] > i:hover {
+  background-color: color-mix(in srgb, var(--spro-barra-texto) 18%, transparent);
+}
+
+/* Menu suspenso dos documentos e do processo na árvore (jquery.toolbar do SEI Pro): o plugin força cores com !important */
+:root[data-spro-tema-ativo] .tool-container {
+  background-color: var(--spro-fundo);
+  border: 1px solid var(--spro-borda);
+  border-radius: 12px;
+  box-shadow: var(--spro-sombra-3);
+}
+:root[data-spro-tema-ativo] .tool-container .tool-item {
+  color: var(--spro-texto) !important;
+  border-radius: 8px;
+}
+:root[data-spro-tema-ativo] .tool-container .tool-item > .fa {
+  color: var(--spro-suave);
+}
+:root[data-spro-tema-ativo] .tool-container .tool-item .info {
+  color: var(--spro-texto);
+  font-size: 13px;
+}
+:root[data-spro-tema-ativo] .tool-container .tool-item:hover,
+:root[data-spro-tema-ativo] .tool-container .tool-item.selected {
+  background: var(--spro-destaque-suave);
+  color: var(--spro-texto) !important;
+  border-radius: 8px;
+}
+:root[data-spro-tema-ativo] .tool-container .tool-item:hover > .fa,
+:root[data-spro-tema-ativo] .tool-container .tool-item.selected > .fa {
+  color: var(--spro-destaque);
+}
+:root[data-spro-tema-ativo] .tool-container .tool-item:hover .info,
+:root[data-spro-tema-ativo] .tool-container .tool-item.selected .info {
+  color: var(--spro-texto);
+}
+:root[data-spro-tema-ativo] .tool-container.tool-bottom .arrow {
+  border-color: transparent transparent var(--spro-borda);
+}
+:root[data-spro-tema-ativo] .tool-container.tool-top .arrow {
+  border-color: var(--spro-borda) transparent transparent;
+}
+
+/* Links */
+:root[data-spro-tema-ativo] a,
+:root[data-spro-tema-ativo] a.ancoraPadraoAzul,
+:root[data-spro-tema-ativo] a.ancoraPadraoPreta,
+:root[data-spro-tema-ativo] a.infraAncoraSigla {
+  color: var(--spro-destaque);
+}
+:root[data-spro-tema-ativo] #divInfraBarraSistemaPadrao a {
+  color: var(--spro-barra-texto);
+}
+
+/* Tabelas */
+:root[data-spro-tema-ativo] table.infraTable {
+  color: var(--spro-texto);
+  border-color: var(--spro-borda);
+}
+:root[data-spro-tema-ativo] table.infraTable td {
+  border-color: var(--spro-borda);
+}
+:root[data-spro-tema-ativo] tr.infraTrMarcada,
+:root[data-spro-tema-ativo] tr.infraTrAcessada {
+  background-color: var(--spro-destaque-suave);
+}
+/* O hover do SEI marca a linha com infraTrSelecionada (via JS) e o esquema pinta #e5e5e5 com !important:
+   no tema, a linha ganha o destaque suave e o texto continua legível */
+:root[data-spro-tema-ativo] tr.infraTrSelecionada,
+:root[data-spro-tema-ativo] tr.infraTrSelecionada td,
+:root[data-spro-tema-ativo] td.infraTdSelecionada {
+  background-color: var(--spro-destaque-suave) !important;
+  color: var(--spro-texto);
+}
+:root[data-spro-tema-ativo] tr.infraTrClara:hover,
+:root[data-spro-tema-ativo] tr.infraTrEscura:hover {
+  background-color: var(--spro-destaque-suave);
+}
+:root[data-spro-tema-ativo] caption.infraCaption {
+  color: var(--spro-suave);
+}
+
+/* Campos */
+:root[data-spro-tema-ativo] input.infraText,
+:root[data-spro-tema-ativo] textarea.infraTextarea,
+:root[data-spro-tema-ativo] select.infraSelect,
+:root[data-spro-tema-ativo] input[type="text"],
+:root[data-spro-tema-ativo] input[type="password"],
+:root[data-spro-tema-ativo] input[type="search"],
+:root[data-spro-tema-ativo] input[type="date"],
+:root[data-spro-tema-ativo] input[type="number"],
+:root[data-spro-tema-ativo] textarea,
+:root[data-spro-tema-ativo] select,
+:root[data-spro-tema-ativo] .chosen-container-single .chosen-single,
+:root[data-spro-tema-ativo] .chosen-container-multi .chosen-choices {
+  background-color: var(--spro-fundo);
+  color: var(--spro-texto);
+  border: 1px solid var(--spro-borda-forte);
+  border-radius: var(--spro-raio-p);
+}
+:root[data-spro-tema-ativo] input.infraText:focus,
+:root[data-spro-tema-ativo] textarea.infraTextarea:focus,
+:root[data-spro-tema-ativo] select.infraSelect:focus,
+:root[data-spro-tema-ativo] input:focus,
+:root[data-spro-tema-ativo] textarea:focus,
+:root[data-spro-tema-ativo] select:focus {
+  outline: none;
+  border-color: var(--spro-destaque);
+  box-shadow: var(--spro-anel);
+}
+:root[data-spro-tema-ativo] input:disabled,
+:root[data-spro-tema-ativo] input[readonly],
+:root[data-spro-tema-ativo] textarea:disabled,
+:root[data-spro-tema-ativo] select:disabled {
+  background-color: var(--spro-fundo-2);
+  color: var(--spro-suave);
+}
+:root[data-spro-tema-ativo] ::placeholder {
+  color: var(--spro-fraco);
+}
+
+/* Botões */
+:root[data-spro-tema-ativo] input.infraButton,
+:root[data-spro-tema-ativo] button.infraButton,
+:root[data-spro-tema-ativo] a.infraAnchorButton {
+  background-color: var(--spro-fundo);
+  color: var(--spro-texto);
+  border: 1px solid var(--spro-borda-forte);
+  border-radius: var(--spro-raio);
+  transition: background-color var(--spro-dur), border-color var(--spro-dur), box-shadow var(--spro-dur);
+}
+:root[data-spro-tema-ativo] input.infraButton span,
+:root[data-spro-tema-ativo] button.infraButton span,
+:root[data-spro-tema-ativo] button.infraButton:hover span,
+:root[data-spro-tema-ativo] input.infraButton:hover span {
+  color: inherit;
+}
+:root[data-spro-tema-ativo] input.infraButton:focus-visible,
+:root[data-spro-tema-ativo] button.infraButton:focus-visible {
+  outline: none;
+  box-shadow: var(--spro-anel);
+}
+
+/* Diálogos (jQuery UI e Bootstrap do SEI 5) */
+:root[data-spro-tema-ativo] .ui-dialog,
+:root[data-spro-tema-ativo] .modal-content,
+:root[data-spro-tema-ativo] .ui-widget-content {
+  background-color: var(--spro-fundo);
+  color: var(--spro-texto);
+  border-color: var(--spro-borda);
+}
+:root[data-spro-tema-ativo] .ui-dialog {
+  border-radius: var(--spro-raio-g);
+  box-shadow: var(--spro-sombra-3);
+}
+:root[data-spro-tema-ativo] .ui-dialog-titlebar,
+:root[data-spro-tema-ativo] .ui-widget-header,
+:root[data-spro-tema-ativo] .modal-header,
+:root[data-spro-tema-ativo] .modal-footer,
+:root[data-spro-tema-ativo] .ui-dialog-buttonpane {
+  background-color: var(--spro-fundo-2);
+  color: var(--spro-texto);
+  border-color: var(--spro-borda);
+}
+:root[data-spro-tema-ativo] .ui-widget-overlay {
+  background: var(--spro-veu);
+  opacity: 1;
+}
+
+/* Rolagem */
+:root[data-spro-tema-ativo] {
+  scrollbar-color: var(--spro-borda-forte) var(--spro-pagina);
+}
+
+/* Editor CKEditor 4 (SEI 4.x e as áreas editáveis, que são iframes about:srcdoc) */
+:root[data-spro-tema-ativo] .cke_chrome {
+  border-color: var(--spro-borda);
+  background: var(--spro-fundo);
+  box-shadow: none;
+}
+:root[data-spro-tema-ativo] .cke_top,
+:root[data-spro-tema-ativo] .cke_bottom,
+:root[data-spro-tema-ativo] .cke_dialog_footer {
+  background: var(--spro-fundo-2);
+  border-color: var(--spro-borda);
+  box-shadow: none;
+}
+:root[data-spro-tema-ativo] .cke_toolgroup,
+:root[data-spro-tema-ativo] .cke_combo_button {
+  background: var(--spro-fundo-3);
+  border-color: var(--spro-borda-forte);
+  box-shadow: none;
+  border-radius: var(--spro-raio-p);
+}
+:root[data-spro-tema-ativo] a.cke_button,
+:root[data-spro-tema-ativo] .cke_button_label,
+:root[data-spro-tema-ativo] .cke_combo_text,
+:root[data-spro-tema-ativo] .cke_combo_label,
+:root[data-spro-tema-ativo] .cke_path_item,
+:root[data-spro-tema-ativo] .cke_voice_label {
+  color: var(--spro-texto);
+}
+:root[data-spro-tema-ativo] a.cke_button_on,
+:root[data-spro-tema-ativo] a.cke_button_off:hover,
+:root[data-spro-tema-ativo] a.cke_button_off:focus {
+  background: var(--spro-destaque-medio);
+  border-color: var(--spro-destaque);
+}
+/* Os ícones do CK4 são imagens escuras: no escuro viram claros (só decoração, não conteúdo). */
+:root[data-spro-tema="escuro"] .cke_button_icon,
+:root[data-spro-tema="escuro"] .cke_combo_arrow,
+:root[data-spro-tema="escuro"] .cke_toolbox_collapser {
+  filter: invert(0.88) hue-rotate(180deg);
+}
+:root[data-spro-tema-ativo] .cke_contents {
+  background: var(--spro-pagina);
+}
+:root[data-spro-tema-ativo] .cke_dialog,
+:root[data-spro-tema-ativo] .cke_dialog_body,
+:root[data-spro-tema-ativo] .cke_dialog_contents,
+:root[data-spro-tema-ativo] .cke_dialog_contents_body,
+:root[data-spro-tema-ativo] .cke_dialog_title,
+:root[data-spro-tema-ativo] .cke_dialog_tabs {
+  background: var(--spro-fundo);
+  color: var(--spro-texto);
+  border-color: var(--spro-borda);
+}
+:root[data-spro-tema-ativo] a.cke_dialog_tab {
+  background: var(--spro-fundo-2);
+  color: var(--spro-texto);
+  border-color: var(--spro-borda);
+}
+:root[data-spro-tema-ativo] a.cke_dialog_tab_selected {
+  background: var(--spro-fundo);
+  color: var(--spro-destaque);
+}
+:root[data-spro-tema-ativo] .cke_dialog_ui_input_text input,
+:root[data-spro-tema-ativo] .cke_dialog_ui_input_password input,
+:root[data-spro-tema-ativo] .cke_dialog_ui_input_textarea textarea,
+:root[data-spro-tema-ativo] .cke_dialog_ui_input_select select {
+  background: var(--spro-fundo-2);
+  color: var(--spro-texto);
+  border-color: var(--spro-borda-forte);
+}
+:root[data-spro-tema-ativo] a.cke_dialog_ui_button {
+  background: var(--spro-fundo-3);
+  color: var(--spro-texto);
+  border-color: var(--spro-borda-forte);
+}
+:root[data-spro-tema-ativo] a.cke_dialog_ui_button_ok {
+  background: var(--spro-destaque);
+  color: var(--spro-destaque-texto);
+}
+
+/* Seções do documento no editor: o body das somente-leitura traz fundo cinza inline (só !important vence, sem tocar no DOM) */
+:root[data-spro-tema-ativo] body.cke_editable {
+  background-color: var(--spro-pagina) !important;
+  color: var(--spro-texto);
+}
+:root[data-spro-tema-ativo] a.cke_button_off:hover,
+:root[data-spro-tema-ativo] a.cke_button_on {
+  background-image: none;
+}
+
+/* A borda superior das seções da árvore é inline (SEI Pro): zerada aqui; o fio degradê está em casca.css. */
+:root[data-spro-tema-ativo] #divConsultarAndamento,
+:root[data-spro-tema-ativo] .panelDadosArvore,
+:root[data-spro-tema-ativo] .panelDadosArvorePro,
+:root[data-spro-tema-ativo] .stickDadosArvore,
+:root[data-spro-tema-ativo] #divRelacionados {
+  border-top: 0 !important;
+}
+
+/* Barra de ações fixa: o legado grava o top inline (altura da barra no instante da rolagem); acompanha a altura atual. */
+:root[data-spro-tema-ativo]:has(#navInfraBarraNavegacao) #divComandos.fixed,
+:root[data-spro-tema-ativo]:has(#navInfraBarraNavegacao) #divBotoesControleProcessos.fixed {
+  /* 5 px abaixo do fim da barra superior: respiro fino pedido (colada, ela parecia invadir a barra) */
+  top: calc(var(--spro-nav-fim, var(--spro-nav-total)) + 5px) !important;
+}
+
+/* Botões do canto do documento (Abrir em nova aba, Baixar HTML/DOCX): o SEI Pro os põe em posição absoluta, com cor,
+   margem e raio inline; no grupo (largura.ts) eles seguem o estilo do botão de largura. */
+:root[data-spro-tema-ativo] a.openNewTab.spro-doc-acao {
+  position: static !important;
+  margin: 0 !important;
+  padding: 0 12px !important;
+  border-radius: var(--spro-raio) var(--spro-raio) 0 0 !important;
+  background-color: var(--spro-fundo-2) !important;
+  color: var(--spro-texto) !important;
+}
+
+/* Menu suspenso do documento na árvore (plugin de toolbar do SEI Pro): a largura vem fixa (185/175 px) e o texto
+   quebrava ("Copiar nome do documento"); passa a acompanhar o conteúdo, sem quebrar. */
+:root[data-spro-tema-ativo] .tool-container.toolbar-menu {
+  width: max-content !important;
+  min-width: 185px;
+  max-width: calc(100vw - 16px);
+}
+:root[data-spro-tema-ativo] .tool-container.toolbar-menu .tool-items {
+  width: auto !important;
+}
+:root[data-spro-tema-ativo] .tool-container.toolbar-menu .tool-item {
+  width: auto !important;
+  float: none !important;
+  clear: both;
+  white-space: nowrap;
+}
+:root[data-spro-tema-ativo] div.spro-doc-acoes[data-spro-compacto] > a.openNewTab.spro-doc-acao {
+  padding: 0 !important;
+}

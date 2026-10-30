@@ -29,6 +29,7 @@ import type { OpcoesEscrita, ResultadoEscrita } from "./escrita";
 import { Formulario } from "../formulario/formulario";
 import { linkDaAcao } from "../links/links";
 import { analisarHtml, decodificarEntidades } from "../sessao/dom";
+import { paraLatin1Seguro } from "../sessao/codificacao";
 import { ErroSei } from "../sessao/erros";
 import type { Pagina } from "../sessao/http";
 import type { Sei } from "../sei";
@@ -188,16 +189,33 @@ export async function abrirEditor(sei: Sei, d: DocumentoLocalizado, sinal?: Abor
   return lerEditor(await sei.http.obter(link, { sinal }));
 }
 
-async function salvar(sei: Sei, ed: EditorDocumento, novas: Record<string, string>, sinal?: AbortSignal): Promise<void> {
+/**
+ * Corpo JSON da gravação no CK5 (`editor_salvar_conteudo`).
+ *
+ * O JSON vai em UTF-8, mas o SEI grava em ISO-8859-1: o que passa de U+00FF
+ * (travessão, aspas curvas, euro) chegava ao documento como "?" (provado no
+ * SEI 5.0.4 do MJ). Como no CK4 (`modos: "html"`), cada seção passa antes por
+ * `paraLatin1Seguro(…, "html")`, que troca esses caracteres por referência
+ * numérica (`&#8212;`) e não mexe no que já é Latin-1.
+ */
+export function corpoSalvarCk5(ed: EditorDocumento, novas: Record<string, string>, siglaUnidade: string, documentoNovo = false): string {
+  const versao = ed.ck5!.versao;
+  const semVersao = documentoNovo && (versao === null || versao === undefined || versao === "");
+  return JSON.stringify({
+    siglaUnidade,
+    versao: semVersao ? null : versao,
+    ignorarNovaVersao: semVersao ? "S" : "N",
+    secoesConteudo: ed.secoes.map((s) => ({ nome: s.nome, html: paraLatin1Seguro(novas[s.nome] ?? s.html, "html") })),
+  });
+}
+
+async function salvar(sei: Sei, ed: EditorDocumento, novas: Record<string, string>, sinal?: AbortSignal, documentoNovo = false): Promise<void> {
   if (ed.tipo === "ck5") {
     const url = sei.http.absoluta(ed.ck5!.urlSalvar);
-    const corpo = {
-      siglaUnidade: ed.ck5!.siglaUnidade || sei.contexto().unidade.sigla,
-      versao: ed.ck5!.versao,
-      ignorarNovaVersao: "N",
-      secoesConteudo: ed.secoes.map((s) => ({ nome: s.nome, html: novas[s.nome] ?? s.html })),
-    };
-    const r = await fetch(url, { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo), signal: sinal });
+    // Documento que acabou de ser criado por quem grava, sem versão na configuração: o SEI compararia null e
+    // recusaria sempre ("Existe uma nova versão"); como o legado do Documentos em Lote, vai "S" com versão null.
+    const corpo = corpoSalvarCk5(ed, novas, ed.ck5!.siglaUnidade || sei.contexto().unidade.sigla, documentoNovo);
+    const r = await fetch(url, { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: corpo, signal: sinal });
     const texto = await r.text();
     if (!r.ok || !/"versao"/.test(texto)) throw new ErroSei("SEI_VALIDACAO", `O SEI recusou o conte\u00FAdo: ${texto.slice(0, 300)}`);
     return;
@@ -211,6 +229,55 @@ async function salvar(sei: Sei, ed: EditorDocumento, novas: Record<string, strin
 }
 
 /** Texto visível de um trecho HTML (para prévias). */
+/**
+ * Estilos que escondem o texto da tela sem tirá-lo do documento.
+ *
+ * É por aqui que entra a instrução dirigida a IA: um parágrafo em fonte
+ * branca de 1px no cabeçalho da peça não aparece para quem lê, mas aparece
+ * para quem extrai o texto — foi o caso que o STF julgou em outubro de 2026.
+ */
+const ESCONDIDOS: Array<{ re: RegExp; motivo: string }> = [
+  { re: /display\s*:\s*none/i, motivo: "display:none (não é exibido)" },
+  { re: /visibility\s*:\s*hidden/i, motivo: "visibility:hidden (invisível)" },
+  { re: /font-size\s*:\s*0(?:\.0+)?\s*(?:px|pt|em|rem)?\b/i, motivo: "fonte de tamanho zero" },
+  { re: /font-size\s*:\s*[0-2](?:\.\d+)?\s*(?:px|pt)\b/i, motivo: "fonte minúscula, ilegível na tela" },
+  { re: /opacity\s*:\s*0(?:\.0+)?\b/i, motivo: "opacity:0 (transparente)" },
+  { re: /color\s*:\s*(?:#f{3}(?:f{3})?\b|white\b|rgba?\(\s*255\s*,\s*255\s*,\s*255)/i, motivo: "letra branca sobre fundo branco" },
+  { re: /(?:text-indent|left|top|margin-left)\s*:\s*-\s*\d{3,}/i, motivo: "posicionado fora da tela" },
+  { re: /(?:height|width)\s*:\s*0(?:px)?\s*(?:;|$)/i, motivo: "caixa de tamanho zero" },
+];
+
+export interface TextoComOcultos {
+  texto: string;
+  /** Trechos que existiam no documento mas não apareciam na tela. */
+  ocultos: Array<{ texto: string; motivo: string }>;
+}
+
+/**
+ * O mesmo texto de `textoDoHtml`, dizendo o que estava escondido da tela.
+ *
+ * O trecho oculto CONTINUA no texto: documento é prova, e quem analisa pode
+ * precisar citá-lo. O que muda é que ele deixa de passar despercebido — quem
+ * chama recebe a lista e decide o que fazer (no Agente de IA, vira marca no
+ * conteúdo e linha no relatório de integridade).
+ */
+export function textoDoHtmlComOcultos(html: string): TextoComOcultos {
+  const doc = analisarHtml(`<!doctype html><html><head></head><body>${html}</body></html>`);
+  const ocultos: Array<{ texto: string; motivo: string }> = [];
+  for (const el of doc.querySelectorAll("[style], [hidden]")) {
+    const texto = (el.textContent ?? "").trim();
+    if (!texto) continue;
+    const style = el.getAttribute("style") ?? "";
+    const achado = ESCONDIDOS.find((x) => x.re.test(style));
+    const motivo = achado?.motivo ?? (el.hasAttribute("hidden") ? "atributo hidden" : "");
+    if (!motivo) continue;
+    // Elemento dentro de outro já apontado não vira segunda ocorrência.
+    if (ocultos.some((o) => o.texto.includes(texto))) continue;
+    ocultos.push({ texto: texto.slice(0, 500), motivo });
+  }
+  return { texto: textoDoHtml(html), ocultos };
+}
+
 export function textoDoHtml(html: string): string {
   const doc = analisarHtml(`<!doctype html><html><head></head><body>${html}</body></html>`);
   for (const b of doc.querySelectorAll("p, br, li, tr, h1, h2, h3, h4, div")) b.append("\n");
@@ -287,7 +354,11 @@ async function conferirGravacao(
   numero: string,
   sinal?: AbortSignal,
 ): Promise<void> {
-  const depois = lerEditor(await sei.http.obter(ed.pagina.url, { sinal }));
+  conferirSecao(lerEditor(await sei.http.obter(ed.pagina.url, { sinal })), alvo, novo, numero);
+}
+
+/** As duas provas de `conferirGravacao` sobre o editor já relido. */
+function conferirSecao(depois: EditorDocumento, alvo: SecaoEditor, novo: string, numero: string): void {
   const gravada = depois.secoes.find((s) => s.nome === alvo.nome);
   if (!gravada || !temConteudo(gravada.html)) {
     throw new ErroSei(
@@ -301,4 +372,63 @@ async function conferirGravacao(
       `O SEI aceitou a grava\u00E7\u00E3o, mas a se\u00E7\u00E3o "${alvo.titulo}" do documento ${numero} continua como estava: o conte\u00FAdo enviado foi descartado.`,
     );
   }
+}
+
+/**
+ * Reescreve várias seções numa gravação só, abrindo o editor uma vez.
+ *
+ * `trocar` recebe cada seção editável (as somente leitura nem são oferecidas)
+ * e devolve o HTML novo, ou `null` para deixá-la como está. Seção que não muda
+ * não entra na gravação; se nenhuma muda, nada é gravado. Uma gravação gera
+ * UMA versão do documento (seção a seção com `editarConteudo` seriam várias,
+ * e uma falha no meio deixaria o documento meio trocado). A seção é a do
+ * editor (`nome`), não a busca por título do `editarConteudo`.
+ *
+ * Mesmas recusas e provas do `editarConteudo`: documento assinado, sigiloso ou
+ * externo (`abrirEditor`), conteúdo em branco, e a releitura depois de gravar.
+ */
+export async function editarSecoes(
+  sei: Sei,
+  d: DocumentoLocalizado,
+  trocar: (secao: SecaoEditor) => string | null,
+  op: OpcoesEscrita,
+  extra: {
+    /**
+     * O documento acabou de ser criado por quem grava (nenhuma outra edição
+     * possível): no CK5 sem `versao` na configuração, grava com
+     * `ignorarNovaVersao: "S"`. Só o Documentos em Lote usa.
+     */
+    documentoNovo?: boolean;
+  } = {},
+): Promise<ResultadoEscrita> {
+  const ed = await abrirEditor(sei, d, op.sinal);
+  const numero = d.documento.numero;
+  const novas: Record<string, string> = {};
+  const alvos: SecaoEditor[] = [];
+  for (const s of ed.secoes) {
+    if (s.somenteLeitura) continue;
+    const novo = trocar(s);
+    if (novo === null || novo === s.html) continue;
+    if (!temConteudo(novo)) {
+      throw new ErroSei(
+        "ARGUMENTO_INVALIDO",
+        `O conte\u00FAdo novo da se\u00E7\u00E3o "${s.titulo}" do documento ${numero} est\u00E1 em branco: gravar isso APAGARIA a se\u00E7\u00E3o.`,
+      );
+    }
+    novas[s.nome] = novo;
+    alvos.push(s);
+  }
+  const resumir = (h: string) => textoDoHtml(h).slice(0, 400);
+  const base: ResultadoEscrita = {
+    alvo: numero,
+    mudancas: alvos.map((s) => ({ campo: `Conte\u00FAdo (${s.titulo})`, antes: resumir(s.html), depois: resumir(novas[s.nome] as string) })),
+    aplicado: false,
+    resumo: alvos.length ? `Vai regravar ${alvos.length} se\u00E7\u00E3o(\u00F5es) do documento ${numero}.` : `Nada a gravar no documento ${numero}.`,
+  };
+  if (!op.aplicar || !alvos.length) return base;
+  await salvar(sei, ed, novas, op.sinal, extra.documentoNovo === true);
+  sei.invalidar(d.arvore.idProcedimento);
+  const depois = lerEditor(await sei.http.obter(ed.pagina.url, { sinal: op.sinal }));
+  for (const s of alvos) conferirSecao(depois, s, novas[s.nome] as string, numero);
+  return { ...base, aplicado: true, resumo: `Conte\u00FAdo do documento ${numero} gravado (${alvos.length} se\u00E7\u00E3o(\u00F5es)).` };
 }

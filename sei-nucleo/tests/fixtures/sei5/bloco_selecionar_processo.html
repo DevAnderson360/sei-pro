@@ -1,0 +1,56 @@
+<!-- url: https://sei.exemplo.gov.br/sei/controlador.php?acao=bloco_selecionar_processo&tipo_selecao=1&id_object=objLupaBlocoPesquisa&infra_sistema=100000100&infra_unidade_atual=110000001&infra_hash=2222222222222222222222222222222222222222222222222222222222222222 -->
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<title>SEI - Selecionar Bloco</title>
+<!-- Fixture SINTETICA no formato do SEI 5.0.4 (ids e descricoes falsos). -->
+</head>
+<body>
+<form id="frmBlocoLista" method="post" action="controlador.php?acao=bloco_selecionar_processo&amp;tipo_selecao=1&amp;id_object=objLupaBlocoPesquisa&amp;acao_origem=bloco_selecionar_processo&amp;infra_sistema=100000100&amp;infra_unidade_atual=110000001&amp;infra_hash=9999999999999999999999999999999999999999999999999999999999999999">
+<label id="lblPalavrasPesquisaBloco" for="txtPalavrasPesquisaBloco">Palavras-chave para pesquisa:</label>
+<input type="text" id="txtPalavrasPesquisaBloco" name="txtPalavrasPesquisaBloco" value="">
+<button type="submit" name="sbmPesquisar" value="Pesquisar">Pesquisar</button>
+<table width="99%" class="infraTable" summary="Tabela de Blocos.">
+<caption class="infraCaption">Lista de Blocos (4 registros):</caption>
+<tr>
+<th class="infraTh" width="1%"></th>
+<th class="infraTh" width="10%">Número</th>
+<th class="infraTh" width="15%">Tipo</th>
+<th class="infraTh">Descrição</th>
+<th class="infraTh" width="10%">Ações</th>
+</tr>
+<tr class="infraTrClara">
+<td valign="top"><input type="radio" id="chkInfraItem0" name="chkInfraItem" value="41" class="infraRadio" title="41"></td>
+<td align="center">41</td>
+<td align="center">Interno</td>
+<td>Contratos 2026</td>
+<td align="center"><a href="#" onclick="infraTransportarItem(0);"><img src="svg/transportar.svg" title="Transportar este item" alt="Transportar este item"></a></td>
+</tr>
+<tr class="infraTrEscura">
+<td valign="top"><input type="radio" id="chkInfraItem1" name="chkInfraItem" value="42" class="infraRadio" title="42"></td>
+<td align="center">42</td>
+<td align="center">Reunião</td>
+<td>Pauta de outubro</td>
+<td align="center"><a href="#" onclick="infraTransportarItem(1);"><img src="svg/transportar.svg" title="Transportar este item" alt="Transportar este item"></a></td>
+</tr>
+<tr class="infraTrClara">
+<td valign="top"><input type="radio" id="chkInfraItem2" name="chkInfraItem" value="43" class="infraRadio" title="43"></td>
+<td align="center">43</td>
+<td align="center">Interno</td>
+<td>Processos da semana</td>
+<td align="center"><a href="#" onclick="infraTransportarItem(2);"><img src="svg/transportar.svg" title="Transportar este item" alt="Transportar este item"></a></td>
+</tr>
+<tr class="infraTrEscura">
+<td valign="top"><input type="radio" id="chkInfraItem3" name="chkInfraItem" value="44" class="infraRadio" title="44"></td>
+<td align="center">44</td>
+<td align="center">Interno</td>
+<td>Licitações em instrução</td>
+<td align="center"><a href="#" onclick="infraTransportarItem(3);"><img src="svg/transportar.svg" title="Transportar este item" alt="Transportar este item"></a></td>
+</tr>
+</table>
+<input type="hidden" id="hdnInfraItens" name="hdnInfraItens" value="41,42,43,44">
+<input type="hidden" id="hdnInfraItensSelecionados" name="hdnInfraItensSelecionados" value="">
+</form>
+</body>
+</html>

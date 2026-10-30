@@ -2,6 +2,431 @@
 
 ## ![SEI Pro Histórico de Versões](../img/icon-historico.png) Histórico de versões
 
+### Versão 3.8
+18/10/2026
+
+**Novo — [Documentos em Lote](../pages/DOCUMENTOSEMLOTE.md) refeito** (*SEI Pro Lab*, Chrome e Edge). A "mala direta" do SEI ganhou uma janela nova, no mesmo estilo dos outros painéis do SEI Pro, com tema claro e escuro, e uma novidade grande: cada documento pode ser gravado **no processo indicado em uma coluna da planilha**, e não só no processo aberto na tela.
+
+- **Processo de destino.** Na etapa *Cruzamento* você escolhe onde criar os documentos: no processo da tela (como antes), em um processo novo por linha (como antes) ou **no processo cujo número está em uma coluna do CSV**. Dá para mandar um documento diferente para cada processo de uma só vez.
+- **Verificação antes de gravar.** Nenhum documento é criado antes de o SEI Pro conferir cada processo da planilha, uma vez só: se existe, se está **aberto na sua unidade**, se não é sigiloso e se o tipo do documento pode ser criado ali. A tabela mostra a situação de cada um, com **Abrir em nova aba** (para receber ou reabrir o processo) e **Verificar de novo**.
+- **Grave só as linhas válidas.** O botão diz quantas linhas serão gravadas e quantas ficam de fora. Depois de corrigir os processos com problema, **Gravar as que ficaram de fora** cria o que faltou, no mesmo lote.
+- **Prévia.** Mostra o documento de cada linha já preenchido, com o nome na árvore e a descrição finais, e **marca** os campos `##...##` que ficariam sem valor. Se o texto do modelo cita o número do processo do modelo e o documento vai para outro processo, avisa: o SEI copia o texto como está, inclusive o "Processo nº ... / Interessado: ...".
+- **Uma linha que falha não derruba o lote.** O erro aparece no resultado e a ferramenta segue. Um pedido que o SEI pode ter concluído mesmo sem confirmar aparece como **incerto**: nunca é repetido sozinho, para não criar documento em duplicidade.
+- **Retomar de onde parou.** O andamento é guardado a cada documento. Se a janela fechar ou a sessão cair, **Continuar de onde parou** cria só o que falta; **Repetir só as que falharam** refaz apenas o que, com certeza, não foi criado.
+- **Nível de acesso e hipótese legal por linha**, em colunas opcionais da planilha (sem a coluna, os documentos saem públicos, como antes).
+- **Resultado completo.** Cada linha mostra o processo de destino, o nome, o número SEI e o link do documento. Dá para **copiar** (com links clicáveis), **baixar em CSV** e **gerar links permanentes** dos documentos criados. Quando os documentos foram criados no processo da tela, a árvore é recarregada ao final.
+- **Privacidade.** O andamento do lote fica só neste navegador, por até 7 dias após o último uso, e é apagado ao concluir ou descartar; o texto do modelo não é guardado. Cada lote aceita até 2000 linhas e 2 MB de dados.
+- **Correção embutida:** travessão, aspas curvas e o símbolo € vindos da planilha eram gravados como "?" nos documentos do SEI 5 (editor novo); agora saem certos.
+
+**Também nesta versão**
+- **Novo — [Menu Suspenso](../pages/MENUSUSPENSO.md) refeito** (*SEI Pro Lab*): o menu abre **por cima do conteúdo**, sem empurrar a tela, pelo ícone ☰; fecha ao clicar fora ou com **Esc**; respeita a barra de ações fixa e não pisca aberto ao trocar de tela.
+
+### Versão 3.7
+17/10/2026
+
+**Novo — [Agente de IA](../pages/AGENTEIA.md): backup em arquivo e anexo de PDF.**
+
+- **[Backup em arquivo](../pages/AGENTEIA.md#backup-em-arquivo-o-agente-inteiro-em-outro-computador):** o agente inteiro — conversas, memória, instruções, skills, regras, rotinas, conectores e fluxos — num `.json` numa pasta do OneDrive ou do Google Drive, gravado sozinho a cada mudança, com **Exportar** e **Importar**. Ler o arquivo sempre mescla, nunca apaga. A chave do serviço e os tokens dos conectores só entram se você marcar a opção; conector e rotina que chegam pelo arquivo vêm desligados.
+- **[Anexar PDF](../pages/AGENTEIA.md#anexar-pdf-na-conversa):** o PDF é lido no seu computador, página por página, com OCR nas páginas digitalizadas, e só o texto vai ao serviço de IA. Mostra o andamento, dá para cancelar e avisa quando o OCR pode deixar o computador lento.
+- **[Serviço compatível](../pages/CHAVEIA.md) e Ollama:** as listas de **Endereço** e **Modelo** voltam a abrir de novo depois de escolhidas (com a opção *Outro* para digitar), e o **403** de um servidor local passa a explicar como liberar `OLLAMA_ORIGINS`, em vez de dizer que a chave foi recusada. Contribuição de Manoel Fernandes ([#182](https://github.com/SEI-Pro/sei-pro/pull/182)).
+
+**Também nesta versão**
+- **Corrigido — [Estilo Avançado](../pages/ESTILOAVANCADO.md):** os botões do canto (largura total, nova aba, baixar HTML/DOCX) apareciam sobre formulários como *Incluir em Bloco*; agora só aparecem quando a tela mostra um documento.
+
+### Versão 3.6
+17/10/2026
+
+**Novo — [Ações em Lote](../pages/ACOESEMLOTE.md) refeitas** (*SEI Pro Lab*, Chrome e Edge). O antigo "Iniciar ações em lote" da árvore do processo agora se chama **Ações em Lote** e ganhou uma janela nova, no mesmo estilo dos painéis do SEI Pro, com tema claro e escuro.
+
+- **Mais ações.** Além de dar ciência, excluir, cancelar assinatura, baixar, alterar o nível de acesso, assinar e duplicar, agora dá para **cancelar documento** (com motivo), **incluir em bloco de assinatura** (existente ou novo, criado uma vez só para o lote), **alterar dados** (descrição, observação, interessados e assuntos, com *Acrescentar*, *Remover* ou *Substituir*), **mover para outro processo** e **baixar tudo num ZIP** ou **num PDF único** gerado pelo próprio SEI.
+- **Várias ações de uma vez.** Monte uma fila — por exemplo, alterar dados, incluir em bloco e assinar — e cada documento passa pelas etapas em ordem. Se uma etapa falha, as seguintes daquele documento ficam de fora.
+- **Seleção inteligente.** Filtros por tipo, unidade, assinatura, nível, origem e período, e os atalhos *Não assinados da minha unidade*, *Assinados por mim* e *Externos*. Cada botão mostra quantos documentos selecionados aceitam a ação.
+- **Prévia antes de executar.** Mostra, documento por documento, o que vai mudar (campo a campo) e quem será pulado e por quê. Excluir, cancelar e mover pedem confirmação.
+- **Pausar, minimizar e retomar.** O lote é salvo a cada etapa: se a janela fechar ou a sessão cair, dá para continuar de onde parou, sem repetir o que já foi feito. Uma etapa que o SEI não confirmou aparece como **Confira** e nunca é repetida sozinha. Senha errada pausa o lote no primeiro documento, para não bloquear sua conta, e a senha nunca é guardada.
+- **Resultado** com situação de cada etapa, **Copiar**, **Baixar CSV** e **Tentar de novo só as falhas**. No fim, a árvore do processo é recarregada.
+- **Mudança:** documentos e processos **sigilosos** ficam de fora das Ações em Lote (aparecem na lista como pulados, com o motivo).
+
+**Também nesta versão**
+- **Ajuste — nome:** o botão da árvore e o menu rápido passam a dizer **Ações em Lote** em todas as versões do SEI Pro. A configuração do menu rápido que você já tinha salvo continua valendo.
+
+### Versão 3.5
+16/10/2026
+
+**Novo — agrupar o Novo Controle de Processos por datas e unidade de envio** (*SEI Pro Lab*, Chrome e Edge). O que o agrupamento do SEI Pro antigo fazia, refeito: [Data de autuação, Data de recebimento, Data de envio e Unidade de envio](../pages/GRADECONTROLE.md#agrupar-por-datas-e-unidade-de-envio-consulta-o-andamento).
+
+- **Avisa antes de consultar.** O SEI não mostra essas datas na lista: para agrupar, o SEI Pro abre o andamento de cada processo. O aviso diz quantos serão consultados e o que fica de fora (não visualizados e sigilosos), e a consulta só começa depois que você confirma.
+- **Cache de 24 horas.** Ao recarregar a página, o agrupamento reaparece sem consultar de novo. Uma faixa mostra há quanto tempo foi a consulta e traz o botão **Atualizar**.
+- **Com progresso e cancelamento.** Os grupos vão se completando enquanto a consulta corre, e ela para sozinha se a sessão do SEI cair.
+- **Sem os iframes ocultos do legado:** a consulta é direta e só de leitura, sem guardar nada na página do SEI.
+
+### Versão 3.4
+16/10/2026
+
+**Novo — [Pesquisar Link Permanente](../pages/LINKPERMANENTE.md) e [Processos em Lote](../pages/PROCESSOSEMLOTE.md) refeitos** (*SEI Pro Lab*, Chrome e Edge), no mesmo estilo dos painéis do SEI Pro, com tema claro e escuro.
+
+**Pesquisar Link Permanente**
+- **Status por linha:** cada número aparece como *Encontrado*, *Não encontrado*, *Sem acesso* ou *Erro*, e o botão **Tentar de novo só as que falharam** repete apenas o que falhou.
+- **Cole o texto como estiver:** um e-mail, um parágrafo ou uma planilha. O módulo reconhece os números de processo e os números SEI, tira as repetições e mostra o que entendeu antes de pesquisar.
+- **Copiar com links:** o número vai com o link por baixo, e cola clicável no Teams, no Outlook e no Word. Continua o **Baixar CSV**.
+- **Pesquisa em paralelo:** três de cada vez, com a lista aparecendo conforme chega.
+
+**Processos em Lote**
+- **Prévia antes de criar:** mostra repetidas, linhas vazias, texto cortado em 100 caracteres e caracteres trocados (o travessão do Word vira hífen), com **Remover repetidas**. Um nível de acesso que o módulo não reconhece trava a prévia, em vez de criar o processo com outro nível.
+- **Colunas da planilha:** especificação, interessado, observação e nível de acesso por linha, com cabeçalho opcional. *(A coluna de interessado é lida, mas ainda não é aplicada.)*
+- **Retomar de onde parou:** o lote fica salvo a cada processo. Se a janela fechar ou a sessão cair, ao reabrir dá para **continuar sem recriar** o que já tem número. Se parecer que outra aba do SEI está rodando o mesmo lote, o módulo avisa.
+- **Minimizar:** a janela vira uma pastilha de progresso no canto e a tela do SEI fica livre para leitura. Há **Pausar**, **Continuar** e **Cancelar**, e a pausa entre processos se ajusta sozinha quando o SEI fica lento.
+- **Sem duplicar processo:** se o SEI não confirmar uma criação (a rede caiu, a resposta veio estranha), o processo aparece como **incerto** e o SEI Pro **não tenta de novo**; confira no Controle de Processos.
+- **Resultado:** tabela com número SEI e link, **Copiar com links**, **Baixar CSV**, **Tentar de novo as falhas** e **Gerar links permanentes destes processos** (abre o Pesquisar Link Permanente já preenchido).
+- **Modelos salvos:** guarde o tipo, o nível, a hipótese legal, a pausa e as ações depois da criação sob um nome, e aplique de novo quando quiser. Nunca guarda as linhas.
+- **Depois de criar:** nos processos criados com número confirmado, **incluir em bloco interno**, **aplicar marcador** e **acompanhar**, cada ação opcional. Repetir é seguro: o que já estava aparece como *já estava*, e uma inclusão que o SEI não confirmou nunca é reenviada ao mesmo bloco.
+
+**Também nesta versão**
+- **Corrigido — [Pesquisa rápida](../pages/PESQUISARAPIDA.md) com o [Novo Controle de Processos](../pages/GRADECONTROLE.md):** com a grade ligada, digitar na pesquisa rápida não filtrava nada. Agora o termo filtra a grade (sem criar filtro salvo) e aparece na linha de status; sem a grade, tudo funciona como antes.
+- **Corrigido — hipótese legal padrão:** a lista agora é lida do SEI quando você abre um processo (no máximo a cada 12 horas), e as Configurações só montam a escolha a partir dela. Antes dependia de um botão dentro do editor de documentos, que saiu. Se estiver vazia, as Configurações pedem para abrir um processo no SEI.
+- **Corrigido — Documentos em Lote:** com nível de acesso público, o SEI recusava o documento com *Hipótese Legal não aplicável ao protocolo*, porque a hipótese pré-selecionada pelo tipo ia junto. Agora ela não é enviada nesse caso.
+- **Ajuste — convite para avaliar nas lojas:** o texto do convite é sorteado a cada abertura, em vez de um por dia.
+
+### Versão 3.3
+15/10/2026
+
+**Novo — [Estilo Avançado](../pages/ESTILOAVANCADO.md) refeito do zero** (*SEI Pro Lab*, Chrome e Edge). O visual novo do SEI, no mesmo estilo dos painéis do SEI Pro, com **cor da barra superior à sua escolha** e um **modo escuro feito do jeito certo**. **Vem desligado**: ligue pela chave do canto superior direito do SEI, ou pelo ícone de paleta ao lado dela, que abre a janela **Aparência do SEI**. Onde o novo existe, o estilo anterior fica desativado.
+
+- **Cor da barra superior:** 18 cores prontas (inclusive **Rosa**, Magenta, Índigo, Turquesa, Terracota, Oliva, Cobre e Azul-petróleo) e **cor livre**. A cor ajusta o texto para continuar legível. A janela tem prévia ao vivo e as mesmas opções ficam nas Configurações, na seção **Aparência**, sincronizadas.
+- **Claro, Escuro e Automático.** O modo escuro cobre o sistema inteiro (menu, tabelas, formulários, janelas, árvore do processo, painéis do SEI Pro) e, opcionalmente, o **texto dos documentos**, com um botão **Ver original** para conferir antes de assinar.
+- **Ligar o Estilo Avançado liga também o [Novo Controle de Processos](../pages/GRADECONTROLE.md)**, e a grade abre na hora se você estiver no Controle de Processos.
+- **Barra superior com duas alturas:** mais alta no topo, **compacta ao rolar**, com transição suave. Compacta, o nome do órgão passa para **junto da logo do SEI**, e a barra de ações fixa gruda logo abaixo.
+- **Barra de ações:** os ícones nativos do SEI ficam como sempre; os botões do SEI Pro (monitorar, PDF, ação e documentos em lote, comparar, histórico, certidão) ganharam desenho próprio, colorido como os nativos. O **Agente de IA**, o **Estúdio de Fluxo** e o **Monitorados** mantêm o ícone de sempre.
+- **Novo botão de [Histórico de Processos Visitados](../pages/HISTORICOPROC.md)** na barra de ações, ao lado do Estúdio de Fluxo (no Controle e dentro do processo).
+- **Documento numa caixa só**, em formato de página, com o botão **Largura total** (alterna entre a página estreita e a largura inteira; o navegador lembra), e os botões **Abrir em nova aba**, **Baixar HTML** e **Baixar DOCX** agora com **rótulo** e no mesmo estilo. Ao rolar o documento, ficam só os ícones, à direita.
+- **Árvore do processo:** divisor vertical com alça, selo da unidade em pílula alinhado aos ícones de copiar, respiro acima do número do processo, divisores de seção suaves e menu suspenso dos documentos sem quebra de texto.
+- **Mais respiro** no campo *Pesquisar no Menu* e entre rótulos e campos dos formulários internos; tooltips próprios nos botões; transições suaves nos botões e estados de hover.
+- **Tudo é só visual:** nada é gravado nos documentos e o editor não é adaptado.
+
+### Versão 3.2.4
+14/10/2026
+
+- **Corrigido — [Agente de IA](../pages/AGENTEIA.md):** ao enviar um documento a conector em outro computador, o caminho de outro arquivo baixado que aparecesse no mesmo pedido ia sem máscara. Agora só o próprio documento enviado deixa de ser mascarado; o resto do pedido segue mascarado como em qualquer conector.
+
+### Versão 3.2.3
+14/10/2026
+
+- **Novo — [Agente de IA](../pages/AGENTEIA.md) entrega documentos a conector em outro computador.** Antes, o agente baixava o documento e passava ao conector só o caminho do arquivo, que um servidor em outra máquina não consegue abrir. Agora, quando o conector aceita receber o arquivo, o SEI Pro confere se é o mesmo documento aprovado no download e envia o conteúdo, com o nome aprovado. **Você aprova cada envio**, mesmo com "Sempre permitir", e o cartão mostra o documento, o tamanho e o servidor. Ideia e primeira versão de Tavares (ANTAQ), para o conector do Sistema de Arrendamento.
+- **Nome legível no download.** O agente escolhe o nome do arquivo a partir do documento (por exemplo, *Contrato de Cessão de Uso - Porto de Itaqui*), sempre com a extensão original e o número SEI.
+- **Corrigido — [Demandas](../pages/DEMANDAS.md):** editar uma demanda que já tinha processo vinculado reabria o diálogo em vez de salvar.
+- **Ajuste — [Novo Controle de Processos](../pages/GRADECONTROLE.md):** os marcadores e o prazo ficam com a mesma altura e alinhados na linha.
+
+### Versão 3.2.2
+12/10/2026
+
+Ajuste no [Novo Controle de Processos](../pages/GRADECONTROLE.md) (*SEI Pro Lab*, Chrome e Edge): a opção continua **ligada por padrão**, mas a grade **não abre sozinha**.
+
+- **O Controle de Processos abre na lista do SEI**, como sempre. A grade só aparece depois que você clica no botão ao lado do título; o navegador lembra a escolha nas próximas aberturas, e clicar de novo volta à lista.
+- Quem desmarcar a opção nas Configurações, aba Geral, tira o botão e a grade de cena.
+
+### Versão 3.2.1
+12/10/2026
+
+Mais uma correção de segurança no download de documentos pelo [Agente de IA](../pages/AGENTEIA.md) (*SEI Pro Lab*, Chrome e Edge).
+
+- **O download só acontece com o cartão que você aprovou.** O agente só grava o arquivo se o nome e o destino estiverem no cartão daquele pedido. Um cartão recusado antes não vale para um pedido posterior, e pedido que chega sem mostrar o arquivo não é gravado.
+
+### Versão 3.2
+12/10/2026
+
+O [Novo Controle de Processos](../pages/GRADECONTROLE.md) (*SEI Pro Lab*, Chrome e Edge), que estreou na 3.0 com o nome "Visão nova do Controle de Processos", agora **vem ligado por padrão**.
+
+- **Já vem ligado.** Ao atualizar, a grade nova aparece no Controle de Processos sem precisar mexer nas Configurações. Quem preferir a lista do SEI desmarca a opção, ou usa o botão ao lado do título para alternar na hora.
+- **Nome novo e opção mais à vista.** Passou a se chamar **Novo Controle de Processos** e, nas Configurações, aba Geral, ficou logo antes de *Controlar Prazos*.
+
+### Versão 3.1.1
+12/10/2026
+
+Correções de segurança no download de documentos pelo [Agente de IA](../pages/AGENTEIA.md), que entrou na 3.1 (*SEI Pro Lab*, Chrome e Edge).
+
+- **O cartão de aprovação mostra o arquivo que será gravado de verdade.** Nome, tipo e tamanho vêm do SEI, e não mais de uma estimativa. Se o arquivo mudar entre a aprovação e a gravação, nada é salvo.
+- **Só documentos e imagens vão para o computador** (PDF, Word, Excel, imagens, texto). Anexo de outro tipo, como programa executável, é recusado.
+- **A limpeza só apaga o que o agente baixou.** Antes de remover, o SEI Pro confere se o registro ainda corresponde ao mesmo arquivo.
+- **O caminho do arquivo só vai sem máscara a conector do seu próprio computador.** Conector de fora recebe o caminho mascarado, como qualquer outro dado pessoal.
+- **Mensagem de erro do conector não repete o que foi digitado** nos campos de autenticação.
+
+### Versão 3.1
+12/10/2026
+
+Melhorias no [Agente de IA](../pages/AGENTEIA.md) para quem usa **conectores (MCP)**, no *SEI Pro Lab* (Chrome e Edge).
+
+- **Corrigido — o teste de conexão dos conectores falhava** com a mensagem *Illegal invocation*, e o conector ficava "com erro" mesmo com o servidor no ar. Agora conecta e lista as ferramentas.
+- **Novo — conector no seu próprio computador.** Servidor em `localhost` ou `127.0.0.1` passa a mostrar o estado na lista (**conectado** ou **sem resposta**), com o botão **Testar de novo**, e o estado é conferido toda vez que o painel abre. Com o servidor desligado, o agente avisa que ele não está rodando, em vez de um erro de rede.
+- **Novo — baixar um documento do SEI para entregar a um conector.** Quando o conector só lê arquivos do disco, o agente salva o documento externo (PDF, planilha, imagem) em `Downloads/SEI Pro/<número do processo>/` e passa o caminho adiante. **Você aprova cada download**, o cartão mostra o documento e o destino, e a cópia sai com os dados reais, sem máscara. Em *Configuração → O que o agente pode → Arquivos baixados pelo agente* há um botão para apagar essas cópias. O navegador pede a permissão de downloads só na primeira vez que a função é usada.
+- **Erro da ferramenta não derruba o conector.** Quando o servidor responde que um login expirou ou que um dado foi recusado, o texto chega inteiro a você e ao agente, e o conector continua ligado.
+- **O agente acha a ferramenta certa.** Em conector com muitas ferramentas de nome parecido, a busca passa a trazer primeiro a que casa melhor com o pedido e informa o nome das que não couberam na resposta.
+- **Token colado errado é dito como tal.** Aspas curvas, acento ou quebra de linha no token agora geram um aviso para colar de novo, e não um erro de conexão.
+- **Novo — botão de copiar a resposta.** Cada resposta do agente ganhou um ícone de copiar, que leva o texto com a formatação (tabelas e listas continuam tabelas e listas ao colar).
+
+### Versão 3.0
+12/10/2026
+
+**Novo — [Visão nova do Controle de Processos](../pages/GRADECONTROLE.md)** (SEI Pro Lab, no Chrome e no Edge). Uma grade moderna no lugar da lista do SEI. Na 3.0 vinha desligada; **desde a 3.2 vem ligada** (nas Configurações, aba Geral, a opção *Novo Controle de Processos*). Um botão ao lado do título volta à lista do SEI quando você quiser.
+
+- **Abre sem piscar e carrega tudo.** A tela nativa fica escondida enquanto a grade monta, e todas as páginas do seu controle são lidas em segundo plano, não só os 100 primeiros.
+- **Busca com operadores e filtros rápidos.** `resp:eu prazo:<7d marcador:urgente -tipo:ofício`, mais botões para *Meus*, *Recebidos*, *Gerados*, *Atrasados*, *Vencem na semana*, *Sem responsável*, *Não visualizados*, *Novos desde a última visita* e *Parados há +30 dias*, e seletores pesquisáveis de responsável, tipo e marcador.
+- **Agrupar, ordenar e organizar.** Agrupe por responsável, tipo, marcador, prazo e mais; ordene por vários critérios; escolha as colunas e a densidade; guarde **visões salvas** (que acompanham você em outros computadores) e **exporte em CSV** o que está na tela.
+- **Quadro (Kanban).** Arraste o processo entre colunas de marcador ou de responsável: o SEI é atualizado e há **Desfazer**. Limite de cartões por coluna e raias por responsável.
+- **Edição na própria linha.** Especificação (lápis, Enter salva), responsável, marcadores e prazo (a mesma janela do [Controle de Prazos](../pages/PRAZOS.md)), com a opção de aplicar a todos os processos marcados. Se o SEI recusar, a tela volta ao que era e um aviso explica.
+- **Anotação em post-it com lista de tarefas.** O mesmo post-it da árvore do processo: caixas `[ ]`/`[X]` que se marcam com um clique, data de hoje, prioridade e contador de 500 caracteres. O balão da anotação mostra as tarefas com caixa e texto riscado.
+- **Ações do SEI em vários processos, de qualquer página.** A barra de ações usa os botões do próprio SEI (Enviar, Atribuir, Concluir...) e agora aceita processos que vieram da paginação, na visão resumida e na detalhada. O SEI só permite processos de uma página por grupo em cada ação, e a grade avisa quando a seleção passa disso.
+- **Tudo o que já estava na linha:** ícones de Monitorados, Projetos, Demandas e Acompanhamento especial; ícone de **recebido/gerado**; ícone para **abrir em nova guia**; não visualizados em vermelho; urgente e trancado; **dicas na hora** ao passar o mouse; atalhos de teclado (`/`, `j`, `k`, `x`, `Enter`, `g t`, `g q`).
+- **Convive com o resto.** O botão de recolher o painel, a ordem dos painéis e o legado seguem funcionando; com a opção desligada, nada muda.
+
+**Bom saber:** as edições, o quadro e as ações em lote **gravam de verdade no SEI**. A visão nova foi testada no SEI 4.1.5 e no 5.0.4. A versão da loja e o Firefox não recebem a visão nova nesta versão.
+
+### Versão 2.9
+11/10/2026
+
+A versão da loja, no Chrome e no Edge, recebe tudo o que o *SEI Pro Lab* vinha testando desde a 2.4: os Processos Monitorados e o Histórico de processos refeitos, os Projetos novos, o Controle de Prazos que grava no próprio SEI, as Demandas, o filtro pela pesquisa rápida e o retorno de bloco de assinatura. O painel lateral passa a ter abas. A partir daqui, a versão da loja e o *SEI Pro Lab* têm as mesmas funções; o Lab continua sendo o canal de testes. **No Firefox nada muda nesta versão.**
+
+**Processos Monitorados refeitos**
+
+- **Novo — [Processos Monitorados](../pages/FAVORITOS.md) num aplicativo novo.** Os monitorados passam a ficar guardados **na própria extensão**, e limpar o cache do navegador não os apaga mais. São duas listas: a da **unidade** e a **Pessoal**, que aparece em todas as unidades. Cada processo pode ter pasta, etiquetas coloridas, nota, prazo, lembrete, documentos monitorados e local no mapa.
+- **Veja o que mudou sem abrir o processo.** Um selo avisa o que mudou desde a última vez (*2 documentos novos*, *saiu da sua unidade*…), lido da sua caixa e da árvore que você abre. Lembretes vencidos sobem para **Para hoje**, e você pode fixar no topo os processos que quer sempre à vista. A lista tem busca sem acento, filtros com várias escolhas e uma lixeira com os removidos nos últimos 30 dias.
+- **Para levar a outro computador**, em *Sincronização…*: um Texto Padrão da unidade (só com o seu consentimento, porque ele fica visível para a unidade; a lista Pessoal e os sigilosos nunca vão para lá), um arquivo numa pasta da nuvem ou as cópias diárias que o SEI Pro guarda neste navegador.
+- **O que acontece com os monitorados que você já tinha.** Eles **não são trazidos sozinhos**: na primeira vez que a lista nova abre, o SEI Pro mostra quantos encontrou neste navegador e pergunta se você quer trazê-los para a lista da unidade ou para a Pessoal. Vêm o processo, o tipo, a especificação, a categoria (que vira pasta), as etiquetas com as suas cores, o prazo e o local no mapa. **Nada é apagado**: os dados antigos continuam guardados. Se escolher *Agora não*, a lista nova começa vazia e a pergunta volta em 30 dias; dá para trazer a qualquer momento pelo menu ⚙ → *Trazer monitorados da versão anterior*. A pergunta é feita uma vez para cada SEI e cada usuário.
+
+**Histórico de processos refeito**
+
+- **Novo — o [Histórico de processos visitados](../pages/HISTORICOPROC.md) abre numa janela no meio da tela** e ganha uma aba no painel lateral, que mostra no topo, na mesma hora, cada processo que você abre. A busca acha o processo pelo número (com ou sem pontuação), pelo tipo, pela especificação, pelo interessado ou pelo assunto, e há filtros de período, tipo, unidade, interessado, assunto e situação.
+- **Cada pessoa tem o seu histórico**, guardado na própria extensão. Você pode pausar o registro, apagar o que viu na última hora, hoje, nos últimos 7 ou 30 dias ou tudo, e escolher quantos processos guardar. De processo sigiloso, o histórico guarda só o número e o tipo.
+- **O histórico que você já tinha vem sozinho**, sem perguntar, na primeira vez que você usa o SEI com esta versão, e o antigo não é apagado. Como o histórico antigo era um só para todos os logins do mesmo SEI neste navegador, ele vai inteiro para o primeiro login que abrir o SEI. Com o registro pausado, a cópia espera até você retomar.
+
+**Projetos novos**
+
+- **Novo — [gerenciador de Projetos](../pages/PROJETOS.md) reescrito, sem planilha do Google.** Projetos com fases, etapas, marcos e dependências, em Gantt ou em lista, no Controle de Processos, no painel lateral (com a *Agenda* das etapas atrasadas e da semana) e na árvore do processo, onde dá para concluir a etapa escolhendo um documento. O projeto da unidade fica num Texto Padrão do SEI; o seu, no navegador, com cópias diárias e arquivo. A opção é **Gerenciar Projetos**, na aba *Geral* das configurações.
+- **Fim do gerenciador antigo.** A ferramenta que usava uma planilha do Google já não funcionava, porque a API do Google que ela usava foi desativada, e deixa de aparecer no Chrome e no Edge. **Os projetos da planilha não são trazidos** para o gerenciador novo. Quem usa o servidor do Atividades continua vendo o painel antigo, com o nome *Projetos (Atividades)*, e pode trazer esses projetos pelo menu de ajustes, em *Importar do servidor do Atividades…*.
+
+**Controle de Prazos refeito**
+
+- **Alterado — o [Controle de Prazos](../pages/PRAZOS.md) grava no controle de prazo do próprio SEI (4.1.5 ou superior).** O vencimento não ocupa mais o marcador, quem não usa a extensão enxerga e altera o prazo pelo próprio SEI, e o prazo em dias úteis é calculado pelo SEI com os feriados dele. Dá para concluir o prazo, que fica listado sem alerta de atraso. A janela *Prazo* é nova e grava para vários processos de uma vez.
+- **Hora, texto e data inicial continuam no marcador**, só quando você os informa. Datas já vencidas e SEIs anteriores ao 4.1.5 também gravam no marcador, como antes. **Os prazos que já estavam em marcadores continuam na coluna.**
+- **Atenção na unidade:** quem ainda usa uma versão antiga do SEI Pro, ou o SEI Pro no Firefox, não vê na coluna *Prazos* os prazos gravados só no controle do SEI (o ícone do próprio SEI continua aparecendo).
+
+**Demandas (novo)**
+
+- **Novo — [Demandas](../pages/DEMANDAS.md).** Demandas com título, responsável, prazo e prioridade, ligadas a processos, em tabela, quadro, cronograma e painel, com um botão na barra do processo. As da unidade ficam em Textos Padrão do SEI, e as suas, no navegador. Vem **ligada**, e nada é gravado no Texto Padrão da unidade antes de você confirmar o aviso (*Entendi*) na primeira vez. Para desligar, desmarque *Demandas* nas configurações (aba *Geral*, seção *Controle de Processos*) ou esconda o painel pela [Ordem e visibilidade dos painéis](../pages/ORDEMPAINEIS.md).
+
+**Pesquisa rápida e blocos de assinatura**
+
+- **Novo — [filtrar a página pelo campo de pesquisa rápida](../pages/PESQUISARAPIDA.md).** Digite no campo de pesquisa do topo do SEI, sem apertar Enter: o Controle de Processos mostra só os processos que correspondem, e a árvore e o documento aberto destacam as ocorrências. Vem **desligada**: ligue a opção *Filtrar a página pelo campo de pesquisa rápida* nas configurações.
+- **Novo — [retornar bloco disponibilizado](../pages/RETORNARBLOCO.md)** na tela *Incluir em Bloco de Assinatura*, sem sair dela. Vem ligado.
+
+**Painel lateral com abas**
+
+- **Alterado — o painel lateral do navegador** deixa de ter só o Agente de IA e passa a ter as abas **Monitorados**, **Histórico**, **Projetos**, **Demandas** e **Agente de IA**.
+
+**O que você vai notar ao atualizar**
+
+- **Dois painéis novos aparecem logo abaixo da lista do Controle de Processos: *Projetos* e *Demandas*.** Eles vêm vazios, com um botão para criar o primeiro projeto ou a primeira demanda, porque as duas funções vêm ligadas. Se não quiser vê-los, desligue *Gerenciar Projetos* e *Demandas* nas [Configurações](../pages/DESATIVARFUNCOES.md) ou esconda os painéis pela [Ordem e visibilidade dos painéis](../pages/ORDEMPAINEIS.md). Nada é gravado no Texto Padrão da unidade enquanto você não confirmar o aviso *Entendi*.
+- **Na primeira vez que abrir os Monitorados**, o SEI Pro pergunta se quer trazer os que você já tinha (veja acima). O histórico antigo vem sozinho.
+
+**O que fica igual**
+
+- **Nada precisa ser religado.** As suas configurações continuam como estavam. Quem não quiser alguma destas funções pode desligá-la nas [Configurações](../pages/DESATIVARFUNCOES.md), aba *Geral*, seção *Controle de Processos*: *Processos Monitorados*, *Gerenciar Projetos*, *Demandas*, *Controlar Prazos*, *Histórico de processos visitados*, *Filtrar a página pelo campo de pesquisa rápida* e *Retornar bloco de assinatura disponibilizado na tela de inclusão*.
+- **No Firefox**, o SEI Pro continua com os monitorados, o histórico e o controle de prazos anteriores; só o número da versão muda.
+
+### Versão 2.8.1
+10/10/2026
+
+Correção da aba lateral das Demandas, que não abria na 2.8, e de um detalhe no título sugerido para a nova demanda.
+
+- **Correção — a aba *Demandas* do painel lateral abria só com o aviso "Este modo só abre em tela cheia".** Ela volta a mostrar a *Agenda* das demandas (atrasadas, da semana e sem responsável) e o botão de nova demanda. Isso vale só para o *SEI Pro Lab* (Chrome e Edge), que é onde as [Demandas](../pages/DEMANDAS.md) existem.
+- **Correção — o título sugerido ao criar uma demanda pelo botão do processo repetia o número do documento** (por exemplo, *Despacho 0104018 0104018*). Agora o número aparece uma vez só.
+
+### Versão 2.8
+10/10/2026
+
+Os *Favoritos* do SEI Pro agora se chamam **Monitorados**, e a estrela virou um alvo. Só o nome e o ícone mudaram: o funcionamento e os seus dados continuam iguais. Esta versão também traz a página de configurações e as Ferramentas de PDF com visual novo, para todos, e uma leva de novidades que chega primeiro ao *SEI Pro Lab* (Chrome e Edge): o gerenciador de **Demandas**, o **Controle de Prazos** refeito, o filtro pela pesquisa rápida e o retorno de bloco de assinatura na tela de inclusão.
+
+**Processos Monitorados (para todos)**
+
+- **Alterado — Processos Favoritos agora é [Processos Monitorados](../pages/FAVORITOS.md).** O SEI passou a ter os seus próprios *Favoritos*, e ter o mesmo nome e a mesma estrela na extensão confundia. Agora cada recurso tem o seu nome e o seu ícone, mais próximos do jeito nativo do SEI. A mudança vale para as listas, o painel lateral, a aba do painel, o histórico de processos, as configurações e o Agente de IA.
+- **A estrela virou um alvo.** Para monitorar um processo, clique no **alvo** ao lado dele, no Controle de Processos, na árvore, nos blocos, no Acompanhamento Especial, nos sobrestados e nos resultados da Pesquisa. O alvo aceso mostra o que já é monitorado. Os botões passam a dizer **Monitorar** e **Parar de monitorar**, e *Manter processo em Monitorados* no Enviar Processo.
+- **Nada muda no que você já tem.** Seus processos, pastas, etiquetas, notas, prazos, lembretes, documentos monitorados e configurações continuam exatamente como estavam, e nenhuma opção precisa ser religada. O que o próprio SEI chama de *Favoritos* segue sendo outra coisa, independente desta função.
+- **Documentação refeita.** A página de [Processos Monitorados](../pages/FAVORITOS.md) ganhou um aviso da renomeação, imagens novas e um GIF do passo a passo de monitorar um processo.
+
+**Demandas (novo, em teste, só no SEI Pro Lab para Chrome e Edge)**
+
+- **Novo — [Demandas](../pages/DEMANDAS.md).** Crie demandas com título, responsável, prazo e prioridade, ligue-as a um ou mais processos e atribua a um colega. Dá para anotar descrição, etiquetas, uma lista de tarefas e o tempo estimado, e cada mudança fica no histórico da demanda. Quem usa a versão da loja ainda não tem esta função. Para ligar, marque *Demandas* nas configurações do SEI Pro (aba *Geral*, seção *Controle de Processos*, logo abaixo de *Gerenciar Projetos*).
+- **Quatro visões:** **Tabela** (lista com filtros e ordenação), **Quadro** (cartões em colunas para arrastar de uma situação para outra, também pelo teclado), **Cronograma** (barras no tempo; arrastar muda as datas e mudar o prazo pede um motivo) e **Painel** (atrasadas, da semana, concluídas, entregas por mês e quem tem mais trabalho).
+- **O ciclo completo da demanda:** iniciar, pausar, concluir registrando o documento entregue, prorrogar com motivo, avaliar e arquivar. A demanda pode também apontar para uma etapa do [gerenciador de Projetos](../pages/PROJETOS.md).
+- **Botão *Demandas* na barra do processo.** Mostra as demandas ligadas ao processo aberto e cria uma nova com o formulário já preenchido pela tela: o processo, o título (com o nome do documento aberto ou o tipo do processo) e você como responsável. Ali mesmo dá para iniciar, *concluir com este documento* e abrir a demanda no painel, sem consultas extras ao SEI e sem marcar o processo como visualizado.
+- **Ícone na grade do Controle de Processos.** Cada processo com demandas ganha um ícone na linha (com um número azul quando são duas ou mais); clicar nele abre o mesmo menu do botão do processo. O painel das Demandas aparece abaixo da lista do Controle de Processos e numa aba do painel lateral, com o número de atrasadas.
+- **Para toda a unidade ou só seu.** As demandas da unidade ficam em Textos Padrão do SEI, uma tabela por texto, e aparecem para os colegas que usam o SEI Pro Lab (você confirma com *Entendi* na primeira vez). As suas ficam no navegador, com cópias diárias, e tudo pode ir para um arquivo no seu computador e voltar dele.
+- **Limites e arquivo morto.** Cada Texto Padrão aceita até 100 KB (cerca de 560 demandas): a partir de 80 KB o painel avisa, e em 100 KB só a criação de novas é bloqueada. *Arquivar concluídas antigas* tira da lista ativa sem apagar nada, e *Exportar arquivo morto e limpar* só tira as arquivadas do Texto Padrão depois que você confirma que guardou o arquivo.
+- **Sigilo.** O número de processo ou de documento sigiloso nunca vai ao Texto Padrão nem ao título sugerido, e o menu do processo sigiloso avisa disso. Mas o que você digita no título e na descrição vai como está: **não escreva dados sigilosos nesses campos**.
+
+**Controle de Prazos refeito (SEI Pro Lab, Chrome e Edge)**
+
+- **Alterado — o [Controle de Prazos](../pages/PRAZOS.md) grava no controle de prazo do próprio SEI (4.1.5 ou superior).** O vencimento não ocupa mais o marcador do processo, quem não usa a extensão enxerga e altera o prazo pelo próprio SEI, e o prazo em **dias úteis** é calculado pelo SEI com os feriados dele. Dá para **concluir** o prazo, que fica listado sem alerta de atraso.
+- **Hora, texto e data inicial continuam no marcador**, só quando você os informa (o controle do SEI guarda apenas a data). Datas já vencidas e SEIs anteriores ao 4.1.5 também gravam no marcador, como antes. Os prazos que já estavam em marcadores continuam na coluna.
+- **Nova janela *Prazo*** no mesmo desenho dos monitorados, do histórico e dos projetos, com o destino do prazo explicado enquanto você preenche, prazo **em N dias** (corridos ou úteis) e gravação para vários processos de uma vez. O painel da árvore mostra o prazo do SEI junto do marcador.
+- **Atenção na unidade:** quem ainda usa uma versão antiga do SEI Pro, ou a versão da loja, não vê na coluna *Prazos* os prazos gravados só no controle do SEI (o ícone do próprio SEI continua aparecendo).
+
+**Configurações e Ferramentas de PDF (para todos)**
+
+- **Alterado — página de [Configurações](../pages/DESATIVARFUNCOES.md) nova.** As opções ficam em seções recolhíveis, com chaves liga/desliga, um campo de **busca** que acha a opção pelo nome (sem se importar com acentos) e a barra *Salvar* logo abaixo do título. O que você já tinha configurado continua igual.
+- ***Gerenciar Projetos* passou para a aba *Geral***, na seção *Controle de Processos*, abaixo de *Processos Monitorados*. As opções **Gerenciar Formulários** e **Pesquisa NatJus** saíram da página.
+- **Configurações mais seguras ao salvar.** Se as configurações passarem do espaço que o navegador reserva para sincronizá-las (8 KB), a página avisa antes, em vez de dizer "salvo" sem ter salvo; um erro do navegador ao gravar também aparece na tela. Um formulário de base de dados em branco não dispara mais o alerta ao salvar, apagar a última base não apaga o resto das configurações, e uma configuração antiga corrompida não deixa mais a página sem botões.
+- **Alterado — [Ferramentas de PDF](../pages/FERRAMENTASPDF.md) com o novo desenho**, as mesmas cores da página de configurações, o modo escuro e o nome do produto no título. O título e a barra de ações (voltar e destino no SEI) ficam em linhas separadas, e a barra fica fixa no alto.
+
+**Controle de Processos**
+
+- **Novo — [Ordem e visibilidade dos painéis](../pages/ORDEMPAINEIS.md) (Chrome e Edge, também na versão da loja).** O botão *Ordenar e ocultar painéis*, na barra de título do Controle de Processos, abre uma janela para arrastar os painéis (Monitorados, Atividades, Projetos e agora Demandas) na ordem que você preferir e esconder os que não usa. A escolha sincroniza entre os seus computadores e vale na hora, sem recarregar. Quem já ordenava arrastando os painéis mantém a ordem; o arrastar antigo foi substituído por esta janela, que é mais estável.
+- **Novo — [anotação em coluna](../pages/ANOTACAOCONTROLE.md).** Com *Mostrar a anotação de cada processo* ligada, aparece a opção de colocar o cartão da anotação numa coluna à esquerda do número do processo, na mesma linha. A ordenação que você salvou na tabela acompanha a troca. A ideia veio de uma proposta de *SEI Pro PRF* ([#177](https://github.com/SEI-Pro/sei-pro/pull/177)).
+- **Novo (SEI Pro Lab) — [filtrar a página pelo campo de pesquisa rápida](../pages/PESQUISARAPIDA.md).** Digite no campo de pesquisa rápida do SEI, sem apertar Enter: no Controle de Processos, a lista mostra só os processos que correspondem ao texto (número, especificação, tipo, atribuição, marcador, anotação); na árvore e no documento aberto, as ocorrências ficam destacadas. Começa com três caracteres, ignora maiúsculas, acentos e pontuação, e o **Enter** mantém a pesquisa normal do SEI. Vem desligada. Proposta de *SEI Pro PRF* ([#179](https://github.com/SEI-Pro/sei-pro/pull/179)).
+- **Correção:** o ícone dos Projetos novos, na árvore do processo, descia alguns pixels em relação aos botões dos Monitorados. Agora fica alinhado.
+
+**Blocos de assinatura (SEI Pro Lab)**
+
+- **Novo — [retornar bloco disponibilizado](../pages/RETORNARBLOCO.md) sem sair da tela.** Na tela *Incluir em Bloco de Assinatura*, o botão **Retornar bloco disponibilizado** lista os blocos que a sua unidade disponibilizou, recolhe o escolhido e já o deixa selecionado no campo *Bloco*, com os documentos marcados preservados. A opção vem ligada e pode ser desligada nas configurações. Proposta de *SEI Pro PRF* ([#176](https://github.com/SEI-Pro/sei-pro/pull/176)).
+
+### Versão 2.7
+09/10/2026
+
+O gerenciador de projetos foi refeito do zero e chega primeiro ao SEI Pro Lab, em versão de teste. Duas falhas do painel lateral e dos favoritos novos também foram corrigidas.
+
+- **Novo (em teste) — [gerenciador de Projetos](../pages/PROJETOS.md) reescrito, no *SEI Pro Lab* (Chrome e Edge).** Quem usa a versão da loja continua com o gerenciador de sempre e recebe o novo depois dessa validação. Para ligar, marque *Gerenciar Projetos* nas configurações do SEI Pro.
+- **Painel no Controle de Processos.** Projetos com fases, etapas, marcos, dependências e linha de base, em Gantt ou em lista, com filtros, visão de todos os projetos, exportação para planilha e impressão. As etapas atrasadas e as que vencem na semana aparecem em pílulas no título do painel.
+- **Os projetos acompanham o processo.** Na caixa, um ícone ao lado da estrela dos favoritos abre um balão com os projetos e as etapas ligados ao processo. Na árvore do processo, o ícone mostra uma faixa quando há etapa atrasada e permite concluir a etapa escolhendo um documento da própria árvore, sem carregar nada em segundo plano.
+- **Painel lateral.** Uma aba *Projetos* ao lado de Favoritos, Histórico e Agente de IA, com a *Agenda* (atrasadas, desta semana e dos próximos 30 dias) e um mini-Gantt de cada projeto. O número vermelho da aba mostra as etapas atrasadas.
+- **Para toda a unidade ou só seu.** O projeto da unidade fica num Texto Padrão do SEI e aparece para os colegas que usam o SEI Pro (você confirma com *Entendi* na primeira vez). O projeto só seu fica no navegador, com cópias diárias e arquivo para enviar e receber.
+- **O Agente de IA lê os seus projetos** (*"quais etapas minhas estão atrasadas?"*). Processos sigilosos ficam de fora: o número deles não vai ao Texto Padrão, nem aos arquivos, nem ao Agente.
+- **Correção:** com o painel lateral aberto em mais de uma janela do navegador, abrir uma aba (por exemplo, pelo botão dos favoritos) trocava a aba do painel de **todas** as janelas. Agora só troca o painel da janela em que você clicou.
+- **Correção nos favoritos novos (SEI Pro Lab):** o número de pendências nas abas do painel lateral, a troca de aba pedida pelo SEI com o painel aberto e a barra de progresso (com o *Cancelar*) do *Atualizar* não funcionavam, porque a extensão lia errado o aviso de mudança do armazenamento do Chrome. Os três voltam a funcionar.
+
+### Versão 2.6
+07/10/2026
+
+A anotação de cada processo pode aparecer na própria lista do Controle de Processos, com o checklist das anotações desenhado como caixas.
+
+- **Novo — [anotações no Controle de Processos](../pages/ANOTACAOCONTROLE.md).** Com a opção ligada, o texto da anotação aparece num cartão logo abaixo do número do processo, em *Recebidos* e *Gerados*, sem precisar passar o mouse sobre o ícone. A anotação com prioridade fica vermelha, com a etiqueta *Prioridade*. Texto longo abre e fecha pela seta do cartão, que também mostra o autor e a data. O ícone do SEI continua no lugar para editar a anotação
+- **O checklist das anotações vira caixas.** As linhas que começam com `[ ]` ou `[X]` aparecem com uma caixa desmarcada ou marcada, e os itens concluídos ficam riscados. A caixa é só para leitura: para marcar ou desmarcar, edite a anotação
+- A função vem **desligada**. Para ligar: *Configurações do SEI Pro*, aba *Geral*, seção *Controle de Processos*, opção *Mostrar a anotação de cada processo na tela de controle de processos*. Ela não faz nenhuma consulta extra ao SEI, segue o modo noturno e vale no Chrome e no Edge. A ideia veio de uma proposta de *SEI Pro PRF* ([#174](https://github.com/SEI-Pro/sei-pro/pull/174))
+- **Agente de IA: modelos com raciocínio voltam a funcionar.** Com alguns modelos novos da OpenAI, toda pergunta terminava em erro 400, porque o serviço recusava o raciocínio junto com as ferramentas do SEI. Agora o agente refaz o pedido com o raciocínio desligado. Se o modelo recusar mesmo assim, a mensagem explica, em português, que é preciso escolher outro modelo
+- **Nos favoritos novos (SEI Pro Lab):** o título do painel não aparece mais com a letra pequena no SEI 5 enquanto a página termina de carregar
+
+### Versão 2.5.1
+05/10/2026
+
+O link de legislação volta a funcionar, com uma base nova de normas federais, e chega ao SEI 5.
+
+- **[Adicionar link de legislação](../pages/LINKLEGIS.md) volta a funcionar.** A pesquisa tinha parado porque o serviço antigo de normas saiu do ar. Agora a consulta vai para a nova API de legislação do SEI Pro, montada com os dados abertos do Senado Federal (mais de 212 mil normas federais), e o link da citação aponta para a norma no portal *normas.leg.br*
+- **A ferramenta passa a funcionar no SEI 5.** Até aqui, o botão mostrava apenas o aviso de que a busca estava "em migração"
+- **Quando o número se repete, você escolhe.** Existem sete Decretos nº 1, por exemplo: em vez de inserir um deles por conta própria, o SEI Pro mostra as opções. Informe o ano para ir direto à norma certa. A aba *Legislação Federal* ganhou também *Emenda Constitucional* e *Decreto Legislativo*
+- **Citar a mesma norma de novo** já insere a forma curta (*Lei nº 8.112, de 1990*), e inserir duas normas seguidas não parte mais o link anterior em dois
+- Na **enumeração de normas** com `@`, as referências como `@lei8666`, `@cc` e `@estatutoidoso` passam a ser resolvidas pela base nova
+- As **normas infralegais** (ANTAQ, Cade e outros órgãos) estão sendo levadas para a base nova. Até lá, a aba *Norma Infralegal* não encontra resultados
+- **Correção:** em algumas janelas abertas pelo SEI Pro no editor, os botões executavam a ação duas vezes. O *mais* da ementa, por exemplo, abria e fechava na mesma hora
+- A [política de privacidade](../PRIVACY_POLICY.md) foi atualizada: ela diz para onde vai a consulta de normas e o que a hospedagem registra. Os termos pesquisados não são guardados
+
+### Versão 2.5
+02/10/2026
+
+O histórico de processos visitados foi refeito do zero, por enquanto no SEI Pro Lab. Ele abre numa janela no meio da tela e ganha uma aba própria no painel lateral, ao lado dos favoritos e do Agente de IA.
+
+- **Novo — o [histórico de processos visitados](../pages/HISTORICOPROC.md) foi reescrito e chega primeiro ao *SEI Pro Lab*, no Chrome e no Edge.** Quem usa a versão da loja continua com o histórico de sempre e recebe o novo depois dessa validação. O item *Histórico de Processos Visitados* do menu abre uma janela no meio da tela, e o painel lateral ganha a aba **Histórico**, ao lado de *Favoritos* e *Agente de IA*. Com o painel aberto, cada processo que você abre no SEI aparece no topo da lista na mesma hora
+- **Busca e filtros como os dos favoritos.** A busca acha o processo pelo número, com ou sem pontuação, e também pelo tipo, pela especificação, pelo interessado ou pelo assunto, sem diferenciar acento. Os filtros de *Período*, *Tipo*, *Unidade*, *Interessado*, *Assunto* e *Situação* aceitam várias escolhas e mostram quantos processos há em cada opção. A lista é agrupada por dia (*Hoje*, *Ontem*, *Últimos 7 dias*…), mostra quantas vezes você abriu cada processo e pode ser ordenada por *Mais visitados*
+- **Cada pessoa tem o seu histórico.** Antes, dois logins no mesmo navegador dividiam a mesma lista. Agora o histórico fica guardado na própria extensão, e limpar o cache do navegador não o apaga. O processo abre pela pesquisa do SEI, sem montar link à mão, que no SEI 5 derrubava a sessão. Na primeira vez, o histórico antigo é trazido para a lista nova, e nada é apagado
+- **Uma estrela em cada linha favorita o processo ali mesmo**, um de cada vez ou vários de uma vez, sempre com *Desfazer*. O filtro *Situação* separa os que já estão nos favoritos
+- **Privacidade:** você pode pausar o registro, apagar o que viu na última hora, hoje, nos últimos 7 ou 30 dias ou tudo, e escolher quantos processos guardar (de 500 a 5.000). De processo sigiloso, o histórico guarda só o número e o tipo. As observações do processo nunca são guardadas
+- **O Agente de IA lê o seu histórico.** Pergunte *"que processos eu vi ontem?"* ou use a sugestão *Processos que vi esta semana*. Os sigilosos ficam de fora, e os nomes dos interessados são mascarados antes de sair do navegador
+- **Nos favoritos novos:** a estrela dos documentos na árvore não se repete mais (chegava a aparecer três vezes no mesmo documento); as estrelas da caixa e das listas ficam no tamanho e na altura dos ícones do SEI; e o título do painel mantém o mesmo peso do título da tela no SEI 5
+
+### Versão 2.4
+02/10/2026
+
+Os favoritos foram refeitos do zero, por enquanto no SEI Pro Lab. A ferramenta de links SEI em lote passa a reconhecer números de processo, e os itens do SEI Pro no menu lateral ganham ícones.
+
+- **Novo — os favoritos foram reescritos, e chegam primeiro ao *SEI Pro Lab*, a versão dos testadores, no Chrome e no Edge.** Quem usa a versão da loja continua com os favoritos de sempre e recebe os novos depois dessa validação. Os favoritos agora ficam guardados **na própria extensão**: limpar o cache do navegador não os apaga mais. Há duas listas, a da **unidade** e a **Pessoal**, que aparece em todas as unidades. Cada favorito pode ter pasta, etiquetas coloridas, nota, prazo, lembrete, documentos favoritos e local no mapa. Na primeira vez, o SEI Pro oferece trazer os favoritos da versão anterior. Nada é apagado
+- Ainda nos favoritos: **um selo mostra o que mudou** desde a última vez que você viu o processo (*2 documentos novos*, *saiu da sua unidade*…). O SEI Pro faz isso sem abrir processo nenhum por conta própria: ele lê a sua caixa e a árvore que você abre. Lembretes vencidos sobem para **Para hoje**, e você pode **fixar no topo** os processos que quer sempre à vista. O prazo pode ir até uma data, contar N dias corridos ou úteis, começar na assinatura de um documento ou no próximo documento de um tipo
+- **A lista tem filtros que aceitam várias escolhas ao mesmo tempo e uma busca que ignora acento** (*licitacao* acha *Licitação*). Ela aparece abaixo da lista de processos, como sempre, ou **no painel lateral**, ao lado de qualquer tela do SEI. No painel lateral ela acompanha o tema claro ou escuro do sistema. As janelas de edição abrem no meio da tela visível, mesmo com a página rolada até o fim
+- **Para levar os favoritos a outro computador**, escolha entre um Texto Padrão da unidade (só com o seu consentimento: esse texto fica visível para a unidade, e a lista Pessoal e os sigilosos nunca vão para lá), um arquivo numa pasta da nuvem (Chrome e Edge) ou as cópias diárias que o SEI Pro guarda neste navegador. O Agente de IA também lê a sua lista, sem os sigilosos
+- O título **Controle de Processos** ganha o mesmo desenho do título dos favoritos: o ícone de pasta e a seta que recolhe a lista de processos
+- **[Converter os números SEI do texto em links](../pages/LINKSEILOTE.md) agora converte também os números de processo.** Até aqui a ferramenta só encontrava números de documento, e quem citava outro processo num despacho tinha de fazer o link à mão. Agora ela reconhece o formato do processo em que você está e os números que terminam em ano e dígito verificador: o padrão federal (*50300.018905/2018-67*) e a maioria dos formatos estaduais. Isso vale mesmo quando o mesmo SEI atende órgãos com formatos diferentes. Na lista de conferência, cada número diz se é documento ou processo
+- **O número do próprio processo vem desmarcado.** Quase todo despacho repete o número do processo em que está, no cabeçalho ou no texto. Ele aparece na lista com a etiqueta *este processo* e só vira link se você marcar
+- Ainda nessa ferramenta, no SEI 3 e 4: **o documento passa a ser lido inteiro.** Em modelos com mais de uma seção editável, só uma delas era percorrida, e os números do texto principal ficavam de fora. É o caso do despacho do SEI SP, que traz a seção *Processo nº / Interessado* antes do texto. E o aviso do final não aponta mais como "sem link" um número que você mesmo desmarcou
+- **Os itens do SEI Pro no menu lateral ganharam ícones (SEI 4 e 5).** *Agente de IA*, *Pesquisar Link Permanente*, *Histórico de Processos Visitados*, *Ferramentas de PDF* e *Processos em Lote* agora têm ícone próprio, no mesmo desenho e alinhamento dos itens do SEI. No modo *SEI Slim*, aparecem com os ícones do tema no lugar da seta genérica
+- Depois de uma atualização com novidades, esta página pode convidar você a **avaliar o SEI Pro na loja**. O convite aparece no máximo uma vez a cada versão de novidades, e "Agora não" o adia por 60 dias
+
+### Versão 2.3.1
+01/10/2026
+
+Correção no aviso de erro do Agente de IA e um jeito de pedir ajuda sem precisar descrever o problema.
+
+- **"Muitas requisições ao modelo" deixou de ser a resposta para tudo.** Quem usa o Agente com chave própria e via esse aviso repetido em toda pergunta não estava com pressa: o serviço de IA devolve o mesmo código tanto para *"você está indo rápido demais"* quanto para *"sua conta está sem crédito"* — e o segundo caso nunca se resolve esperando. Agora o agente distingue os dois, diz qual é o seu e o que fazer: adicionar crédito, ou esperar o tempo que o próprio serviço informa. Relato de *Francisco*
+- Na mesma correção: quando é limite de ritmo, o agente passa a **esperar o tempo que o serviço pede** (antes tentava de novo em 1, 2 e 4 segundos, curto demais para um limite que é por minuto — e cada tentativa gastava mais do limite). Quando é falta de crédito, ele para na primeira vez, em vez de insistir três vezes à toa. O aviso também explica a causa comum: cada pergunta leva junto o catálogo de ferramentas do SEI, e conta nova costuma ter limite baixo — um modelo "mini" resolve
+- **Novo — todo erro agora tem um botão de copiar.** Ele leva a mensagem **e um diagnóstico técnico** prontos para colar num chamado ou numa conversa com quem mantém a extensão: versão, navegador, serviço de IA e modelo, código da resposta, o que o provedor respondeu, tamanho da conversa, últimas ferramentas usadas e se o navegador autorizou o acesso ao endereço do serviço. Uma seta ao lado abre esse diagnóstico na tela, para você conferir antes de enviar. **Não vão junto** a sua chave, os tokens dos conectores, o conteúdo dos documentos, o texto da conversa, o número do processo nem a sigla da sua unidade
+
+### Versão 2.3
+01/10/2026
+
+O Agente de IA ganha conectores, tarefas agendadas, configuração que acompanha você entre computadores e uma blindagem contra instruções escondidas dentro de documentos.
+
+- **Novo — [conectores (MCP)](../pages/AGENTEIA.md#conectores-ferramentas-de-fora-do-sei) no Agente de IA.** O agente passa a usar ferramentas de fora do SEI: um serviço do seu órgão, uma base pública, um sistema que a sua equipe mantém. É o mesmo padrão que o Claude e outros assistentes usam. Você informa o endereço e, se houver, o token; o SEI Pro busca a lista de ferramentas e **cada uma recebe a permissão que você der**: *sempre permitir*, *requer aprovação* (o padrão) ou *bloqueado*. Em *requer aprovação*, aparece um cartão com o conector, a ferramenta e **exatamente o que vai ser enviado**, antes de qualquer coisa sair do navegador. Dados pessoais vão mascarados, como nas conversas, e o token fica só neste computador
+- **As [rotinas](../pages/AGENTEIA.md#rotinas) deixaram de ser só perguntas e viraram tarefas.** Agora a rotina pode seguir **skills** além do texto que você escreve, roda também **a cada hora**, **em dias úteis** ou **quando você mandar**, guarda as **10 últimas execuções** com data e custo, aceita um **teto de gasto por execução** e pode **avisar por notificação do navegador** quando terminar. No Chrome, o navegador lembra você na hora marcada mesmo com o painel fechado
+- Ainda nas rotinas: elas podem, se você quiser, **propor alterações no SEI** — esperando a sua aprovação — ou **executá-las sozinhas**, apenas nas ferramentas que você autorizar, uma a uma. Exclusão, cancelamento e assinatura **nunca** são feitos por rotina, nem com autorização; a rotina que falhar ao alterar o SEI se desliga sozinha e avisa o motivo
+- **Novo — a configuração do Agente acompanha a sua conta do navegador.** Instruções, regras da unidade, memória, rotinas, conectores, fluxos e os endereços das suas skills aparecem nos seus outros computadores, sem cadastrar duas vezes. Ficam **só neste computador**: a chave do serviço de IA, os tokens dos conectores, o texto das skills coladas à mão (as que vêm do GitHub viajam pelo endereço) e as conversas
+- **Novo — proteção contra instruções escondidas dentro de documentos.** Em outubro de 2026 o STF multou um advogado que escondeu, no cabeçalho de uma petição, um comando dirigido à inteligência artificial que lê os autos. O SEI Pro passa a **enxergar o que o documento esconde da tela** — letra branca, fonte de tamanho zero, texto fora da área visível —, a marcar trechos redigidos como ordem a sistemas de IA e a remover caracteres invisíveis. Nada é apagado do documento: o conteúdo é preservado e **apontado**, com uma verificação de integridade na conversa dizendo onde está. E se o agente propuser alguma alteração depois de ler um documento assim, o cartão de aprovação avisa. A ideia partiu de uma sugestão de *Marcus Tavares* (SOG/ANTAQ)
+- **[Estilo Avançado](../pages/ESTILOAVANCADO.md): o primeiro campo do formulário voltou a responder ao clique.** Com o Estilo Avançado ligado, a barra de *Salvar/Voltar* ficava por cima do começo do formulário — em *Registrar Documento Externo*, o campo *Tipo do Documento* simplesmente não abria. Agora a barra deixa o clique passar para o campo que está embaixo; só os botões dela recebem clique
+- **As configurações do SEI Pro avisam de verdade quando não conseguem salvar.** Se o navegador recusa a gravação — por espaço ou por excesso de gravações seguidas —, a página dizia "salvo com sucesso" mesmo assim. Agora o erro aparece, e a página avisa antes de passar do espaço que o navegador reserva
+- Ainda nas configurações: um campo obrigatório em branco numa Base de Dados **não descarta mais as bases seguintes** em silêncio, e a configuração alterada em outro computador passa a valer sem precisar recarregar a página
+- **Menos credencial guardada na página do SEI.** A extensão copiava para o armazenamento do site todas as credenciais da *Base de Dados* — inclusive chaves de API que ficavam legíveis para qualquer script da página e sobreviviam à desinstalação. Agora só vai para lá o que de fato é usado ali: as opções marcadas e o perfil do gestor de atividades
+
+### Versão 2.2.5
+29/09/2026
+
+Novidades no Documentos em Lote, vindas do PluriDocs, e um acerto no aviso de cópias do SEI Pro.
+
+- [Documentos em Lote](../pages/DOCUMENTOSEMLOTE.md): **novo campo *Descrição do documento***, na etapa de cruzamento de dados. Ele preenche o campo *Descrição* de cada documento gerado e aceita `##coluna##` para trazer o valor da planilha, sozinho ou junto com texto: `Termo de sigilo - ##nome## (##unidade##)`. É opcional: em branco, o campo fica vazio, como antes. Os acentos são mantidos e o texto vai até 250 caracteres, o limite do SEI. A ideia veio do [PluriDocs SEI!](https://github.com/tuliogontijo/PluriDocs-SEI), de *Tulio Gontijo*, a ferramenta que deu origem ao Documentos em Lote
+- Ainda no Documentos em Lote: cancelar a escolha do arquivo CSV não trava mais o botão **Avançar**; no SEI 5, quando o SEI recusa a gravação de um documento, a mensagem dele aparece na janela de erro, em vez de um erro genérico; e a leitura do editor do SEI 3 e 4 ficou mais robusta
+- **O aviso de "cópias do SEI Pro ativas" não confunde mais outras extensões com o SEI Pro.** Extensões feitas a partir do código do SEI Pro, como o *SFIS Pro*, carregam os mesmos ícones, e o aviso as contava como uma segunda cópia, pedindo para desativar algo que não era o SEI Pro. Agora cada suspeita é conferida antes de entrar no aviso. Uma segunda instalação do SEI Pro continua sendo avisada
+
+### Versão 2.2.4
+29/09/2026
+
+Duas correções que chegaram pelas avaliações da Chrome Web Store.
+
+- **Quatro itens voltam ao menu lateral do SEI**: *Pesquisar Link Permanente*, [Histórico de Processos Visitados](../pages/HISTORICOPROC.md), [Ferramentas de PDF](../pages/FERRAMENTASPDF.md) e [Processos em Lote](../pages/PROCESSOSEMLOTE.md). Desde a versão 2.0 eles não apareciam para ninguém. A causa: o item novo do *Agente de IA* usava a mesma marcação que a extensão conferia para não colocar esses itens duas vezes — e, como o Agente entra primeiro, a extensão concluía que eles já estavam lá. Relato de *Alessandro Costa*
+- [Enviar múltiplos documentos externos](../pages/UPLOADDOCS.md): no SEI 4 e no SEI 5, o nome do arquivo passa a ir para o campo **Nome na Árvore**, e não mais para o **Número**. Na árvore o documento aparece igual, mas o Número fica livre para o número de verdade do documento, que é o que a pesquisa do SEI procura. No SEI 3, que não tem o Nome na Árvore, nada muda. Relato de *José Fernando Souza Fernandes*
+
+### Versão 2.2.3
+28/09/2026
+
+Correção para quem usa os modelos **Gemini 3** no Agente de IA.
+
+- **O agente parava com erro 400 na segunda consulta ao SEI.** Quem configurou o Gemini direto (chave do Google AI Studio) e escolheu um modelo da família 3 via a conversa morrer com uma mensagem sobre `thought_signature`: o agente consultava o SEI uma vez e, ao retomar, o Google recusava o pedido — a resposta nunca chegava. A causa: os modelos 3 devolvem, junto com o pedido de ferramenta, uma marca interna de raciocínio que precisa voltar no pedido seguinte, e a extensão a descartava ao remontar a conversa. Agora ela é preservada. Quem usa o Gemini **pelo OpenRouter**, ou um modelo 2.5, nunca foi atingido — o que explica o problema ter aparecido só agora. Relato de *rudnypc* e diagnóstico de *dalcib* ([#169](https://github.com/SEI-Pro/sei-pro/issues/169))
+- De passagem: ao trocar de provedor no meio de uma conversa já iniciada, essa marca do Gemini é removida do histórico antes de enviar — serviço que não a conhece recusa o pedido inteiro
+
+### Versão 2.2.2
+25/09/2026
+
+Uma correção importante no Agente de IA e a fundação que abre caminho para a extensão voltar à loja do Firefox.
+
+- **O painel do Agente de IA travava ao responder com tabelas.** Quem usa uma skill que pede resposta em quadro via a janela congelar por completo — sem clique, sem rolagem, sem fechar. A causa: a resposta é desenhada enquanto chega, e uma tabela que ainda não chegou inteira fazia o leitor de texto rodar em círculos. Agradecimento a Marcus Tavares (SOG/ANTAQ), que reportou e rastreou o problema
+- **Skills grandes não são mais cortadas em silêncio.** O limite era de 20 mil caracteres e o que passasse disso sumia sem aviso — junto com o final do arquivo, onde costumam estar os exemplos. Agora cabem 40 mil, o que não couber é avisado na tela, e quem já tinha uma skill cortada recebe o arquivo completo na próxima sincronização
+- **Resposta que trava no meio agora termina.** Se o serviço de IA para de responder sem encerrar a conexão, o agente espera 90 segundos, mantém o que já chegou e avisa — em vez de ficar "pensando" para sempre
+- **Novo** — [destaque dos documentos da sua unidade ainda não assinados](../pages/DOCSNAOASSINADOS.md), sugestão do grupo SEI Lab: na árvore, o documento que a própria unidade produziu e ainda não assinou ficava idêntico aos assinados, e a única conferência era o aviso na hora de enviar o processo. Agora ele ganha fundo âmbar com um filete lateral — cor escolhida para não se confundir com a que o SEI já usa no não assinado de *outra* unidade. Vem desligado; ative em Configurações
+- **Os ícones de ajuda das Configurações voltaram a funcionar.** Eles apontavam para um endereço que, dentro da extensão, não existe — clicar não levava a lugar nenhum. Agora abrem a documentação em seipro.app
+- **A extensão passou a construir sua interface por um caminho único**, que higieniza todo o HTML antes de inserir na página e tira as ações de dentro dos atributos do HTML. É exigência da loja do Firefox, que recusou a extensão por isso, e vale também para quem usa o Chrome: é uma camada a menos por onde conteúdo de terceiros poderia virar código. **Sem mudança de funcionamento** — os cinco arquivos convertidos nesta etapa foram percorridos um a um no SEI 4.1.5 e no SEI 5
+- De passagem, três defeitos antigos que ninguém via: um bloco de estilos era injetado sem a tag de fechamento, uma caixa de diálogo abria uma marcação e fechava outra, e três atributos de dados eram gravados com um nome que o navegador não reconhece como tal
+
+### Versão 2.2.1
+24/09/2026
+
+Versão de acerto do [Estúdio de Fluxo](../pages/FLUXOS.md), com o mesmo dia de vida da 2.2.
+
+- **A sugestão do fluxo aparece mesmo quando você abre o processo pelo número.** O cartão só sabia morar na capa; quem chega pela pesquisa rápida cai direto num documento, e a capa nem é desenhada — a sugestão ficava só na bolinha do ícone do robô, que pisca sem dizer o que é. Agora, quando não há capa na tela, a mesma sugestão aparece numa faixa estreita entre a barra de ações e o documento: a etapa que falta, quanto do rito já andou e os dois botões de sempre
+- **O Estúdio de Fluxo também na barra de ações dentro do processo.** O ícone existia só na tela de Controle de Processos; agora fica ao lado do Agente de IA enquanto você lê os autos
+- **Botão *Voltar* no editor de fluxo.** Antes só se saía de um fluxo abrindo outro: quem entrava para conferir ficava preso na edição. O botão avisa se houver alteração não salva
+- Detalhes de acabamento: a faixa usa a moldura do SEI (mesma sombra e mesmos cantos das caixas dele) e o ícone do Estúdio passou a responder ao mouse como os vizinhos da barra
+
 ### Versão 2.2
 24/09/2026
 

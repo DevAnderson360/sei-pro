@@ -28,6 +28,22 @@ O link **Pesquisar Link Permanente** está sempre disponível no menu lateral qu
 * Quem abrir o link permanente precisa estar logado no SEI e ter permissão para ver o processo.
 * Listas longas levam mais tempo, porque cada número é pesquisado individualmente.
 
+## No SEI Pro Lab: nova versão
+
+Na versão do SEI Pro Lab a ferramenta foi refeita. O link que ela gera não carrega o `infra_hash`, então continua valendo depois que você sai do SEI e funciona no SEI 4 e no SEI 5. As diferenças em relação ao descrito acima:
+
+* **Texto livre.** Você pode colar um e-mail inteiro, uma coluna de planilha ou uma lista solta, sem organizar nada. Números de processo (como `50300.018905/2018-67`) e números SEI de documentos (como `0123456`) são reconhecidos sozinhos, e os repetidos são removidos antes da pesquisa. Uma linha que não seja número, como `Contrato-77`, é pesquisada exatamente como está escrita.
+* **A caixa continua vindo preenchida** com os processos que estão na tela.
+* **Pesquisar** também pode ser acionado com **Ctrl+Enter**.
+* **Coluna Situação**, com o resultado de cada linha:
+  * **Encontrado** — o link permanente foi localizado;
+  * **Não encontrado** — o SEI não tem processo ou documento com esse número;
+  * **Sem acesso** — o item existe, mas o seu usuário ou a unidade atual não pode vê-lo;
+  * **Erro** — a consulta falhou (por exemplo, queda de conexão ou sessão expirada).
+* **Tentar de novo só as que falharam** — refaz apenas as linhas com erro, sem repetir as que já deram certo.
+* **Copiar com links** — copia a tabela com o número de cada item clicável, que aparece como link ao colar no Teams, no Outlook ou no Word. Em destinos que não aceitam texto formatado, a cópia sai como texto simples.
+* **Baixar CSV** — baixa a tabela como planilha.
+
 ## Próximo item
 
 > [Processos em Lote: abrir vários processos do mesmo tipo de uma só vez](../pages/PROCESSOSEMLOTE.md)

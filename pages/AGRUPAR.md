@@ -6,6 +6,8 @@ A tela **Controle de Processos** do SEI mostra os processos numa lista única. C
 
 > ![Tela Agrupar lista de processos](../img/tela-agrupamento.gif)
 
+> **Novidade (SEI Pro Lab, Chrome e Edge):** a [Novo Controle de Processos](../pages/GRADECONTROLE.md) traz tudo isto numa grade moderna, com busca por operadores, edição na própria linha e quadro com arrastar e soltar. Ela substitui os controles abaixo quando está ligada.
+
 ### Onde fica
 
 Logo acima das tabelas de processos recebidos e gerados aparecem três controles:
@@ -40,6 +42,8 @@ Escolha um critério na caixa **Agrupar processos...**. A lista é reorganizada 
 Para voltar à lista normal, escolha **Sem agrupamento**. A escolha fica gravada: ao voltar à tela, o agrupamento continua o mesmo.
 
 > ![Tela Agrupar lista de processos por data](../img/tela-agrupamento2.gif)
+
+> No [Novo Controle de Processos](../pages/GRADECONTROLE.md#agrupar-por-datas-e-unidade-de-envio-consulta-o-andamento) esses agrupamentos têm aviso antes de consultar, cancelamento, cache de 24 horas e o botão **Atualizar**.
 
 > **Como as datas são descobertas.** O SEI não mostra as datas de recebimento, envio e autuação na lista. Para agrupar por elas, o SEI Pro consulta o **andamento** de cada processo e procura o último registro de *"Processo recebido na unidade"*, *"Reabertura do processo na unidade"* ou *"Processo público gerado"* da sua unidade. Na primeira vez isso pode levar alguns segundos, principalmente em unidades com muitos processos; depois as datas ficam guardadas no navegador.
 

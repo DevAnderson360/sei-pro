@@ -71,6 +71,14 @@ Serve para qualquer endereço que fale o protocolo da OpenAI: um servidor de mod
 2. No SEI Pro: configuração do agente → serviço **Outro serviço compatível** → informe o endereço, a chave e o nome do modelo;
 3. Clique em **Atualizar** para tentar carregar a lista de modelos daquele servidor — nem todo serviço oferece essa lista, e nesse caso o nome do modelo é digitado.
 
+**Ollama na sua máquina:** o Ollama não confere chave (qualquer texto serve), mas recusa com **403** pedidos vindos de extensões do navegador até que a origem delas seja liberada (se o servidor não for o Ollama, um 403 pode ser a chave ou uma regra de acesso do próprio servidor). Sem isso, a lista de modelos carrega e a conversa falha. Libere e reinicie o Ollama:
+
+- **Mac:** `launchctl setenv OLLAMA_ORIGINS "chrome-extension://*,moz-extension://*"`, depois feche o Ollama (ícone na barra → Quit Ollama) e abra de novo;
+- **Linux (systemd):** `sudo systemctl edit ollama` → `[Service]` `Environment="OLLAMA_ORIGINS=chrome-extension://*,moz-extension://*"`, depois `sudo systemctl restart ollama`;
+- **Windows:** variável de ambiente do usuário `OLLAMA_ORIGINS` = `chrome-extension://*,moz-extension://*`, depois reinicie o Ollama.
+
+O `moz-extension://*` é para quem usa o Firefox; no Chrome e no Edge basta o `chrome-extension://*`, mas deixar os dois não atrapalha.
+
 Num servidor do próprio órgão, o conteúdo não sai da rede interna — é a opção mais conservadora do ponto de vista de dados.
 
 > **Nem todo modelo serve.** O agente trabalha chamando ferramentas, e só parte dos modelos sabe fazer isso. Se o agente conversar mas não conseguir agir no SEI, troque de modelo.

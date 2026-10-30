@@ -18,6 +18,8 @@ Na janela, os botões permitem:
 
 O resultado que você acabou de ver fica destacado em amarelo, para não se perder na lista.
 
+Nos resultados da Pesquisa também aparece o **alvo** do [Monitorar](../pages/FAVORITOS.md), para acompanhar o processo ou o documento com um clique.
+
 ### Baixar Lista e Copiar
 
 Acima dos resultados aparecem três botões:

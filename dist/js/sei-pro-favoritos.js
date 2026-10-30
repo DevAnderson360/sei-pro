@@ -269,7 +269,7 @@ function openBoxConfigDates(this_) {
         dialogBoxPro = $('#dialogBoxPro')
             .html('<div class="dialogBoxDiv">'+htmlBox+'</div>')
             .dialog({
-                title: "Favoritos: Op\u00E7\u00F5es",
+                title: "Monitorados: Op\u00E7\u00F5es",
                 width: 500,
                 close: function() { $('#configDatesBox').remove() },
                 buttons: [{
@@ -631,13 +631,13 @@ function actFavoritePro(this_, mode) {
         var htmlBox = favoritosLabelOptions(id_procedimento);
         var htmlSucess =    '<strong class="iframeSucessPro" style="background-color: #f9efad;font-size: 10pt;padding: 10px;border-radius: 5px;margin: 0 0 10px 0;display: block;color: #404040;">'+
                             '   <i class="fas fa-check-circle azulColor" style="margin-right: 5px;"></i>'+
-                            '   Processo adicionado com sucesso no painel de processos favoritos (p\u00E1gina incial do SEI)'+
+                            '   Processo adicionado com sucesso no painel de processos monitorados (p\u00E1gina incial do SEI)'+
                             '</strong>';
         resetDialogBoxPro('iframeBoxPro');
         iframeBoxPro = $('#iframeBoxPro')
             .html('<div class="dialogBoxDiv">'+htmlSucess+htmlBox+'</div>')
             .dialog({
-                title: 'Op\u00E7\u00F5es: Favoritos',
+                title: 'Op\u00E7\u00F5es: Monitorados',
                 width: 650,
                 open: function(event) { 
                     initChosenReplace('box_init', this);
@@ -657,7 +657,7 @@ function actFavoritePro(this_, mode) {
 function avisoFavoritoSigilosoPro(id_procedimento) {
     if (typeof checkProcessoSigilosoId === 'undefined' || !checkProcessoSigilosoId(id_procedimento)) { return false; }
     if (typeof alertaBoxPro !== 'undefined') {
-        alertaBoxPro('Error', 'exclamation-triangle', 'Processo sigiloso n\u00E3o pode ser adicionado aos favoritos: o SEI exige a senha de acesso para ler os dados dele.');
+        alertaBoxPro('Error', 'exclamation-triangle', 'Processo sigiloso n\u00E3o pode ser adicionado aos monitorados: o SEI exige a senha de acesso para ler os dados dele.');
     }
     return true;
 }
@@ -706,7 +706,7 @@ function storeFavoritePro(mode, id_procedimento) {
     }
 }
 function removeFavoritePainelPro(this_, id_procedimento = 0) {
-    confirmaBoxPro('Tem certeza que deseja remover esse processo dos favoritos?', function(){
+    confirmaBoxPro('Tem certeza que deseja remover esse processo dos monitorados?', function(){
         if (id_procedimento == 0) {
             $('#favoriteTablePro').find('input[name="favoritePro"]:checked').each(function(){
                 var id_procedimento = $(this).val().trim();
@@ -951,7 +951,7 @@ function setPanelFavorites(mode) {
                                             '           </td>'+
                                             '           <td>'+
                                             '               '+value.tipo_procedimento+
-                                            '               <a class="newLink followLink followLinkTags followLinkFavRemove" onclick="removeFavoritePainelPro(this, \''+value.id_procedimento+'\')" onmouseover="return infraTooltipMostrar(\'Remover favorito\');" onmouseout="return infraTooltipOcultar();"><i class="fas fa-trash-alt" style="font-size: 100%;"></i></a>'+
+                                            '               <a class="newLink followLink followLinkTags followLinkFavRemove" onclick="removeFavoritePainelPro(this, \''+value.id_procedimento+'\')" onmouseover="return infraTooltipMostrar(\'Parar de monitorar\');" onmouseout="return infraTooltipOcultar();"><i class="fas fa-trash-alt" style="font-size: 100%;"></i></a>'+
                                             '           </td>'+
                                             '           <td class="td_fav_category">'+
                                             '               <span class="info_category_txt">'+(categoria ? categoria : '')+'</span>'+
@@ -976,14 +976,14 @@ function setPanelFavorites(mode) {
         var idOrder = (getOptionsPro('orderPanelHome') && jmespath.search(getOptionsPro('orderPanelHome'), "[?name=='favoritesPro'].index | length(@)") > 0) ? jmespath.search(getOptionsPro('orderPanelHome'), "[?name=='favoritesPro'].index | [0]") : '';
         var htmlPanelFavorites = '<div class="panelHomePro" style="display: inline-block; width: 100%;" id="favoritesPro" data-order="'+idOrder+'">'+
                                 '   <div class="infraBarraLocalizacao titlePanelHome">'+
-                                '       <i class="fas fa-star starGold" style="margin: 0 5px; font-size: 1.1em;"></i>'+
-                                '       Favoritos'+
+                                '       <i class="fas fa-bullseye starGold" style="margin: 0 5px; font-size: 1.1em;"></i>'+
+                                '       Monitorados'+
                                 '       <a class="newLink" id="favoritesProDiv_showIcon" onclick="toggleTablePro(\'#favoritesProDiv\',\'show\')" onmouseover="return infraTooltipMostrar(\'Mostrar Tabela\');" onmouseout="return infraTooltipOcultar();" style="font-size: 11pt; '+statusIconShow+'"><i class="fas fa-plus-square cinzaColor"></i></a>'+
                                 '       <a class="newLink" id="favoritesProDiv_hideIcon" onclick="toggleTablePro(\'#favoritesProDiv\',\'hide\')" onmouseover="return infraTooltipMostrar(\'Recolher Tabela\');" onmouseout="return infraTooltipOcultar();" style="font-size: 11pt; '+statusIconHide+'"><i class="fas fa-minus-square cinzaColor"></i></a>'+
                                 '   </div>'+
                                 '   <div id="favoritesProDiv" class="panelHome" style="width: 98%; '+statusView+'">'+
                                 '   	<div id="favoritosProActions" style="top:0; position: absolute; z-index: 9999; left: 190px; width: calc(100% - 230px)">'+
-                                '           <a class="newLink iconFavoritos_remove" onclick="removeFavoritePainelPro(this)" onmouseover="return infraTooltipMostrar(\'Remover favoritos\');" onmouseout="return infraTooltipOcultar();" style="margin: 0;font-size: 14pt; display: none">'+
+                                '           <a class="newLink iconFavoritos_remove" onclick="removeFavoritePainelPro(this)" onmouseover="return infraTooltipMostrar(\'Parar de monitorar\');" onmouseout="return infraTooltipOcultar();" style="margin: 0;font-size: 14pt; display: none">'+
                                 '                   <span class="fa-layers fa-fw">'+
                                 '                       <i class="fas fa-trash-alt"></i>'+
                                 '                       <span class="fa-layers-counter">1</span>'+
@@ -993,7 +993,7 @@ function setPanelFavorites(mode) {
                                 '           <a class="newLink iconFavoritos_update" onclick="updateFavorites(this)" onmouseover="return infraTooltipMostrar(\'Atualizar Informa\u00E7\u00F5es\');" onmouseout="return infraTooltipOcultar();" style="margin-right: 10px;;font-size: 14pt;float: right;">'+
                                 '               <i class="fas fa-sync-alt"></i>'+
                                 '           </a>'+
-                                '           <a class="newLink iconFavoritos_maps" onclick="openBoxMultipleMap()" onmouseover="return infraTooltipMostrar(\'Mapa de favoritos\');" onmouseout="return infraTooltipOcultar();" style="margin: 0;font-size: 14pt;float: right; '+(checkMaps ? '' : 'display:none;')+'">'+
+                                '           <a class="newLink iconFavoritos_maps" onclick="openBoxMultipleMap()" onmouseover="return infraTooltipMostrar(\'Mapa de monitorados\');" onmouseout="return infraTooltipOcultar();" style="margin: 0;font-size: 14pt;float: right; '+(checkMaps ? '' : 'display:none;')+'">'+
                                 '              <i class="fas fa-map-marker-alt" style="font-size: 100%;"></i>'+
                                 '           </a>'+
                                 '           <a class="newLink iconFavoritos_config" onclick="openConfigFavorites(this)" onmouseover="return infraTooltipMostrar(\'Configura\u00E7\u00F5es\');" onmouseout="return infraTooltipOcultar();" style="margin: 0;font-size: 14pt;float: right;">'+
@@ -1057,7 +1057,7 @@ function checkFileSystemInit() {
             if (!fileSystemPro) {
                 var htmlFileSystemStatus =  '<span id="htmlFileSystemStatus" style="display:block;float: left;font-size: 9pt;color: #888;clear: both;top: 0; left:60px;position: absolute;width: calc(100% - 400px);">'+
                                             '   <i class="fas fa-exclamation-triangle vermelhoColor"></i> Seu navegador n\u00E3o possui suporte ao sistema de arquivos local (FileSystem API) ou o usu\u00E1rio n\u00E3o autorizou o seu uso. '+
-                                            '   <br> A n\u00E3o utiliza\u00E7\u00E3o dessa tecnologia poder\u00E1 ocasionar a perda de dados dos processos favoritos, caso o dados de cache do navegador sejam apagados. '+
+                                            '   <br> A n\u00E3o utiliza\u00E7\u00E3o dessa tecnologia poder\u00E1 ocasionar a perda de dados dos processos monitorados, caso o dados de cache do navegador sejam apagados. '+
                                             '   <br><a onclick="initFileSystem(); setPanelFavorites(\'refresh\');" style="font-size: 9pt;color: blue; text-decoration: underline;">Re-autorize</a> a aplica\u00E7\u00E3o ou utilize outro navegador compat\u00EDvel.'+
                                             '</span>';
                 $('#htmlFileSystemStatus').remove();
@@ -1319,11 +1319,11 @@ function openConfigFavorites() {
     var textBox =   '<table style="font-size: 9pt;width: 100%;" class="seiProForm">'+
                     '   <tr style="height: 40px;">'+
                     '          <td style="vertical-align: bottom; text-align: left;" class="label">'+
-                    '               <a id="backup_fav" style="cursor:pointer" onclick="initDownloadLocalFilePro(this)" class="newLink"><i class="fas fa-download azulColor"></i>Baixar Favoritos</a>'+
+                    '               <a id="backup_fav" style="cursor:pointer" onclick="initDownloadLocalFilePro(this)" class="newLink"><i class="fas fa-download azulColor"></i>Baixar Monitorados</a>'+
                     '           </td>'+
                     '          <td style="vertical-align: bottom; text-align: left;" class="label">'+
                     '               <input type="file" id="selectLocalFilesPro" onchange="loadLocalFilePro()" value="Import" style="display: none" />'+
-                    '               <a id="restore_fav" style="cursor:pointer;float: right;" onclick="initLoadLocalFilePro()" class="newLink"><i class="fas fa-upload azulColor"></i>Carregar Favoritos</a>'+
+                    '               <a id="restore_fav" style="cursor:pointer;float: right;" onclick="initLoadLocalFilePro()" class="newLink"><i class="fas fa-upload azulColor"></i>Carregar Monitorados</a>'+
                     '           </td>'+
                     '       <td>'+
                     '       </td>'+
@@ -1417,7 +1417,7 @@ function getFavoritesEnviarProcesso() {
                         '   <div class="infraCheckboxDiv "><input type="checkbox" id="chkSindicionarFavoritos" onchange="parent.actionFavoriteCheckbox(this)" name="chkSindicionarFavoritos" class="infraCheckboxInput" tabindex="510" '+(value ? 'checked' : '')+'><label class="infraCheckboxLabel " for="chkSindicionarFavoritos"></label></div>' :
                         '   <input type="checkbox" id="chkSindicionarFavoritos" onchange="parent.actionFavoriteCheckbox(this)" name="chkSindicionarFavoritos" class="infraCheckbox" tabindex="510" '+(value ? 'checked' : '')+'>'
                         )+
-                        '   <label id="lblSinAdicionarFavoritos" for="chkSindicionarFavoritos" accesskey="" class="infraLabelCheckbox">Manter processo em Favoritos</label>'+
+                        '   <label id="lblSinAdicionarFavoritos" for="chkSindicionarFavoritos" accesskey="" class="infraLabelCheckbox">Manter processo em Monitorados</label>'+
                         '   <div class="favoritosLabelOptions seiProForm" style="display:'+(value ? 'block' : 'none')+';font-size: 9pt;clear: both;">'+
                         favoritosLabelOptions(id_procedimento)+
                         '   </div>'+
@@ -1662,7 +1662,7 @@ function openBoxSingleMap(this_, readonly = false) {
     dialogBoxPro = $('#dialogBoxPro')
         .html('<div id="mapid" style="width: 600px; height: 400px;"></div>')
         .dialog({
-            title: "Favoritos: Mapa",
+            title: "Monitorados: Mapa",
             width: 620,
             close: function(){
                 clearLocationUser();
@@ -1681,7 +1681,7 @@ function openBoxMultipleMap() {
     dialogBoxPro = $('#dialogBoxPro')
         .html('<div id="mapid" style="width: 900px; height: 600px;"></div>')
         .dialog({
-            title: "Favoritos: Mapa",
+            title: "Monitorados: Mapa",
             width: 920,
             open: function(){
                 setMultipleMap();

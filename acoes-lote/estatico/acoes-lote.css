@@ -1,0 +1,420 @@
+/*
+ * Janela das Ações em Lote (html/acoes-lote.html). Os tokens e a lista vem de
+ * sei-comum/src/ui/base.css e lista.css; aqui entra so o que e da janela.
+ *
+ * Tema: nada aqui. O app poe html[data-tema] "claro" ou "escuro" (segue o SEI) e
+ * html[data-cor-sei] com --spro-cor-sei; base.css troca os tokens --spro-*.
+ */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  color: var(--spro-texto);
+  font: 13px / 1.45 var(--spro-fonte);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- Modal (iframe transparente sobre a tela do SEI) ---------- */
+html[data-modo="modal"],
+html[data-modo="modal"] body {
+  background: transparent;
+  height: 100%;
+  overflow: hidden;
+}
+dialog.al-modal[open] {
+  width: min(980px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--spro-pagina);
+}
+dialog.al-modal:focus-visible {
+  outline: none;
+}
+dialog.al-modal::backdrop {
+  background: var(--spro-veu);
+}
+
+/* Minimizado: o iframe vira a pastilha do canto (320x64, sei-comum/src/ui/modalIframe.ts) e o dialogo a ocupa inteira. */
+html[data-minimizado] dialog.al-modal[open] {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  box-sizing: border-box;
+  border: 1px solid var(--spro-borda);
+  border-radius: var(--spro-raio-g);
+  overflow: hidden;
+}
+html[data-minimizado] dialog.al-modal::backdrop {
+  background: transparent;
+}
+html[data-minimizado] #app {
+  padding: 0;
+  overflow: hidden;
+}
+
+#app {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  padding: 14px 16px 16px;
+  overflow-y: auto;
+}
+#app > * {
+  flex: none;
+}
+@media (max-width: 520px) {
+  #app {
+    padding: 10px;
+  }
+}
+
+/* ---------- Tela de selecao ---------- */
+.al-nota {
+  margin: 0;
+  color: var(--spro-suave);
+}
+/*
+ * align-items: start: item de grid esticado tem altura definida, e um filho com height em % (a busca do
+ * sei-comum) passava a medir a linha inteira dos filtros; a linha de datas transbordava para baixo dos Atalhos.
+ */
+.al-selecao {
+  display: grid;
+  align-items: start;
+  gap: 10px;
+  min-width: 0;
+}
+/* A .spro-lista-busca foi feita para morar na .spro-lista-busca-caixa (height: 100%); aqui ela fica solta. */
+.al-filtros > .spro-lista-busca {
+  flex: 1 1 240px;
+  box-sizing: border-box;
+  height: 32px;
+  padding: 0 10px;
+  background: var(--spro-fundo);
+  border: 1px solid var(--spro-borda-forte);
+  border-radius: var(--spro-raio);
+}
+.al-filtros > .spro-lista-busca:focus-visible {
+  border-color: var(--spro-destaque);
+  box-shadow: var(--spro-anel);
+}
+.al-filtros,
+.al-periodo,
+.al-atalhos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+.al-periodo label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--spro-suave);
+}
+.al-data {
+  font: inherit;
+  color: var(--spro-texto);
+  background: var(--spro-fundo);
+  border: 1px solid var(--spro-borda);
+  border-radius: var(--spro-raio);
+  padding: 3px 6px;
+}
+.al-data:disabled {
+  opacity: 0.5;
+}
+.al-rotulo {
+  color: var(--spro-suave);
+}
+.al-tabela {
+  max-height: 46vh;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  background: var(--spro-fundo);
+  border: 1px solid var(--spro-borda);
+  border-radius: var(--spro-raio);
+}
+.al-tabela > .al-nota {
+  padding: 16px;
+  text-align: center;
+}
+table.al-documentos {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+table.al-documentos th,
+table.al-documentos td {
+  padding: 5px 8px;
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--spro-borda);
+}
+table.al-documentos th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--spro-fundo);
+  color: var(--spro-suave);
+  font-weight: 600;
+  white-space: nowrap;
+}
+table.al-documentos tr.al-marcada td {
+  background: color-mix(in srgb, var(--spro-destaque) 10%, transparent);
+}
+.al-col-caixa {
+  width: 32px;
+  text-align: center;
+}
+.al-col-menu {
+  width: 36px;
+}
+.al-barra .spro-botao:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ---------- Tela de configuracao ---------- */
+.al-config {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+.al-etapas {
+  display: grid;
+  gap: 8px;
+}
+.al-etapa {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  background: var(--spro-fundo);
+  border: 1px solid var(--spro-borda);
+  border-radius: var(--spro-raio);
+}
+.al-etapa-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.al-etapa-acoes {
+  display: flex;
+  gap: 2px;
+}
+.al-etapa-acoes .spro-botao-icone:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.al-campo,
+.al-lista {
+  display: grid;
+  gap: 4px;
+}
+.al-radios {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+}
+.al-radio {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.al-aviso,
+.al-erro {
+  margin: 0;
+  color: var(--spro-perigo, #c62828);
+}
+.al-dica {
+  margin: 0;
+  color: var(--spro-suave);
+  font-size: 12px;
+}
+.al-resultados,
+.al-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.al-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 4px 2px 8px;
+  background: color-mix(in srgb, var(--spro-destaque) 12%, transparent);
+  border-radius: 999px;
+}
+.al-erros {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--spro-perigo, #c62828);
+}
+.al-erros:empty {
+  display: none;
+}
+.al-rodape {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.al-rodape .spro-botao:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.al-previa {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.al-previa-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 50vh;
+  overflow: auto;
+}
+.al-previa-doc {
+  padding: 6px 8px;
+  border: 1px solid var(--spro-borda);
+  border-radius: 6px;
+}
+.al-previa-titulo {
+  margin: 0 0 4px;
+  font-size: 13px;
+}
+.al-previa-etapas,
+.al-previa-mudancas {
+  margin: 0;
+  padding-left: 18px;
+}
+.al-previa-etapa[data-situacao="pulado"],
+.al-previa-etapa[data-situacao="erro"] {
+  color: var(--spro-perigo, #c62828);
+}
+.al-previa-aviso:empty {
+  display: none;
+}
+
+/* ---------- Execucao ---------- */
+.al-execucao,
+.al-retomada,
+.al-resultado {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.al-titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 14px;
+}
+.al-progresso-texto {
+  margin: 0;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.al-progresso-barra {
+  height: 10px;
+  overflow: hidden;
+  background: var(--spro-fundo-3, var(--spro-borda));
+  border-radius: 6px;
+}
+.al-progresso-cheia {
+  height: 100%;
+  width: 0;
+  background: var(--spro-destaque);
+  transition: width 0.2s;
+}
+.al-motivo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.al-motivo[hidden],
+.al-campo[hidden] {
+  display: none;
+}
+.al-erro:empty {
+  display: none;
+}
+
+/* ---------- Resultado ---------- */
+table.spro-resultado {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+table.spro-resultado th,
+table.spro-resultado td {
+  padding: 6px 10px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--spro-borda);
+}
+table.spro-resultado th {
+  position: sticky;
+  top: 0;
+  font-weight: 600;
+  color: var(--spro-suave);
+  background: var(--spro-fundo);
+}
+table.spro-resultado td a {
+  color: var(--spro-destaque);
+}
+.al-resultado tr.spro-situacao-ok td:first-child {
+  color: var(--spro-ok);
+  font-weight: 600;
+}
+.al-resultado tr.spro-situacao-erro td:first-child {
+  color: var(--spro-perigo);
+  font-weight: 600;
+}
+.al-resultado tr.spro-situacao-pendente td:first-child {
+  color: var(--spro-aviso);
+  font-weight: 600;
+}
+
+/* ---------- Pastilha (minimizado) ---------- */
+.al-pastilha {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 62px;
+  padding: 8px 12px;
+}
+.al-pastilha[hidden] {
+  display: none;
+}
+.al-pastilha-texto {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.al-pastilha-conta {
+  color: var(--spro-suave);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Selecionar todos em estado misto: o traço no lugar do check. */
+.al-traco {
+  display: inline-block;
+  color: var(--spro-destaque);
+  font-weight: 700;
+  line-height: 1;
+}

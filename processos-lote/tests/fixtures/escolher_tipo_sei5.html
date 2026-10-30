@@ -1,0 +1,14 @@
+<!-- url: https://sei.exemplo.gov.br/sei/controlador.php?acao=procedimento_escolher_tipo&infra_sistema=100000100&infra_unidade_atual=110000001&infra_hash=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb -->
+<html><head><title>SEI - Iniciar Processo</title></head><body>
+<form id="frmProcedimentoEscolherTipo" method="post" onsubmit="return false;" action="controlador.php?acao=procedimento_escolher_tipo&amp;acao_origem=procedimento_escolher_tipo&amp;infra_sistema=100000100&amp;infra_unidade_atual=110000001&amp;infra_hash=cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc">
+<input type="text" id="txtFiltro" name="txtFiltro" value="">
+<table id="tblTipoProcedimento" class="tabelaOpcoes infraTable" summary="Tabela de Tipos de Processo."><thead><tr style="display:none"><th class="infraTh"></th></tr></thead><tbody>
+<tr class="infraTrClara" data-desc="licitacao"><td><input type="checkbox" id="chkInfraItem0" name="chkInfraItem0" value="100" title="Licitação" style="display:none;"><a href="#" onclick="escolher(100)" tabindex="1" class="ancoraOpcao">Licitação</a>
+</td></tr>
+</tbody></table>
+<input type="hidden" id="hdnInfraTipoPagina" name="hdnInfraTipoPagina" value="1">
+<input type="hidden" name="semIdentificador" value="fica de fora">
+<input type="hidden" id="hdnFiltroTipoProcedimento" name="hdnFiltroTipoProcedimento" value="U">
+<input type="hidden" id="hdnIdTipoProcedimento" name="hdnIdTipoProcedimento" value="">
+</form>
+</body></html>

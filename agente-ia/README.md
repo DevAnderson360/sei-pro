@@ -95,6 +95,16 @@ em que o usuário salva o endereço (`optional_host_permissions` no manifest, e 
 pedido cai sobre a origem informada — nunca sobre todos os sites). O manifest v2
 do Firefox precisa do mesmo em `optional_permissions`.
 
+Com a permissão de host o Chrome não faz checagem de CORS, mas ainda manda
+`Origin: chrome-extension://<id>` no POST (no GET de `/models`, não). O Ollama
+devolve 403 para origem fora de `OLLAMA_ORIGINS` — e `chrome-extension://` não
+está no padrão. Por isso um 403 de endereço local vira, em `mensagemDeErro`,
+o aviso para liberar `OLLAMA_ORIGINS` (com `moz-extension://*` também, no Firefox),
+e não "chave recusada". O aviso não presume Ollama: em endereço local pode ser
+outro servidor, e a mensagem manda conferir a chave nesse caso.
+
+Backup em arquivo: nas configurações, o agente pode gravar tudo (conversas, memória, instruções, skills, regras, rotinas, conectores e fluxos) num .json numa pasta do OneDrive ou do Google Drive; a chave de API e os tokens dos conectores só entram no arquivo se a opção for marcada neste computador.
+
 ## Painel (UI)
 
 Uma tela só — a conversa. A configuração é um `<dialog>` modal por cima dela (na primeira vez,

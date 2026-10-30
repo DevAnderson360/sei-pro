@@ -1,0 +1,13 @@
+.spro-pesquisa-oculta {
+  display: none !important;
+}
+.spro-pesquisa-destaque {
+  background: #ffe16b !important;
+  color: #1f2328 !important;
+  border-radius: 2px;
+}
+caption[data-spro-filtro]::after {
+  content: '\0000a0\002014\0000a0filtro local:\0000a0' attr(data-spro-filtro);
+  font-weight: normal;
+  color: #5b6168;
+}

@@ -11,20 +11,43 @@ import { CATALOGO, porSlug, type ItemCatalogo } from "@/ui/catalogo";
 import { el, icone, repor } from "@/ui/dom";
 import { aoMudarPerfil, ponte } from "@/ui/contexto";
 import { conectarAoSei } from "@/ponte/cliente";
+import { identidadeDoProduto, manifestAtual } from "@/ui/identidade";
 import { lerRota, montarHash } from "@/ui/rota";
 import type { FerramentaMontada } from "@/ui/moldura";
 
 const TITULO_BASE = "Ferramentas de PDF";
 
 const conteudo = el("main", { class: "fpdf-conteudo", id: "conteudo" });
-const tituloBarra = el("h1", {}, TITULO_BASE);
+
+const produto = identidadeDoProduto(manifestAtual());
+
+/**
+ * Titulo: logo e nome do produto, como na pagina de opcoes ("SEI Pro | Ferramentas
+ * de PDF") e, dentro de uma ferramenta, "| Juntar PDF". Fica numa linha propria;
+ * os controles da pagina vao na barra logo abaixo.
+ */
+const tituloFerramenta = el("span", { class: "fpdf-titulo__ferramenta", hidden: true });
+const tituloSep = el("span", { class: "fpdf-titulo__sep", "aria-hidden": "true", hidden: true }, "|");
+const tituloBarra = el(
+  "h1",
+  {},
+  el("span", { class: "fpdf-titulo__marca" }, produto.nome),
+  " ",
+  el("span", { class: "fpdf-titulo__sep", "aria-hidden": "true" }, "|"),
+  " ",
+  el("span", { class: "fpdf-titulo__base" }, TITULO_BASE),
+  " ",
+  tituloSep,
+  " ",
+  tituloFerramenta,
+);
 const destino = el("span", { class: "fpdf-destino", hidden: true });
 
 const voltar = el(
   "button",
   {
     type: "button",
-    class: "fpdf-cabecalho__voltar",
+    class: "fpdf-botao fpdf-botao--secundario fpdf-cabecalho__voltar",
     hidden: true,
     onclick: () => irPara(""),
   },
@@ -35,12 +58,31 @@ const voltar = el(
 const cabecalho = el(
   "header",
   { class: "fpdf-cabecalho" },
-  icone("fas fa-file-pdf"),
-  tituloBarra,
-  el("span", { class: "fpdf-cabecalho__espaco" }),
-  destino,
-  voltar,
+  el(
+    "div",
+    { class: "fpdf-largura fpdf-cabecalho__in" },
+    el("img", { class: "fpdf-cabecalho__logo", src: produto.logo, alt: "", width: 32, height: 32 }),
+    tituloBarra,
+  ),
 );
+
+/** Barra de acoes (voltar e destino do SEI). So existe quando ha algo para mostrar. */
+const barra = el(
+  "nav",
+  { class: "fpdf-barra", "aria-label": "Ações da página", hidden: true },
+  el("div", { class: "fpdf-largura fpdf-barra__in" }, voltar, el("span", { class: "fpdf-cabecalho__espaco" }), destino),
+);
+
+function atualizarBarra() {
+  barra.hidden = voltar.hidden && destino.hidden;
+}
+
+/** Nome da ferramenta no titulo; sem nome, volta a ser so "Ferramentas de PDF". */
+function definirTitulo(nome?: string) {
+  tituloFerramenta.hidden = !nome;
+  tituloSep.hidden = !nome;
+  repor(tituloFerramenta, nome ?? "");
+}
 
 let montada: FerramentaMontada | null = null;
 
@@ -115,6 +157,7 @@ async function montarFerramenta(item: ItemCatalogo) {
   // Ferramentas que trabalham sobre a página do documento usam a largura da
   // janela; as demais ficam na largura de leitura. Ver `amplo` no catálogo.
   conteudo.classList.toggle("fpdf-conteudo--amplo", Boolean(item.amplo));
+  document.body.classList.toggle("fpdf-body--amplo", Boolean(item.amplo));
   repor(conteudo, selo(), montada.raiz);
 }
 
@@ -134,9 +177,11 @@ async function rotear() {
 
   if (!item) {
     conteudo.classList.remove("fpdf-conteudo--amplo");
+    document.body.classList.remove("fpdf-body--amplo");
     document.title = `${TITULO_BASE} | SEI Pro`;
-    repor(tituloBarra, TITULO_BASE);
+    definirTitulo();
     voltar.hidden = true;
+    atualizarBarra();
     montarHub();
     // Slug desconhecido volta para o hub, mas os parametros de conexao ficam:
     // limpar o fragmento inteiro derrubaria a ponte com o SEI.
@@ -145,14 +190,15 @@ async function rotear() {
   }
 
   document.title = `${item.nome} | ${TITULO_BASE}`;
-  repor(tituloBarra, item.nome);
+  definirTitulo(item.nome);
   voltar.hidden = false;
+  atualizarBarra();
   await montarFerramenta(item);
 }
 
 function iniciar() {
   document.body.classList.add("fpdf", "fpdf-body");
-  document.body.append(cabecalho, conteudo);
+  document.body.append(cabecalho, barra, conteudo);
 
   window.addEventListener("hashchange", () => void rotear());
   window.addEventListener("beforeunload", () => montada?.destruir());
@@ -167,6 +213,7 @@ function iniciar() {
     } else {
       destino.hidden = true;
     }
+    atualizarBarra();
   });
 
   // Se a página foi aberta pelo SEI, ele se apresenta em seguida. Sem isso, a

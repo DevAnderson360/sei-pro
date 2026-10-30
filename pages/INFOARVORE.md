@@ -12,7 +12,7 @@ Abaixo da árvore de documentos, o SEI Pro mostra um **painel com as principais 
 | ---------- | ------------------- |
 | **Anotações** | Ver, escrever, marcar prioridade e apagar — veja [Anotação pela árvore](../pages/NOTAARVORE.md) |
 | **Atribuição** | Ver a quem o processo está atribuído e trocar |
-| **Marcador** | Ver, trocar ou remover o marcador e o prazo — veja [Controle de Prazos](../pages/PRAZOS.md) |
+| **Marcador** | Ver, trocar ou remover o marcador e o prazo — veja [Controle de Prazos](../pages/PRAZOS.md). O painel também mostra o prazo do controle de prazo do próprio SEI (*Prazo: 20/10/2026 (10 dias)*) |
 | **Acompanhamento Especial** | Ver e editar o grupo, a observação e a [reabertura programada](../pages/REABRIRPROCESSOS.md) |
 | **Tipo de Procedimento** | Ver e trocar o tipo; ver a especificação e marcá-la como [urgente](../pages/URGENTE.md) |
 | **Interessados** | Ver a lista e **pesquisar outros processos do mesmo interessado** |

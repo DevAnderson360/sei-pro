@@ -62,16 +62,54 @@ $.getScript(getUrlExtension("js/sei-pro-proc-lote.js"));
 var sfpEmCursoPro = !!window.sfpPedidoPaginaPro || !!document.querySelector('script[src*="/js/sei-functions-pro.js"]');
 if ((typeof loadFunctionsPro === 'undefined' || window.name != '') && !sfpEmCursoPro) { window.sfpPedidoPaginaPro = true; $.getScript(getUrlExtension("js/sei-functions-pro.js")); }
 
+// O tooltip do SEI (infraTooltipMostrar) e funcao NATIVA da pagina e so existe no mundo da
+// PAGINA. Este arquivo e content script, roda no mundo ISOLADO: uma clausura daqui que
+// chamasse infraTooltipMostrar resolveria o nome no escopo errado, nao acharia nada e nao
+// faria nada -- em silencio, porque o typeof nem chega a lancar. (Era o que o onmouseover=
+// antigo escondia: atributo inline executa no mundo da pagina, nao neste.)
+//
+// A saida e declarar a dica em data-spro-tip e deixar o despachante do mundo da pagina
+// atender. A delegacao e no documento, entao funciona mesmo se o atributo for posto antes
+// de o despachante existir -- e este mesmo arquivo injeta o sei-functions-pro.js na pagina.
+function ligarTooltipIsoladoPro(el, texto) {
+    if (!el) return;
+    el.setAttribute('data-spro-tip', texto);
+}
+// Marcacao 100% constante e sem sanitizador: construida por DOM API.
+//
+// POR QUE NAO htmlPro AQUI. init.js e carregado por 12 manifests, e no bloco do editor
+// (acao=editor_montar) ele vem SEM sei-functions-pro.js -- htmlPro/estiloPro nao existem
+// naquele contexto. E divIconsLoginPro E alcancavel la: loadConfigPro roda tambem no ramo
+// do editor e, para quem tem Base de Dados configurada, chama esta funcao. Depender do
+// helper faria os icones sumirem na janela do editor, so para esses usuarios.
+function criarIconeBarraPro(id, classeIcone, dicaTooltip, dicaAtributo) {
+    var a = document.createElement('a');
+    a.id = id;
+    a.href = '#';
+    a.setAttribute('data-tippy-content', dicaAtributo);
+    a.style.display = 'none';
+    var i = document.createElement('i');
+    i.className = classeIcone;
+    a.appendChild(i);
+    ligarTooltipIsoladoPro(a, dicaTooltip);
+    return a;
+}
 function divIconsLoginPro() {
-    var html_initLogin = '<div class="infraAcaoBarraSistema sheetsLoginPro" style="display: inline-block;">'
-                            +'  <a id="authorizeButtonPro" href="#" data-tippy-content="Conectar Base de Dados (SeiPro)" onmouseover="return infraTooltipMostrar(\'Conectar Base de Dados (SeiPro)\');" onmouseout="return infraTooltipOcultar();" style="display: none;"><i class="fas fa-toggle-off brancoColor"></i></a>'
-                            +'  <a id="signoutButtonPro" href="#" data-tippy-content="Desconectar Base de Dados (SeiPro)" onmouseover="return infraTooltipMostrar(\'Conectado! Clique para desconectar Base de Dados (SeiPro)\');" onmouseout="return infraTooltipOcultar();" style="display: none;"><i class="fas fa-toggle-on brancoColor"></i></a>'
-                            +'</div>';
+    var destino = null;
     if ($(isNewSEI ? '#divInfraBarraSistemaPadraoD' : '#divInfraBarraSistemaD').length > 0) {
-        $(isNewSEI ? '#divInfraBarraSistemaPadraoD' : '#divInfraBarraSistemaD').append(html_initLogin);
+        destino = $(isNewSEI ? '#divInfraBarraSistemaPadraoD' : '#divInfraBarraSistemaD');
     } else if ($('#divInfraBarraSistemaPadraoD').length > 0) {
-        $('#divInfraBarraSistemaPadraoD').append(html_initLogin);
+        destino = $('#divInfraBarraSistemaPadraoD');
     }
+    if (!destino || !destino.length) return;
+    var caixa = document.createElement('div');
+    caixa.className = 'infraAcaoBarraSistema sheetsLoginPro';
+    caixa.style.display = 'inline-block';
+    caixa.appendChild(criarIconeBarraPro('authorizeButtonPro', 'fas fa-toggle-off brancoColor',
+        'Conectar Base de Dados (SeiPro)', 'Conectar Base de Dados (SeiPro)'));
+    caixa.appendChild(criarIconeBarraPro('signoutButtonPro', 'fas fa-toggle-on brancoColor',
+        'Conectado! Clique para desconectar Base de Dados (SeiPro)', 'Desconectar Base de Dados (SeiPro)'));
+    destino[0].appendChild(caixa);
 }
 function classBodyPro() {
     if (typeof getParamsUrlPro === 'function') {
@@ -95,29 +133,74 @@ function getManifestExtension() {
         return browser.runtime.getManifest();
     }
 }
-function loadConfigPro() {
-    if (typeof browser === "undefined") {
-        chrome.storage.sync.get({
-            dataValues: ''
-        }, function(items) {  
-            if (typeof items !== 'undefined') {
-                localStorage.setItem('configBasePro', items.dataValues);
-                loadDataBaseProStorage(items);
-            }
-        });
-    } else {
-        browser.storage.sync.get({
-            dataValues: ''
-        }, function(items) {  
-            if (typeof items !== 'undefined') {
-                localStorage.setItem('configBasePro', items.dataValues);
-                loadDataBaseProStorage(items);
-            }
-        });
+/**
+ * Guarda no localStorage da pagina o MINIMO que os scripts do mundo da pagina
+ * precisam: as opcoes marcadas (configGeral) e a base de ATIVIDADES.
+ *
+ * Antes ia o dataValues inteiro, e com ele todas as credenciais da Base de
+ * Dados - a API_KEY do Google Sheets e as chaves de OpenAI/Gemini - ficavam
+ * legiveis para qualquer script da pagina do SEI, e sobreviviam a
+ * desinstalacao da extensao (localStorage e do site, nao da extensao).
+ *
+ * Por que a base de atividades CONTINUA aqui: sei-pro-atividades.js roda no
+ * mundo da pagina (e carregado por $.getScript, nao e content script), nao
+ * alcanca chrome.storage, e le daqui o URL_API/KEY_USER do perfil e o
+ * baseName para montar o seletor de perfis. Tirar isso exige uma ponte de
+ * mensagens com o mundo isolado - outra empreitada.
+ *
+ * Quem le, e o que espera: checkConfigValue (sei-functions-pro.js),
+ * verifyConfigValue (init_pwd.js, init_visualizacao.js) usam
+ * "[*].configGeral | [0]"; sei-pro-atividades.js usa
+ * "[?baseTipo=='atividades'] | [?conexaoTipo=='api']". O formato de array se
+ * mantem e nada mais muda. As demais bases seguem por parametro, em memoria
+ * (ver loadScriptDataBasePro).
+ */
+function cacheConfigPaginaPro(texto) {
+    try {
+        var lista = (typeof texto === 'string' && texto != '') ? JSON.parse(texto) : [];
+        var paraPagina = [];
+        for (var i = 0; i < lista.length; i++) {
+            if (typeof lista[i]['configGeral'] !== 'undefined') { paraPagina.push({configGeral: lista[i]['configGeral']}); }
+            else if (lista[i]['baseTipo'] == 'atividades') { paraPagina.push(lista[i]); }
+        }
+        localStorage.setItem('configBasePro', JSON.stringify(paraPagina));
+    } catch (e) {
+        localStorage.setItem('configBasePro', '');
     }
 }
+function loadConfigPro() {
+    var navegador = (typeof browser === "undefined") ? chrome : browser;
+    navegador.storage.sync.get({
+        dataValues: ''
+    }, function(items) {  
+        if (typeof items !== 'undefined') {
+            cacheConfigPaginaPro(items.dataValues);
+            loadDataBaseProStorage(items);
+        }
+    });
+}
+/**
+ * Mudanca feita em OUTRO computador chega aqui pela area `sync`.
+ *
+ * Sem isto, a opcao alterada no outro navegador so passava a valer depois de
+ * um recarregamento manual. A pagina nao e recarregada sozinha (seria
+ * atropelar o trabalho de quem esta no meio de um processo): o cache local e
+ * atualizado, e a proxima leitura ja usa o valor novo.
+ */
+function ouvirConfigSyncPro() {
+    var navegador = (typeof browser === "undefined") ? chrome : browser;
+    if (!navegador.storage || !navegador.storage.onChanged) { return; }
+    navegador.storage.onChanged.addListener(function(mudancas, area) {
+        if (area !== 'sync' || !mudancas.dataValues) { return; }
+        cacheConfigPaginaPro(mudancas.dataValues.newValue || '');
+    });
+}
+ouvirConfigSyncPro();
 function loadScriptDataBasePro(dataValues) { 
-    var dataValues = localStorageRestorePro('configBasePro');
+    /* As bases vem por PARAMETRO e ficam so aqui, no mundo isolado do content
+       script: nao passam mais pelo localStorage da pagina (ver
+       cacheConfigPaginaPro). O parametro era recebido e ignorado. */
+    var dataValues = (dataValues && dataValues.length) ? dataValues : [];
     var dataValues_ProjetosSheets = jmespath.search(dataValues, "[?baseTipo=='projetos'] | [?conexaoTipo=='sheets'] | [?API_KEY!='']");
     var dataValues_FormulariosSheets = jmespath.search(dataValues, "[?baseTipo=='formularios'] | [?conexaoTipo=='sheets'] | [?API_KEY!='']");
     var dataValues_ProcessosSheets = jmespath.search(dataValues, "[?baseTipo=='processos'] | [?conexaoTipo=='sheets'] | [?API_KEY!='']");
@@ -271,43 +354,57 @@ function loadFontIcons(elementTo, target = $('html')) {
             href: getUrlExtension("css/fontawesome.pro.min.css") 
         }).appendTo(target.find(elementTo));
         
-        var htmlStyleFont = '<style type="text/css" data-style="seipro-fonticon" data-index="5">'+
-                            '    @font-face {\n'+
-                            '       font-family: "Font Awesome 5 Pro";\n'+
-                            '       font-style: normal;\n'+
-                            '       font-weight: 900;\n'+
-                            '       font-display: block;\n'+
-                            '       src: url('+pathExtension+'webfonts/pro/fa-solid-900.eot) !important;\n'+
-                            '       src: url('+pathExtension+'webfonts/pro/fa-solid-900.eot?#iefix) format("embedded-opentype"),url('+pathExtension+'webfonts/pro/fa-solid-900.woff2) format("woff2"),url('+pathExtension+'webfonts/pro/fa-solid-900.woff) format("woff"),url('+pathExtension+'webfonts/pro/fa-solid-900.ttf) format("truetype"),url('+pathExtension+'webfonts/pro/fa-solid-900.svg#fontawesome) format("svg") !important;\n'+
-                            '   }\n'+
-                            '   @font-face {\n'+
-                            '       font-family: \"Font Awesome 5 Pro";\n'+
-                            '       font-style: normal;\n'+
-                            '       font-weight: 400;\n'+
-                            '       font-display: block;\n'+
-                            '       src: url('+pathExtension+'webfonts/pro/fa-regular-400.eot) !important;\n'+
-                            '       src: url('+pathExtension+'webfonts/pro/fa-regular-400.eot?#iefix) format("embedded-opentype"),url('+pathExtension+'webfonts/pro/fa-regular-400.woff2) format("woff2"),url('+pathExtension+'webfonts/pro/fa-regular-400.woff) format("woff"),url('+pathExtension+'webfonts/pro/fa-regular-400.ttf) format("truetype"),url('+pathExtension+'webfonts/pro/fa-regular-400.svg#fontawesome) format("svg") !important;\n'+
-                            '   }\n'+
-                            (iconBoxSlim ?
-                            '   @font-face { \n'+
-                            '       font-family: "Font Awesome 5 Pro";\n'+
-                            '       font-style: normal;\n'+
-                            '       font-weight: 300;\n'+
-                            '       font-display: block;\n'+
-                            '       src: url('+pathExtension+'webfonts/pro/fa-light-300.eot) !important;\n'+
-                            '       src: url('+pathExtension+'webfonts/pro/fa-light-300.eot?#iefix) format("embedded-opentype"), url('+pathExtension+'webfonts/pro/fa-light-300.woff2) format("woff2"), url('+pathExtension+'webfonts/pro/fa-light-300.woff) format("woff"), url('+pathExtension+'webfonts/pro/fa-light-300.ttf) format("truetype"), url('+pathExtension+'webfonts/pro/fa-light-300.svg#fontawesome) format("svg") !important; }\n'+
-                            '   }\n'+
-                            '   @font-face {\n'+
-                            '       font-family: \"Font Awesome 5 Duotone\";\n'+
-                            '       font-style: normal;\n'+
-                            '       font-weight: 900;\n'+
-                            '       font-display: block;\n'+
-                            '       src: url('+pathExtension+'webfonts/pro/fa-duotone-900.eot) !important;\n'+
-                            '       src: url('+pathExtension+'webfonts/pro/fa-duotone-900.eot?#iefix) format(\"embedded-opentype\"), url('+pathExtension+'webfonts/pro/fa-duotone-900.woff2) format("woff2"), url('+pathExtension+'webfonts/pro/fa-duotone-900.woff) format("woff"), url('+pathExtension+'webfonts/pro/fa-duotone-900.ttf) format("truetype"), url('+pathExtension+'webfonts/pro/fa-duotone-900.svg#fontawesome) format("svg") !important; }\n'+
-                            '   }\n'
-                            : '')
-                            '</style>';
-        target.find('head').append(htmlStyleFont);
+        // O CSS deixa de ser marcacao: vira texto dentro de um <style> construido por DOM
+        // API. O DOMPurify remove <style> de um fragmento, e afrouxar a config so por causa
+        // disto enfraqueceria o argumento perante a AMO. De quebra some um defeito antigo --
+        // faltava um "+" antes do '</style>', entao o bloco era injetado SEM tag de
+        // fechamento e so funcionava porque o parser a fecha sozinha no fim do fragmento.
+        var cssPro = `
+    @font-face {
+       font-family: "Font Awesome 5 Pro";
+       font-style: normal;
+       font-weight: 900;
+       font-display: block;
+       src: url(${pathExtension}webfonts/pro/fa-solid-900.eot) !important;
+       src: url(${pathExtension}webfonts/pro/fa-solid-900.eot?#iefix) format("embedded-opentype"),url(${pathExtension}webfonts/pro/fa-solid-900.woff2) format("woff2"),url(${pathExtension}webfonts/pro/fa-solid-900.woff) format("woff"),url(${pathExtension}webfonts/pro/fa-solid-900.ttf) format("truetype"),url(${pathExtension}webfonts/pro/fa-solid-900.svg#fontawesome) format("svg") !important;
+   }
+   @font-face {
+       font-family: "Font Awesome 5 Pro";
+       font-style: normal;
+       font-weight: 400;
+       font-display: block;
+       src: url(${pathExtension}webfonts/pro/fa-regular-400.eot) !important;
+       src: url(${pathExtension}webfonts/pro/fa-regular-400.eot?#iefix) format("embedded-opentype"),url(${pathExtension}webfonts/pro/fa-regular-400.woff2) format("woff2"),url(${pathExtension}webfonts/pro/fa-regular-400.woff) format("woff"),url(${pathExtension}webfonts/pro/fa-regular-400.ttf) format("truetype"),url(${pathExtension}webfonts/pro/fa-regular-400.svg#fontawesome) format("svg") !important;
+   }
+` + (iconBoxSlim ? `
+   @font-face {
+       font-family: "Font Awesome 5 Pro";
+       font-style: normal;
+       font-weight: 300;
+       font-display: block;
+       src: url(${pathExtension}webfonts/pro/fa-light-300.eot) !important;
+       src: url(${pathExtension}webfonts/pro/fa-light-300.eot?#iefix) format("embedded-opentype"), url(${pathExtension}webfonts/pro/fa-light-300.woff2) format("woff2"), url(${pathExtension}webfonts/pro/fa-light-300.woff) format("woff"), url(${pathExtension}webfonts/pro/fa-light-300.ttf) format("truetype"), url(${pathExtension}webfonts/pro/fa-light-300.svg#fontawesome) format("svg") !important;
+   }
+   @font-face {
+       font-family: "Font Awesome 5 Duotone";
+       font-style: normal;
+       font-weight: 900;
+       font-display: block;
+       src: url(${pathExtension}webfonts/pro/fa-duotone-900.eot) !important;
+       src: url(${pathExtension}webfonts/pro/fa-duotone-900.eot?#iefix) format("embedded-opentype"), url(${pathExtension}webfonts/pro/fa-duotone-900.woff2) format("woff2"), url(${pathExtension}webfonts/pro/fa-duotone-900.woff) format("woff"), url(${pathExtension}webfonts/pro/fa-duotone-900.ttf) format("truetype"), url(${pathExtension}webfonts/pro/fa-duotone-900.svg#fontawesome) format("svg") !important;
+   }
+` : '');
+        // Mesmo motivo de divIconsLoginPro: este arquivo pode rodar sem o bloco do
+        // sei-functions-pro.js, entao o <style> tambem e construido por DOM API, sem helper.
+        var casaEstilo = target.find(elementTo);
+        if (casaEstilo.length) {
+            var elEstilo = document.createElement('style');
+            elEstilo.setAttribute('type', 'text/css');
+            elEstilo.setAttribute('data-style', 'seipro-fonticon');
+            elEstilo.setAttribute('data-index', '5');
+            elEstilo.textContent = cssPro;
+            casaEstilo[0].appendChild(elEstilo);
+        }
     }
 }
 function loadStylePro(url, elementTo) {
@@ -386,9 +483,15 @@ function loadScriptPro() {
             loadConfigPro();
             if (typeof moment !== 'undefined' && typeof moment().isoAddWeekdaysFromSet === 'undefined') $.getScript(getUrlExtension("js/lib/moment-weekday-calc.js"));
             // $.getScript(getUrlExtension("js/lib/moment-duration-format.min.js"));
-            if (typeof loadFavoritosPro === 'undefined') $.getScript(getUrlExtension("js/sei-pro-favoritos.js"));
+            // Favoritos novos (js/init_favoritos.js, pacote Lab) marcam o <html> no document_start: o legado fica de fora.
+            if (typeof loadFavoritosPro === 'undefined' && !document.documentElement.hasAttribute('data-seipro-favoritos')) $.getScript(getUrlExtension("js/sei-pro-favoritos.js"));
             if (typeof loadAtividadesPro === 'undefined') $.getScript(getUrlExtension("js/sei-pro-atividades.js"));
-            if (typeof loadProjetosPro === 'undefined') $.getScript(getUrlExtension("js/sei-pro-projetos.js"));
+            // Projetos novos (js/init_projetos.js, pacote Lab) marcam o <html>: o legado so carrega sem eles ou
+            // com servidor do Atividades configurado (os dois convivem; o legado vira "Projetos (Atividades)").
+            function servidorAtividadesConfiguradoPro() {
+                try { var c = JSON.parse(localStorage.getItem('configBasePro_atividades')); return !!(c && typeof c === 'object' && typeof c.URL_API === 'string' && c.URL_API !== ''); } catch (e) { return false; }
+            }
+            if (typeof loadProjetosPro === 'undefined' && (!document.documentElement.hasAttribute('data-seipro-projetos') || servidorAtividadesConfiguradoPro())) $.getScript(getUrlExtension("js/sei-pro-projetos.js"));
             if (typeof loadPrescricoesPro === 'undefined') $.getScript(getUrlExtension("js/sei-pro-prescricoes.js"));
             // Ferramentas de PDF: so o lado que atende os pedidos da pagina.
             // A ferramenta em si (pdf.js, Tesseract, os motores) vive na pagina

@@ -11,6 +11,15 @@ export interface ChamadaTool {
   id: string;
   type: "function";
   function: { name: string; arguments: string };
+  /**
+   * O que o provedor devolveu junto da chamada e exige de volta no histórico.
+   *
+   * O Gemini 3 assina cada chamada de ferramenta (`thought_signature`) e
+   * RECUSA a rodada seguinte se a assinatura não voltar — com HTTP 400
+   * "Function call is missing a thought_signature". Guardamos como veio, sem
+   * interpretar: é opaco e de uso exclusivo do provedor que o emitiu.
+   */
+  extra_content?: unknown;
 }
 
 export type Mensagem =
@@ -66,7 +75,7 @@ export interface PerfilAgente {
   id: "principal" | "auxiliar" | "rotinas";
   nome: string;
   modelo: string;
-  permissao: "leitura e escrita mediante aprovação" | "somente leitura";
+  permissao: "leitura e escrita mediante aprovação" | "somente leitura" | "conforme alcance de cada rotina";
   ativo: boolean;
   ultimaExecucao?: number;
   uso: Uso;
@@ -86,9 +95,11 @@ export interface StatusRotina {
 export interface RespostaLLM {
   texto: string;
   chamadas: ChamadaTool[];
-  fim: "stop" | "tool_calls" | "length" | "error" | string;
+  fim: "stop" | "tool_calls" | "length" | "error" | "parado" | string;
   uso?: Uso;
   registroUso?: RegistroUsoChamada;
+  /** O provedor parou no meio: o texto é parcial e não há ferramenta a executar. */
+  interrompida?: boolean;
 }
 
 export interface PedidoLLM {
@@ -107,9 +118,12 @@ export interface Provedor {
  * - `escrita`: só dentro de plano aprovado;
  * - `irreversivel`: plano + confirmação explícita ("entendo que não dá para desfazer");
  * - `assinatura`: plano + cargo e senha digitados pelo usuário, fora do modelo;
- * - `interna`: do próprio motor (tarefas, perguntar, plano), sem tocar no SEI.
+ * - `interna`: do próprio motor (tarefas, perguntar, plano), sem tocar no SEI;
+ * - `externo`: sai do navegador para um conector MCP do usuário, mas NÃO toca
+ *   o SEI — não tem prévia nem plano, e a autorização é a permissão que o
+ *   usuário deu àquela ferramenta do conector.
  */
-export type Efeito = "leitura" | "escrita" | "irreversivel" | "assinatura" | "interna";
+export type Efeito = "leitura" | "escrita" | "irreversivel" | "assinatura" | "interna" | "externo";
 
 /** Prévia de uma escrita, do jeito que o painel mostra ao usuário. */
 export interface PreviaItem {
@@ -148,6 +162,38 @@ export interface DecisaoPlano {
   assinatura?: { cargo: string; senha: string };
 }
 
+/** Uma chamada a um conector MCP esperando autorização do usuário. */
+export interface PedidoExterno {
+  conector: string;
+  tool: string;
+  descricao: string;
+  argumentos: Record<string, unknown>;
+}
+
+/**
+ * Envio de um documento do SEI, com os bytes, a um conector (ver `mcp/tools.ts`).
+ * O cartão mostra o que vai e para onde; os bytes nunca entram aqui.
+ */
+export interface PedidoTransferencia {
+  conector: string;
+  /** Endereço do servidor que recebe o arquivo. */
+  endereco: string;
+  tool: string;
+  documento: string;
+  processo: string;
+  nome: string;
+  tamanho: number;
+  sha256: string;
+  /** Os demais argumentos da chamada (sem o conteúdo). */
+  argumentos: Record<string, unknown>;
+}
+
+export interface DecisaoExterna {
+  permitido: boolean;
+  /** Gravar "sempre permitir" para esta ferramenta. */
+  sempre?: boolean;
+}
+
 export interface Tarefa {
   titulo: string;
   estado: "pendente" | "fazendo" | "feita";
@@ -163,7 +209,25 @@ export interface InterfaceMotor {
   escritaFeita?(id: string, tool: string, args: Record<string, unknown>, resultado: unknown): void;
   aprovarPlano(p: PlanoPrevisto): Promise<DecisaoPlano>;
   progressoPlano(passo: number, total: number, rotulo: string): void;
-  consentir(tipo: "restrito", detalhe: string): Promise<boolean>;
+  /**
+   * `restrito`: documento de acesso restrito, uma vez por conversa.
+   * `conector`: primeira saída de dados para um conector MCP — pergunta por
+   * conector, sem memorizar junto do restrito (são autorizações diferentes).
+   */
+  consentir(tipo: "restrito" | "conector", detalhe: string): Promise<boolean>;
+  /** Autoriza uma chamada a conector MCP (só quando a permissão é "aprovar"). */
+  aprovarExterno?(p: PedidoExterno): Promise<DecisaoExterna>;
+  /**
+   * Autoriza enviar um documento inteiro, com os dados reais, a um conector.
+   * Sempre perguntado: não existe "permitir sempre" para isto.
+   */
+  aprovarTransferencia?(p: PedidoTransferencia): Promise<boolean>;
+  /**
+   * Um documento lido trazia conteúdo suspeito (instrução dirigida a IA, texto
+   * escondido da tela, caractere invisível). O painel acumula para o relatório
+   * de integridade e avisa antes de o usuário aprovar qualquer alteração.
+   */
+  integridade?(documento: string, achados: Array<{ classe: string; trecho: string; motivo?: string }>): void;
   perguntar(pergunta: string, opcoes: string[]): Promise<string>;
   tarefas(lista: Tarefa[]): void;
   uso(total: Uso, chamada: RegistroUsoChamada): void;

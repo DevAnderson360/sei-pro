@@ -1,0 +1,36 @@
+<!-- url: https://sei.exemplo.gov.br/sei/controlador.php?acao=procedimento_gerar&acao_origem=procedimento_escolher_tipo&acao_retorno=procedimento_escolher_tipo&id_tipo_procedimento=12&infra_sistema=100000100&infra_unidade_atual=110000001&infra_hash=eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee -->
+<html><head><title>SEI - Iniciar Processo</title>
+<script type="text/javascript">
+var objLupaAssuntos = null;
+var objLupaInteressados = null;
+var objAjaxHipoteseLegal = null;
+function inicializar(){
+  objLupaAssuntos = new infraLupaSelect('selAssuntos','hdnAssuntos','controlador.php?acao=assunto_selecionar&tipo_selecao=2&id_object=objLupaAssuntos&infra_sistema=100000100&infra_unidade_atual=110000001&infra_hash=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+  objLupaInteressados = new infraLupaSelect('selInteressados','hdnInteressados','controlador.php?acao=contato_selecionar&tipo_selecao=2&id_object=objLupaInteressados&infra_sistema=100000100&infra_unidade_atual=110000001&infra_hash=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb');
+  objAjaxHipoteseLegal = new infraAjaxMontarSelect('selHipoteseLegal','controlador_ajax.php?acao_ajax=hipotese_legal_select_nome_base_legal&infra_sistema=100000100&infra_unidade_atual=110000001&infra_hash=dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd');
+}
+</script></head><body onload="inicializar();">
+<form id="frmProcedimentoCadastro" method="post" action="controlador.php?acao=procedimento_gerar&amp;acao_origem=procedimento_gerar&amp;id_tipo_procedimento=12&amp;infra_sistema=100000100&amp;infra_unidade_atual=110000001&amp;infra_hash=ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff">
+<input type="hidden" id="hdnIdTipoProcedimento" name="hdnIdTipoProcedimento" value="12" />
+<input type="hidden" id="hdnNomeTipoProcedimento" name="hdnNomeTipoProcedimento" value="Gestão de Contrato" />
+<input type="text" id="txtDescricao" name="txtDescricao" class="infraText" value="" />
+<select id="selAssuntos" name="selAssuntos" class="infraSelect" multiple="multiple">
+<option value="501">Contratos: gestão e fiscalização</option>
+<option value="502">Licitações em geral</option>
+</select>
+<input type="hidden" id="hdnAssuntos" name="hdnAssuntos" value="" />
+<select id="selInteressados" name="selInteressados" class="infraSelect" multiple="multiple">
+<option value="77">Fulano de Tal</option>
+</select>
+<input type="hidden" id="hdnInteressados" name="hdnInteressados" value="" />
+<textarea id="txaObservacoes" name="txaObservacoes" class="infraTextarea"></textarea>
+<input type="radio" name="rdoNivelAcesso" id="optSigiloso" value="2" />
+<input type="radio" name="rdoNivelAcesso" id="optRestrito" value="1" />
+<input type="radio" name="rdoNivelAcesso" id="optPublico" value="0" />
+<select id="selHipoteseLegal" name="selHipoteseLegal" class="infraSelect"></select>
+<input type="radio" name="rdoProtocolo" id="optProtocoloAutomatico" value="A" checked="checked" />
+<input type="radio" name="rdoProtocolo" id="optProtocoloManual" value="M" />
+<input type="hidden" id="hdnFlagProcedimentoCadastro" name="hdnFlagProcedimentoCadastro" value="1" />
+<button type="submit" accesskey="S" name="sbmSalvar" value="Salvar" class="infraButton">Salvar</button>
+</form>
+</body></html>

@@ -177,8 +177,8 @@ restaurarBotaoJqueryUIPro(window.jQuery);
 // sessionStorage ('new_extension'), o que gera falhas dificeis de diagnosticar: icones que nao carregam, "Identifier
 // '...' has already been declared", scripts bloqueados pelo CSP do mundo isolado. A copia isolada do topo registra
 // no <html> (que todas as extensoes enxergam) o host da propria URL, nome, versao e origem. As versoes anteriores nao
-// registram e sao reconhecidas pelas fontes que carregam com a URL da propria extensao (css/fontawesome.pro.min.css
-// e @font-face em /webfonts/, desde 2021). Com mais de uma copia aparece uma barra amarela fixa no topo da pagina; fechada,
+// registram e sao reconhecidas pelos arquivos que carregam com a URL da propria extensao, confirmados um a um (ver
+// verificarCopiasSeiPro). Com mais de uma copia aparece uma barra amarela fixa no topo da pagina; fechada,
 // nao volta na mesma aba para o mesmo conjunto de copias. Os dados lidos do <html> entram so como texto.
 var IDS_LOJA_SEIPRO = {'ajchjgnbfdchmhldfbmajofhgnkojhab': 'SEI Pro Lab', 'pdbbapplhjopafpgidbgceccbbmehcjj': 'SEI Pro'};
 function isFirefoxSeiPro() {
@@ -211,11 +211,13 @@ function initAlertaCopiasSeiPro() {
         [0, 3000, 10000].forEach(function (espera) { setTimeout(function () { verificarCopiasSeiPro(espera > 0); }, espera); });
     } catch (e) {}
 }
-// Versoes anteriores so deixam rastro certo (fontes) quando carregam primeiro: o loadFontIcons pula se as fontes ja
-// estao na pagina, e ai sobra o css/jquery-ui.css do loadFilesUI, um nome generico. Esse CSS e o host que outra copia
-// grava no sessionStorage ('new_extension', lido so a partir de 3 s, quando todas ja gravaram) viram candidatos,
-// confirmados pelo arquivo proprio do SEI Pro (js/sei-functions-pro.js, acessivel pela web): outra extensao que use o
-// mesmo nome de CSS, ou uma copia ja desinstalada que ficou no sessionStorage, nao contam. Um pedido por host e pagina.
+// Versoes anteriores deixam o css/jquery-ui.css do loadFilesUI e, quando carregam primeiro, as fontes (o loadFontIcons
+// pula se ja ha fontes na pagina). Nenhum desses rastros e exclusivo do SEI Pro: extensoes derivadas do codigo dele
+// (ex.: SFIS Pro) injetam o mesmo CSS e as mesmas fontes em /webfonts/, com a mesma marca data-style="seipro-fonticon",
+// e contar as fontes direto acusava essas extensoes como copia. Os rastros e o host que outra copia grava no
+// sessionStorage ('new_extension', lido so a partir de 3 s, quando todas ja gravaram) viram candidatos, confirmados pelo
+// arquivo proprio do SEI Pro (js/sei-functions-pro.js, acessivel pela web em todas as versoes): outra extensao, ou uma
+// copia ja desinstalada que ficou no sessionStorage, nao contam. Um pedido por host e pagina.
 var verificacaoHostsSeiPro = {};
 function confirmarCopiaSeiPro(base, incluirSessao) {
     var host = base.split('/')[2];
@@ -236,20 +238,18 @@ function verificarCopiasSeiPro(incluirSessao) {
         if (incluirSessao) {
             try { var ns = JSON.parse(sessionStorage.getItem('new_extension')); if (ns && ns.URL_SPRO) { candidatos.push(String(ns.URL_SPRO)); } } catch (e) {}
         }
+        var rastros = [];
+        document.querySelectorAll('link[href*="fontawesome.pro.min.css"]').forEach(function (l) { rastros.push(l.getAttribute('href')); });
+        document.querySelectorAll('style').forEach(function (s) { if (s.textContent.indexOf('/webfonts/') !== -1) rastros.push(s.textContent); });
+        var reFontes = /(?:chrome|moz)-extension:\/\/[^\/"'\s)]+\/(?=webfonts\/|css\/fontawesome\.pro\.min\.css)/g, fonte;
+        var textoFontes = rastros.join(' ');
+        while ((fonte = reFontes.exec(textoFontes)) !== null) { candidatos.push(fonte[0]); }
         candidatos.forEach(function (url) {
             var m = String(url).match(/^((?:chrome|moz)-extension:\/\/[^\/"'\s)]+\/)/);
             if (!m) { return; }
             var host = m[1].split('/')[2];
             if (hosts.indexOf(host) === -1 && confirmarCopiaSeiPro(m[1], incluirSessao)) { hosts.push(host); copias.push({host: host}); }
         });
-        var rastros = [];
-        document.querySelectorAll('link[href*="fontawesome.pro.min.css"]').forEach(function (l) { rastros.push(l.getAttribute('href')); });
-        document.querySelectorAll('style').forEach(function (s) { if (s.textContent.indexOf('/webfonts/') !== -1) rastros.push(s.textContent); });
-        var reExtensao = /(?:chrome|moz)-extension:\/\/([^\/"'\s)]+)\/(?:webfonts\/|css\/fontawesome\.pro\.min\.css)/g, m;
-        var texto = rastros.join(' ');
-        while ((m = reExtensao.exec(texto)) !== null) {
-            if (hosts.indexOf(m[1]) === -1) { hosts.push(m[1]); copias.push({host: m[1]}); }
-        }
         if (copias.length > 1) { mostrarAlertaCopiasSeiPro(copias); }
     } catch (e) {}
 }
@@ -368,7 +368,7 @@ var iconsFlashMenu = [
                     {name: 'Copiar somente o n\u00FAmero', icon: 'fab fa-cuttlefish', alt: ''},
                     {name: 'Copiar link do processo', icon: 'fas fa-link', alt: ''},
                     {name: 'Enviar Documento Externo', icon: 'fa-upload', alt: ''},
-                    {name: 'A\u00E7\u00F5es em lote', icon: 'fa-cogs', alt: ''},
+                    {name: 'A\u00E7\u00F5es em Lote', icon: 'fa-cogs', alt: ''},
                     {name: 'Adicionar ou Remover Urg\u00EAncia', icon: 'fa-exclamation-circle', alt: 'Add/Remover Urg\u00EAncia'},
                     {name: 'Incluir Documento', icon: 'fas fa-file-alt', alt: 'Incluir Novo Documento'},
                     {name: 'Consultar/Alterar Processo', icon: 'fa-file-signature', alt: ''},
@@ -554,6 +554,354 @@ const sanitizeHTML = (html) => DOMPurify.sanitize(html, {
     ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|tel|chrome-extension|moz-extension):|[^a-z]|[a-z+\-.]+(?:[^a-z+\-.:]|$))/i
 });
 
+// === INICIO SEI PRO DOM ===
+// Portao unico de insercao de HTML da extensao. Existe por causa da rejeicao da AMO de
+// 17/06/2025 ("Unsanitized DOM injection"): toda marcacao gerada pela extensao passa por
+// aqui, e nenhuma acao viaja mais em atributo on*.
+//
+// POR QUE NAO BASTA CHAMAR sanitizeHTML NOS PONTOS DE INSERCAO. O DOMPurify parseia o
+// fragmento fora do elemento-pai, e o parser de HTML descarta <tr>, <td> e <tbody> que nao
+// estejam dentro de uma tabela: "<tr><td>a</td></tr>" volta como "a". Medido com o
+// purify.min.js 3.2.5 desta pasta. sanitizarFragmentoPro embrulha antes e desembrulha depois.
+var SEIPRO_PURIFY_CONFIG = {
+    // 'target' ja era necessario ao sanitizeHTML; 'accesskey' aparece em 33 pontos da
+    // extensao (a marca de "selecionar tudo" do SEI) e o DOMPurify o remove por padrao.
+    ADD_ATTR: ['target', 'accesskey'],
+    ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|tel|chrome-extension|moz-extension):|[^a-z]|[a-z+\-.]+(?:[^a-z+\-.:]|$))/i
+};
+
+// Tag inicial do fragmento -> abertura que o parser precisa para nao descartar o conteudo.
+var ENVELOPES_PRO = {
+    tr: '<table>', tbody: '<table>', thead: '<table>', tfoot: '<table>', colgroup: '<table>',
+    td: '<table><tr>', th: '<table><tr>',
+    option: '<select>', optgroup: '<select>',
+    li: '<ul>', dt: '<dl>', dd: '<dl>'
+};
+
+function avisarPro(msg, detalhe) {
+    try { console.warn('[SEIPro] ' + msg, detalhe === undefined ? '' : detalhe); } catch (e) {}
+}
+
+function erroPro(msg, detalhe) {
+    try { console.error('[SEIPro] ' + msg, detalhe === undefined ? '' : detalhe); } catch (e) {}
+}
+
+// Sanitiza um fragmento respeitando o contexto de parsing que ele exige.
+function sanitizarFragmentoPro(html, doc) {
+    doc = doc || document;
+    if (html === null || html === undefined) return '';
+    var texto = String(html);
+    var achadoTag = /^\s*<\s*([a-zA-Z][\w-]*)/.exec(texto);
+    var tag = achadoTag ? achadoTag[1].toLowerCase() : '';
+    var abre = ENVELOPES_PRO[tag];
+    if (!abre) return DOMPurify.sanitize(texto, SEIPRO_PURIFY_CONFIG);
+    // '<table><tr>' -> '</tr></table>'
+    var fecha = abre.match(/[a-z]+/g).reverse().map(function (t) { return '</' + t + '>'; }).join('');
+    var limpo = DOMPurify.sanitize(abre + texto + fecha, SEIPRO_PURIFY_CONFIG);
+    var caixa = doc.createElement('div');
+    caixa.innerHTML = limpo;
+    // O parser insere <tbody> sozinho, entao a profundidade do desembrulho nao e fixa:
+    // acha-se o primeiro elemento da tag original e devolve-se o conteudo do pai dele.
+    var achado = caixa.querySelector(tag);
+    if (!achado || !achado.parentNode) return '';
+    return achado.parentNode.innerHTML;
+}
+
+// Insere HTML com sanitizacao. E o unico caminho permitido: o verificador
+// tools/check-dom-injection.mjs reprova .html()/.innerHTML em arquivo ja convertido.
+// Devolve o jQuery do alvo, como .html()/.append()/.after(), para ser drop-in.
+function htmlPro(alvo, html, modo) {
+    var $alvo = (alvo && alvo.jquery) ? alvo : $(alvo);
+    if (!$alvo.length) { avisarPro('htmlPro: alvo inexistente', alvo); return $alvo; }
+    var doc = $alvo[0].ownerDocument || document;
+    var texto = (html === null || html === undefined) ? '' : String(html);
+    var limpo;
+    if (typeof DOMPurify === 'undefined' || !DOMPurify || typeof DOMPurify.sanitize !== 'function') {
+        // O purify entra por $.getScript, de forma assincrona. Cair para HTML cru aqui
+        // derrotaria o proposito do portao, entao texto puro passa e marcacao nao.
+        if (/[<&]/.test(texto)) { avisarPro('htmlPro: DOMPurify ausente, insercao abortada', texto.slice(0, 80)); return $alvo; }
+        limpo = texto;
+    } else {
+        limpo = sanitizarFragmentoPro(texto, doc);
+    }
+    switch (modo || 'html') {
+        case 'append':  $alvo.append(limpo); break;
+        case 'prepend': $alvo.prepend(limpo); break;
+        case 'before':  $alvo.before(limpo); break;
+        case 'after':   $alvo.after(limpo); break;
+        case 'replace': $alvo.replaceWith(limpo); break;
+        default:        $alvo.html(limpo);
+    }
+    if (typeof installActionsPro === 'function' && !installActionsPro(doc)) cobrarDespachantePro(doc);
+    return $alvo;
+}
+
+// Bloco <style> por DOM API. O DOMPurify remove <style> do fragmento, e a config
+// permissiva que o deixaria passar enfraqueceria o argumento perante a AMO; como sao
+// poucos pontos, eles constroem o elemento em vez de injetar marcacao.
+// Resolve o Document a partir de um Document, de um elemento ou de um objeto jQuery de
+// qualquer dos dois. Existe por um caso real: loadFontIcons recebe
+// $('#ifrVisualizacao').contents(), que e o proprio Document do iframe -- e
+// document.ownerDocument e null, entao resolver so por ownerDocument mandaria o CSS para o
+// documento do topo, em silencio.
+function documentoDePro(alvo) {
+    if (!alvo) return document;
+    if (alvo.jquery) alvo = alvo[0];
+    if (!alvo) return document;
+    if (alvo.nodeType === 9) return alvo;
+    return alvo.ownerDocument || document;
+}
+
+function estiloPro(alvo, chave, css, opcoes) {
+    var doc = documentoDePro(alvo);
+    opcoes = opcoes || {};
+    var posicao = opcoes.posicao;
+    if (!/^[\w-]+$/.test(String(chave))) { avisarPro('estiloPro: chave invalida', chave); return null; }
+    var anterior = doc.querySelector('style[data-style="' + chave + '"]');
+    if (anterior && anterior.parentNode) anterior.parentNode.removeChild(anterior);
+    var el = doc.createElement('style');
+    el.setAttribute('type', 'text/css');
+    el.setAttribute('data-style', chave);
+    // Marca de qual copia do loadFontIcons criou o bloco (ha cinco, uma por init*).
+    if (opcoes.indice !== undefined && opcoes.indice !== null) el.setAttribute('data-index', String(opcoes.indice));
+    el.textContent = String(css);
+    var casa = doc.head || doc.documentElement;
+    if (posicao === 'prepend' && casa.firstChild) casa.insertBefore(el, casa.firstChild);
+    else casa.appendChild(el);
+    return el;
+}
+
+// Eventos que podem carregar acao em data-spro-<evento>.
+// Quanto se espera pela copia da pagina antes de reclamar que o documento ficou sem
+// despachante. E generoso de proposito: a copia da pagina entra por $.getScript, assincrono.
+var ATRASO_AVISO_DESPACHANTE_PRO = 4000;
+
+var EVENTOS_ACAO_PRO = ['click', 'change', 'input', 'blur', 'focus', 'keyup', 'keydown',
+    'keypress', 'submit', 'dblclick', 'contextmenu', 'paste', 'mouseenter', 'mouseleave'];
+
+// Resolve "fn", "parent.fn" ou "top.a.b" andando no objeto. Sem eval, sem new Function.
+// Devolve tambem o dono, para que a chamada preserve o 'this' que o onclick tinha:
+// "parent.fn(x)" chamava com this = parent, e "fn(x)" com this = window.
+function resolverAcaoPro(nome, win) {
+    if (!/^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*$/.test(String(nome))) return null;
+    var partes = String(nome).split('.');
+    var dono = win, atual = win;
+    for (var i = 0; i < partes.length; i++) {
+        if (atual === null || atual === undefined) return null;
+        dono = atual;
+        try { atual = atual[partes[i]]; } catch (e) { return null; } // iframe de outra origem
+    }
+    return (typeof atual === 'function') ? { fn: atual, dono: dono } : null;
+}
+
+// Sem data-spro-args, o argumento e o proprio elemento: cobre fn(this) e fn() de uma vez,
+// porque o JavaScript ignora argumento a mais. Devolve null quando o JSON esta quebrado.
+function argumentosAcaoPro(el, ev) {
+    var bruto = el.getAttribute('data-spro-args');
+    if (bruto === null) return [el];
+    var lista;
+    try { lista = JSON.parse(bruto); } catch (e) { avisarPro('argumentos invalidos', bruto); return null; }
+    if (!(lista instanceof Array)) lista = [lista];
+    var saida = [];
+    for (var i = 0; i < lista.length; i++) {
+        if (lista[i] === '$el') saida.push(el);
+        else if (lista[i] === '$ev') saida.push(ev);
+        else saida.push(lista[i]);
+    }
+    return saida;
+}
+
+// So ancora sem destino real. Prevenir sempre mataria link de navegacao legitima.
+function devePrevenirPro(el) {
+    if (!el || el.tagName !== 'A') return false;
+    var href = el.getAttribute('href');
+    return href === null || href === '' || href === '#' || /^javascript:/i.test(href);
+}
+
+function dispararAcaoPro(el, ev, atributo) {
+    var nome = el.getAttribute(atributo) || '';
+    var win = (el.ownerDocument && el.ownerDocument.defaultView) || window;
+    var alvo = resolverAcaoPro(nome, win);
+    if (!alvo) { avisarPro('acao inexistente: ' + nome, el); return; }
+    var args = argumentosAcaoPro(el, ev);
+    if (args === null) return;
+    if (devePrevenirPro(el)) ev.preventDefault();
+    try { alvo.fn.apply(alvo.dono, args); }
+    catch (e) { erroPro('erro na acao ' + nome, e); }
+}
+
+function mostrarTipPro(el) {
+    var texto = el.getAttribute('data-spro-tip') || '';
+    var win = (el.ownerDocument && el.ownerDocument.defaultView) || window;
+    try {
+        if (el.hasAttribute('data-spro-tip-el')) {
+            if (typeof win._infraTooltipMostrar === 'function') win._infraTooltipMostrar(el, texto);
+        } else if (typeof win.infraTooltipMostrar === 'function') {
+            win.infraTooltipMostrar(texto);
+        }
+    } catch (e) {}
+}
+
+function ocultarTipPro(el) {
+    var win = (el && el.ownerDocument && el.ownerDocument.defaultView) || window;
+    try { if (typeof win.infraTooltipOcultar === 'function') win.infraTooltipOcultar(); } catch (e) {}
+}
+
+// Instala UM despachante por documento, por delegacao a partir do proprio documento --
+// o que cobre tambem o que for inserido depois.
+//
+// SO O MUNDO DA PAGINA INSTALA. Este arquivo roda em duas copias (content script no mundo
+// isolado e $.getScript no mundo da pagina); um despachante em cada mundo dispararia toda
+// acao DUAS VEZES. E as funcoes do SEI (infraTooltipMostrar) e dos demais modulos so
+// existem no mundo da pagina, entao e la que a resolucao tem de acontecer.
+// A spec previa a copia isolada "assumir" o despachante quando a da pagina nao instalasse.
+// Nao da: a isolada nao enxerga as funcoes dos modulos nem o infraTooltipMostrar nativo do
+// SEI -- ela despacharia para o vazio. O que se pode garantir e que a falha nao seja
+// silenciosa. Cenario real em que isso acontece: duas instalacoes do SEI Pro ativas, com a
+// politica de seguranca barrando o $.getScript do mundo da pagina.
+function cobrarDespachantePro(doc) {
+    var raiz = doc && doc.documentElement;
+    if (!raiz || raiz.getAttribute('data-spro-cobranca') === 'sim') return;
+    raiz.setAttribute('data-spro-cobranca', 'sim');
+    setTimeout(function () {
+        try {
+            if (raiz.getAttribute('data-spro-actions') === 'sim') return;
+            if (!doc.querySelector('[data-spro-click],[data-spro-change],[data-spro-tip]')) return;
+            avisarPro('documento sem despachante: as acoes do SEI Pro nao vao responder nesta tela. ' +
+                'A copia do mundo da pagina nao chegou a carregar (politica de seguranca ou duas ' +
+                'instalacoes da extensao ativas).', (doc.location && doc.location.href) || '');
+        } catch (e) {}
+    }, ATRASO_AVISO_DESPACHANTE_PRO);
+}
+
+function installActionsPro(doc) {
+    doc = doc || document;
+    var raiz = doc.documentElement;
+    if (!raiz) return false;
+    if (raiz.getAttribute('data-spro-actions') === 'sim') return true;
+    if (isCopiaIsoladaPro()) return false;
+    var $doc = $(doc);
+    for (var i = 0; i < EVENTOS_ACAO_PRO.length; i++) {
+        (function (evento) {
+            var atributo = 'data-spro-' + evento;
+            $doc.on(evento + '.sproAcoes', '[' + atributo + ']', function (e) {
+                dispararAcaoPro(this, e, atributo);
+            });
+        })(EVENTOS_ACAO_PRO[i]);
+    }
+    $doc.on('mouseover.sproAcoes', '[data-spro-tip]', function () { mostrarTipPro(this); });
+    $doc.on('mouseout.sproAcoes', '[data-spro-tip]', function () { ocultarTipPro(this); });
+    raiz.setAttribute('data-spro-actions', 'sim');
+    return true;
+}
+
+// O despachante do documento principal sobe junto com o arquivo, para que marcacao
+// inserida pela copia isolada tambem encontre quem a atenda.
+if (typeof isCopiaIsoladaPro === 'function' && !isCopiaIsoladaPro()) {
+    try { installActionsPro(document); } catch (e) {}
+}
+
+// Varre o DOM e diz se todo data-spro-* aponta para funcao que existe. E o que substitui
+// "clicar em tudo para ver se ligou": roda no console da pagina depois de abrir cada tela.
+function auditActionsPro() {
+    var docs = [], vistos = [];
+    (function coletar(doc, nivel) {
+        if (!doc || nivel > 4) return;
+        for (var v = 0; v < vistos.length; v++) if (vistos[v] === doc) return;
+        vistos.push(doc);
+        docs.push(doc);
+        var ifrs = doc.getElementsByTagName('iframe');
+        for (var i = 0; i < ifrs.length; i++) {
+            try { coletar(ifrs[i].contentDocument, nivel + 1); } catch (e) {} // outra origem
+        }
+    })(document, 0);
+
+    var res = { total: 0, orfaos: [], semDespachante: [], documentos: docs.length };
+    // Lista POSITIVA: so data-spro-<evento> e acao. Uma lista de exclusao teria de perseguir
+    // toda marca nova -- e ja falhava com duas: data-spro-actions (a marca do proprio
+    // despachante, no <html>) e data-spro-visualizacao (de isCopiaResponsavelVisualizacaoPro),
+    // que apareciam como acao orfa chamada "sim"/"pagina" em TODA tela do SEI.
+    var acaoValida = {};
+    for (var k = 0; k < EVENTOS_ACAO_PRO.length; k++) acaoValida['data-spro-' + EVENTOS_ACAO_PRO[k]] = 1;
+    for (var d = 0; d < docs.length; d++) {
+        var doc = docs[d];
+        var win = doc.defaultView || window;
+        var nesteDoc = 0;
+        var todos = doc.querySelectorAll('*');
+        for (var e = 0; e < todos.length; e++) {
+            var el = todos[e], attrs = el.attributes;
+            for (var a = 0; a < attrs.length; a++) {
+                var nomeAttr = attrs[a].name;
+                if (!acaoValida[nomeAttr]) continue;
+                nesteDoc++;
+                res.total++;
+                if (!resolverAcaoPro(attrs[a].value, win)) {
+                    res.orfaos.push({
+                        documento: (doc.location && doc.location.href) || '?',
+                        atributo: nomeAttr,
+                        nome: attrs[a].value,
+                        html: el.outerHTML.slice(0, 120)
+                    });
+                }
+            }
+        }
+        if (nesteDoc > 0 && doc.documentElement.getAttribute('data-spro-actions') !== 'sim') {
+            res.semDespachante.push((doc.location && doc.location.href) || '?');
+        }
+    }
+    try {
+        console.log('[SEIPro] auditoria: ' + res.total + ' acoes em ' + res.documentos +
+            ' documento(s), ' + res.orfaos.length + ' orfa(s), ' +
+            res.semDespachante.length + ' documento(s) sem despachante');
+        if (res.orfaos.length && console.table) console.table(res.orfaos);
+    } catch (x) {}
+    return res;
+}
+
+// Reescreve o conteudo de um elemento QUE JA ESTA no documento aberto no editor, a partir
+// do conteudo dele mesmo. NAO sanitiza -- e de proposito, e a diferenca importa:
+//
+//   htmlPro              dado que ENTRA na pagina (vem de um servico, de outra aba, do
+//                        usuario) e vira marcacao. Sanitiza. E o caminho da regra da AMO.
+//   reescreverDocumentoPro  o texto do PROPRIO usuario saindo do documento e voltando,
+//                        com marcacao constante da extensao no meio (os marcadores de
+//                        numeracao da Legistica). Nao ha dado externo virando marcacao.
+//
+// Sanitizar aqui nao aumentaria a seguranca e apagaria em silencio o que o DOMPurify nao
+// reconhece do documento do usuario, a comecar pelo contenteditable="false" dos
+// marcadores -- que existe justamente para o usuario nao apagar o marcador sem querer.
+// Perder conteudo de documento e pior do que qualquer coisa que isto evitaria.
+function reescreverDocumentoPro(alvo, html, modo) {
+    var $alvo = (alvo && alvo.jquery) ? alvo : $(alvo);
+    if (!$alvo.length) { avisarPro('reescreverDocumentoPro: alvo inexistente', alvo); return $alvo; }
+    var texto = (html === null || html === undefined) ? '' : String(html);
+    switch (modo || 'html') {
+        case 'append':  $alvo.append(texto); break;
+        case 'prepend': $alvo.prepend(texto); break;
+        case 'before':  $alvo.before(texto); break;
+        case 'after':   $alvo.after(texto); break;
+        case 'replace': $alvo.replaceWith(texto); break;
+        default:        $alvo.html(texto);
+    }
+    return $alvo;
+}
+
+// Monta o valor de data-spro-args a partir dos argumentos, ja escapado para caber num
+// atributo HTML entre aspas duplas.
+//
+// POR QUE NAO ESCREVER O JSON A MAO NO TEMPLATE. O valor e JSON (que usa aspas duplas)
+// dentro de um atributo (que tambem usa aspas duplas), e os dados vem do SEI: um nome de
+// documento com aspas fecha o atributo, e um com "<" pode fechar a tag. Uso:
+//     `<a data-spro-click="abrirDoc" data-spro-args="${argsPro(id, nome)}">`
+function argsPro() {
+    var lista = Array.prototype.slice.call(arguments);
+    var json;
+    try { json = JSON.stringify(lista); } catch (e) { avisarPro('argsPro: valor nao serializavel', e); return '[]'; }
+    return json.replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+               .replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/'/g, '&#39;');
+}
+// === FIM SEI PRO DOM ===
+
 // FUNÇÃO PARA NORMALIZAR HTML (remover espaços e quebras de linha extras)
 function normalizeHTML(html) {
     return String(html).replace(/\s+/g, ' ').trim();
@@ -685,11 +1033,10 @@ function encodeUrlUploadArvore(response, params) {
         hdnAnexos = (hdnAnexos.indexOf('%2B') !== -1) ? hdnAnexos.replace(/%2B/g,'+') : hdnAnexos;
     return hdnAnexos;
 }
+// Dominios de SEI com tratamento proprio (antes em config_hosts.json). A mesma lista esta em init_db.js.
+var CONFIG_HOSTS_PRO = { matches: ['.sp.gov.br', '.antt.gov.br'] };
 function getConfigHost(callback = false, callback_else = false) {
-    var hosts = URL_SPRO+"config_hosts.json";
-        fetch(hosts)
-        .then((response) => response.json()) //assuming file contains json
-        .then((json) => setConfigHost(json, callback, callback_else));
+    setConfigHost(CONFIG_HOSTS_PRO, callback, callback_else);
 }
 function setConfigHost(host, callback, callback_else, save = true){
     var set_host = false;
@@ -1318,7 +1665,7 @@ function initLoadLocalFilePro() {
     $('#selectLocalFilesPro[type=file]').trigger('click');
 }
 function loadLocalFilePro() {
-    confirmaFraseBoxPro('Esta a\u00E7\u00E3o ir\u00E1 substituir todos os dados de processos favoritos. Tem certeza que deseja prosseguir?', 'SIM', 
+    confirmaFraseBoxPro('Esta a\u00E7\u00E3o ir\u00E1 substituir todos os dados de processos monitorados. Tem certeza que deseja prosseguir?', 'SIM', 
         function(){
             var files = document.getElementById('selectLocalFilesPro').files;
             if (files.length <= 0) { return false; }
@@ -1345,8 +1692,8 @@ function htmlIconFavorites(id_procedimento, float = false) {
     var dataFavorites = (jmespath.search(storeFavorites, "[?id_procedimento=='"+id_procedimento+"'] | length(@)") > 0) ? jmespath.search(storeFavorites, "[?id_procedimento=='"+id_procedimento+"'] | [0]") : '';
     var floatStyle = (float) ? 'float: '+float+';' : '';
     var iconStar = (dataFavorites == '') 
-                    ? '<i title="Adicionar Processo aos Favoritos" id="iconFavoritePro_'+id_procedimento+'" data-id_procedimento="'+id_procedimento+'" onclick="parent.actFavoritePro(this, \'add\')" class="far fa-star iconFavoritePro" style="font-size: 12pt; margin: 0 5px; color: #666; cursor: pointer; '+floatStyle+'"></i>'
-                    : '<i title="Remover Processo dos Favoritos" id="iconFavoritePro_'+id_procedimento+'" data-id_procedimento="'+id_procedimento+'" onclick="parent.actFavoritePro(this, \'remove\')" class="fas fa-star starGold iconFavoritePro" style="font-size: 12pt; margin: 0 5px; cursor: pointer; -webkit-text-fill-color: #FED35B; -webkit-text-stroke-color: rgb(216 162 22); -webkit-text-stroke-width: 2px; '+floatStyle+'"></i>';
+                    ? '<i title="Monitorar Processo" id="iconFavoritePro_'+id_procedimento+'" data-id_procedimento="'+id_procedimento+'" onclick="parent.actFavoritePro(this, \'add\')" class="far fa-dot-circle iconFavoritePro" style="font-size: 12pt; margin: 0 5px; color: #666; cursor: pointer; '+floatStyle+'"></i>'
+                    : '<i title="Parar de Monitorar Processo" id="iconFavoritePro_'+id_procedimento+'" data-id_procedimento="'+id_procedimento+'" onclick="parent.actFavoritePro(this, \'remove\')" class="fas fa-bullseye starGold iconFavoritePro" style="font-size: 12pt; margin: 0 5px; cursor: pointer; -webkit-text-fill-color: #FED35B; -webkit-text-stroke-color: rgb(216 162 22); -webkit-text-stroke-width: 2px; '+floatStyle+'"></i>';
     return iconStar;
 }
 function resizeWinArvore(widthArvore) {
@@ -1685,6 +2032,9 @@ function changePanelLabPro(this_) {
     }
 }
 function setSortDivPanel() {
+    // Aposentado: a ordem dos paineis agora e do modulo ordem-paineis (CSS order, sem mover nos).
+    // O sortable do jQuery UI brigaria com ele e recarregava os iframes dos paineis.
+    return;
     if (getOptionsPro('panelSortPro')) {
         if ($('#panelHomePro').hasClass('ui-sortable')) {
             // console.log('### refresh #panelHomePro');
@@ -1840,17 +2190,6 @@ function chosenReparePosition(target = $('body')) {
                 $(this).css(cssElem);
             }
         });
-}
-function setMenuSistemaView(force = false) {
-}
-function hideMenuSistemaView() {
-}
-function checkMenuSistemaView() {
-    if ($('#divInfraAreaTelaE').is(':visible')) {
-        $('body').removeClass('seiSlim_hidemenu');
-    } else {
-        $('body').addClass('seiSlim_hidemenu');
-    }
 }
 function checkboxRangerSelectShift(elemSelect = false) {
     var elem = (elemSelect) ? $(elemSelect) : $('body');
@@ -6212,12 +6551,13 @@ function checkEtiquetaPriority(this_) {
         tr.removeClass('urgenteBoxDisplay').removeClass('importanteBoxDisplay');
     }
 }
+// Favoritos novos (pacote Lab) nao carregam sei-pro-favoritos.js: sem getStoreFavoritePro, etiquetas dos Projetos usam a lista vazia.
 function getColorTags(mode) {
     var colorTags = (mode == 'ativ') 
             ? (typeof arrayConfigAtivUnidade !== 'undefined' && arrayConfigAtivUnidade !== null && typeof arrayConfigAtivUnidade.config !== 'undefined' && arrayConfigAtivUnidade.config !== null && typeof arrayConfigAtivUnidade.config.etiquetas !== 'undefined' && arrayConfigAtivUnidade.config.etiquetas !== null) 
                 ? arrayConfigAtivUnidade.config.etiquetas.config.colortags
                 : []
-            : getStoreFavoritePro().config.colortags;
+            : (typeof getStoreFavoritePro === 'function' ? getStoreFavoritePro() : {favorites: [], config: {colortags: []}}).config.colortags;
         colorTags = (typeof colorTags !== 'undefined') ? colorTags : [];
     return colorTags;
 }
@@ -6241,7 +6581,7 @@ function addOptionsEtiqueta(this_, mode) {
         var htmlOptions =   '<input type="color" class="tagFavAddColorInput" value="'+backgroundColor+'" onchange="parent.changeColorEtiqueta(this, \''+mode+'\')">'+
                             '<i class="tagFavEditIcon fas fa-'+iconValue+'" data-icontag="'+iconValue+'" onclick="parent.openBoxIconsFA(\'selectIconEtiqueta\', \''+tagName+'\', \''+mode+'\')" onmouseover="return infraTooltipMostrar(\'Alterar \u00EDcone\');" onmouseout="return infraTooltipOcultar();"></i>'+
                             '<i class="tagFavAddColor fas fa-fill-drip" onclick="parent.openColorEtiqueta(this)" onmouseover="return infraTooltipMostrar(\'Alterar cor\');" onmouseout="return infraTooltipOcultar();"></i>';
-            htmlOptions = getHtmlJanelaProcessoPro(htmlOptions, this); // etiquetas do "Manter em Favoritos" do Enviar Processo
+            htmlOptions = getHtmlJanelaProcessoPro(htmlOptions, this); // etiquetas do "Manter em Monitorados" do Enviar Processo
         if (colorValue != '') {
             $(this).css({'background-color': colorValue, 'color': textColour}).find('.tag-text').css('color',textColour);
         }
@@ -6285,7 +6625,7 @@ function saveConfigEtiqueta(name, value, icon, mode) {
     var storeEtiqueta = (mode == 'ativ') 
             ? (typeof arrayConfigAtivUnidade.config !== 'undefined' && typeof arrayConfigAtivUnidade.config.etiquetas !== 'undefined') 
                 ? arrayConfigAtivUnidade.config.etiquetas : {config: {colortags: []}}
-            : getStoreFavoritePro();
+            : (typeof getStoreFavoritePro === 'function' ? getStoreFavoritePro() : {favorites: [], config: {colortags: []}});
             // console.log(storeEtiqueta);
     var colorTags = (Object.keys(storeEtiqueta).length > 0 && typeof storeEtiqueta.config.colortags !== 'undefined') 
                         ? storeEtiqueta.config.colortags : [];
@@ -6371,7 +6711,7 @@ function normalizeNameTag(tag) {
 function sugestEtiquetaPro(mode) {
     return (mode == 'ativ') 
         ? (typeof arrayConfigAtividades.etiquetas !== 'undefined' ? arrayConfigAtividades['etiquetas']['list'] : [])
-        : uniqPro($.map(getStoreFavoritePro()['favorites'], function (value) { return value.etiquetas; }));
+        : uniqPro($.map((typeof getStoreFavoritePro === 'function' ? getStoreFavoritePro() : {favorites: [], config: {colortags: []}})['favorites'], function (value) { return value.etiquetas; }));
 }
 function getHtmlEtiqueta(name, mode) {
     var colorTags = getColorTags(mode);
@@ -6671,7 +7011,7 @@ function configFlashMenuTrPro(value, color, state, mode) {
             '        </tr>';
 }
 function configFlashMenuPro(arrayLinksArvore) { 
-    var selectedItensMenu = ( typeof localStorageRestorePro('configViewFlashMenuPro') !== 'undefined' && !$.isEmptyObject(localStorageRestorePro('configViewFlashMenuPro')) ) ? localStorageRestorePro('configViewFlashMenuPro') : [['Incluir Documento'],['Consultar/Alterar Processo'],['Enviar Documento Externo'],['Atribuir Processo'],['Add/Remover Urg\u00EAncia']];
+    var selectedItensMenu = ( typeof localStorageRestorePro('configViewFlashMenuPro') !== 'undefined' && !$.isEmptyObject(localStorageRestorePro('configViewFlashMenuPro')) ) ? (function(l){ return Array.isArray(l) ? l.map(function(v){ return (v && v[0] == 'A\u00E7\u00F5es em lote') ? ['A\u00E7\u00F5es em Lote'] : v; }) : l; })(localStorageRestorePro('configViewFlashMenuPro')) : [['Incluir Documento'],['Consultar/Alterar Processo'],['Enviar Documento Externo'],['Atribuir Processo'],['Add/Remover Urg\u00EAncia']];
     var selectedItensDocMenu = ( typeof localStorageRestorePro('configViewFlashDocMenuPro') !== 'undefined' && !$.isEmptyObject(localStorageRestorePro('configViewFlashDocMenuPro')) ) ? localStorageRestorePro('configViewFlashDocMenuPro') : [['Copiar n\u00FAmero SEI'],['Copiar nome do documento'],['Copiar link do documento']];
     var selectedItensDocArvore = ( typeof localStorageRestorePro('configViewFlashDocArvorePro') !== 'undefined' && !$.isEmptyObject(localStorageRestorePro('configViewFlashDocArvorePro')) ) ? localStorageRestorePro('configViewFlashDocArvorePro') : [["Copiar n\u00FAmero SEI"],["Copiar link do documento"],["Duplicar documento"]];
     var selectedItensPanelArvore = ( typeof localStorageRestorePro('configViewFlashPanelArvorePro') !== 'undefined' && !$.isEmptyObject(localStorageRestorePro('configViewFlashPanelArvorePro')) ) ? localStorageRestorePro('configViewFlashPanelArvorePro') : [["Anota\u00E7\u00F5es"],["Marcador"],["Acompanhamento Especial"],["Tipo de Procedimento"],["Assuntos"],["Interessados"],["Atribui\u00E7\u00E3o"],["N\u00EDvel de Acesso"],["Observa\u00E7\u00F5es"]];
@@ -7006,22 +7346,15 @@ function checkHostLimit() {
         return true;
     } else {
         if (NAMESPACE_SPRO == 'SEI Pro') {
-            var host = sessionStorage.getItem('configHost_Pro') !== null ? JSON.parse(sessionStorage.getItem('configHost_Pro')) : false;
-            if (host) {
-                var set_host = false;
-                if (typeof host !== 'undefined' && host !== null &&typeof host.matches !== 'undefined' && host.matches !== null && host.matches.length > 0) {
-                    for (i = 0; i < host.matches.length; i++) {
-                        if (window.location.host.indexOf(host.matches[i]) !== -1) set_host = true;
-                    }
-                }
-                if (set_host) {
-                    if (!checkConfigValue('disablequery') && !verifyConfigValue('disablequery')) return false;
-                    else return true;
-                } else {
-                    return false;
-                } 
+            var set_host = false;
+            for (i = 0; i < CONFIG_HOSTS_PRO.matches.length; i++) {
+                if (window.location.host.indexOf(CONFIG_HOSTS_PRO.matches[i]) !== -1) set_host = true;
+            }
+            if (set_host) {
+                if (!checkConfigValue('disablequery') && !verifyConfigValue('disablequery')) return false;
+                else return true;
             } else {
-                getConfigHost();
+                return false;
             }
         } else {
             return false;
@@ -8100,7 +8433,7 @@ function getProcessoUnidadePro(selected = false, obj = false) {
                             : $('#tblProcessosRecebidos, #tblProcessosGerados, .infraTable').find('tr');
         if (selectTableTr.length > 0) {
             selectTableTr.each(function(index){ 
-                var a = $(this).find('td').eq(2).find('a').eq(0)
+                var a = $(this).find('td:not(.spro-anotacao-coluna)').eq(2).find('a').eq(0)
                 var processo_sei = a.text();
                     processo_sei = (typeof processo_sei !== 'undefined') ? processo_sei : false;
                 var id_procedimento = getParamsUrlPro(a.attr('href')).id_procedimento;
@@ -8512,7 +8845,8 @@ function ajaxDadosProcessoPro(href, mode, arrayAcompEsp) {
         processo.selAssuntos = $html.find("#selAssuntos option").map(function () { return $(this).text(); }).get();
         processo.rdoNivelAcesso = $html.find('input[name=rdoNivelAcesso]:checked').val();
         processo.urlHipoteseLegal = getUrlHipoteseLegal(html);
-        
+        registrarHipotesesParaOpcoesPro(processo.urlHipoteseLegal);
+
         /*
         var arrayObs = [{unidade: unidade, observacao: $html.find('#txaObservacoes').val()}];
         if ($html.find('#divObservacoesOutras').length > 0) { 
@@ -8619,6 +8953,43 @@ function getHipoteseLegal(urlHipoteseLegal = dadosProcessoPro.propProcesso.urlHi
         }
     });
 }
+// A pagina de opcoes roda isolada do SEI e nao tem como pedir a lista de hipoteses legais do orgao. Ao abrir um processo, a lista
+// e lida aqui (mesmo endpoint do combo do SEI) e entregue ao init_db.js, que a guarda em chrome.storage.local para as opcoes.
+// Nivel 1 = Restrito, 2 = Sigiloso. No maximo uma leitura a cada 12h por endereco do SEI (localStorage e por origem).
+function registrarHipotesesParaOpcoesPro(urlHipoteseLegal) {
+    if (!urlHipoteseLegal) return;
+    var chave = 'hipotesesOpcoesPro_ts';
+    try {
+        var ultima = parseInt(localStorage.getItem(chave), 10);
+        if (ultima && Date.now() - ultima < 12 * 60 * 60 * 1000) return;
+        localStorage.setItem(chave, String(Date.now()));
+    } catch (e) { return; }
+    var lista = [];
+    var pendentes = [1, 2];
+    var concluir = function () {
+        pendentes.shift();
+        if (pendentes.length) return;
+        if (!lista.length) { try { localStorage.removeItem(chave); } catch (e) {} return; }
+        window.postMessage({ seiProListas: { hipoteses: lista } }, window.location.origin);
+    };
+    $.each([1, 2], function (i, nivel) {
+        $.ajax({
+            type: "POST",
+            url: urlHipoteseLegal,
+            dataType: 'text',
+            data: { primeiroItemValor: null, primeiroItemDescricao: '', valorItemSelecionado: '', staNivelAcesso: nivel }
+        }).done(function (result) {
+            try {
+                var opcoes = $('<select>').html($(result.replace('<?xml version="1.0" encoding="iso-8859-1"?>', '')).html());
+                opcoes.find('option').each(function () {
+                    var id = String($(this).val() || '').trim();
+                    var nome = $(this).text().trim();
+                    if (id !== '' && nome !== '') lista.push({ id: id, nome: nome, nivel: nivel });
+                });
+            } catch (e) {}
+        }).always(concluir);
+    });
+}
 function checkDadosIframeDocumentosPro(mode) {
     var i = 0;
     var ifrArvore = $('#frmCheckerProcessoPro').contents().find('#ifrArvore').contents();
@@ -8691,6 +9062,11 @@ function getListDocumentosArvore(ifrArvore) {
 }
 function getHistoryProcessosPro() {
     $(infraBarraS+'.barSuspenso').trigger('click');
+    // Historico novo (js/init_historico.js, SEI Pro Lab): o modal e dele.
+    if (document.documentElement.hasAttribute('data-seipro-historico')) {
+        document.dispatchEvent(new CustomEvent('spro-historico-abrir'));
+        return;
+    }
     var dadosHistoricoProcessoPro = localStorageRestorePro('dadosHistoricoProcessoPro');
         var htmlBox =       '<div id="boxHistory" class="tabelaPanelScroll" style="margin-top: 10px;height: 400px;">'+
                             '   <table id="historyTablePro" style="margin-top: 35px; font-size: 8pt !important;width: 100%;" class="seiProForm tableAtividades tableDialog tableInfo tableZebra">'+
@@ -9529,6 +9905,7 @@ function refreshDocumentosActionsPro() {
     mergeAllAndamentosProcesso(function(){ fillDocumentosActionsPro(); });
 }
 function getDocumentosActions() {
+    if (document.documentElement.hasAttribute('data-seipro-acoes-lote')) { document.dispatchEvent(new CustomEvent('spro-acoes-lote-abrir')); return; }
     getListDocumentosArvore($('#ifrArvore').contents());
     var dadosProcesso = pullDadosProcessoSession();
     var listDocumentos = (dadosProcesso) ? dadosProcesso.listDocumentos : dadosProcessoPro.listDocumentos;
@@ -9600,7 +9977,7 @@ function getDocumentosActions() {
     dialogBoxPro = $('#dialogBoxPro')
         .html('<div class="dialogBoxDiv">'+htmlBox+'</div>')
         .dialog({
-            title: 'A\u00E7\u00F5es em lote',
+            title: 'A\u00E7\u00F5es em Lote',
             width: $('body').width()-300,
             height: 650,
             resize: function(event, ui) {
@@ -10214,6 +10591,7 @@ function getDocCertidao(this_) {
                                             });
                                             preencherHiddenLupasFormPro(form, param);
                                             param.rdoNivelAcesso = '0';
+                                            param.selHipoteseLegal = ''; // hipotese pre-selecionada do tipo conflita com o nivel Publico forcado
                                             param.hdnFlagDocumentoCadastro = '2';
                                             param.txaObservacoes = '';
                                             param.txtDescricao = 'de Documento Oficial com Sigilo';
@@ -10553,6 +10931,8 @@ function filterTablePro(this_) {
     }
 }
 function setHistoryProcessosPro(dadosProcessoPro) {
+    // Historico novo (js/init_historico.js): a captura e dele, pela arvore.
+    if (document.documentElement.hasAttribute('data-seipro-historico')) return;
     var prop = dadosProcessoPro.propProcesso;
     var dadosProcessoPro_push = {
             datetime: moment().format('YYYY-MM-DD HH:mm:ss'),
@@ -12741,8 +13121,8 @@ function insertIconBatchActions() {
 }
 function appendIconBatchActions(loop = true) {
     var ifrVisualizacao = $($ifrVisualizacao).contents();
-    var htmlIconbatchActions =  '<a href="#" id="iconBatchActions" onclick="parent.getDocumentosActions();" onmouseout="return infraTooltipOcultar();" onmouseover="return infraTooltipMostrar(\'Iniciar a\u00E7\u00F5es em lote\')"  tabindex="452" class="botaoSEI">'+
-                                '<img class="infraCorBarraSistema" tabindex="452" src="'+URL_SPRO+'icons/menu/acao_lote.svg" alt="Iniciar a\u00E7\u00F5es em lote" title="Iniciar a\u00E7\u00F5es em lote">'+
+    var htmlIconbatchActions =  '<a href="#" id="iconBatchActions" onclick="parent.getDocumentosActions();" onmouseout="return infraTooltipOcultar();" onmouseover="return infraTooltipMostrar(\'A\u00E7\u00F5es em Lote\')"  tabindex="452" class="botaoSEI">'+
+                                '<img class="infraCorBarraSistema" tabindex="452" src="'+URL_SPRO+'icons/menu/acao_lote.svg" alt="A\u00E7\u00F5es em Lote" title="A\u00E7\u00F5es em Lote">'+
                                 '</a>';
     if (!ifrVisualizacao.find('#iconBatchActions').length) {
         ifrVisualizacao.find('#divArvoreAcoes').append(htmlIconbatchActions);
@@ -12789,6 +13169,45 @@ function appendIconFerramentasPdf(loop = true) {
     // cada navegacao deixa mais uma viva e nenhuma morre.
     if (loop) { reagendarIconeBarraPro('appendIconFerramentasPdf', appendIconFerramentasPdf); }
 }
+// Estudio de Fluxo na barra de acoes DENTRO do processo. O icone da tela de
+// Controle de Processos (sei-pro.js) nao alcanca aqui: esta barra vive no
+// #divArvoreAcoes do iframe da visualizacao, que recarrega a cada clique na
+// arvore -- por isso o reagendamento, como nos outros icones desta barra.
+function insertIconEstudioFluxo() {
+    waitLoadPro($($ifrVisualizacao).contents(), '#divArvoreAcoes', 'a[href*="controlador.php?acao="]', appendIconEstudioFluxo);
+}
+function appendIconEstudioFluxo(loop = true) {
+    var ifrVisualizacao = $($ifrVisualizacao).contents();
+    var titulo = 'Est\u00FAdio de Fluxo';
+    var htmlIconEstudioFluxo =  '<a href="'+URL_SPRO+'html/fluxos.html" target="_blank" rel="noopener" id="iconEstudioFluxo" onmouseout="return infraTooltipOcultar();" onmouseover="return infraTooltipMostrar(\''+titulo+'\')" tabindex="452" class="botaoSEI">'+
+                                '<img class="infraCorBarraSistema" tabindex="452" src="'+URL_SPRO+'icons/menu/fluxos.svg" alt="'+titulo+'" title="'+titulo+'">'+
+                                '</a>';
+    if (ifrVisualizacao.find('#iconEstudioFluxo').length == 0) {
+        ifrVisualizacao.find('#divArvoreAcoes').append(htmlIconEstudioFluxo);
+    }
+    if (loop) { reagendarIconeBarraPro('appendIconEstudioFluxo', appendIconEstudioFluxo); }
+}
+// Icone de traco do Historico de Processos Visitados, embutido (data URI): vale em todas as versoes e
+// dispensa liberar um arquivo no manifest. A marca <!--spro-historico--> deixa o Estilo Avancado troca-lo.
+function iconeHistoricoBarraPro() {
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#0b5f91" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><!--spro-historico--><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1L3.5 8.5"/><path d="M3.5 4v4.5H8"/><path d="M12 7.5V12l3 1.8"/></svg>';
+    return 'data:image/svg+xml,' + encodeURIComponent(svg);
+}
+// Historico de Processos Visitados na barra de acoes DENTRO do processo, ao lado do Estudio de Fluxo.
+function insertIconHistoricoProcessos() {
+    waitLoadPro($($ifrVisualizacao).contents(), '#divArvoreAcoes', 'a[href*="controlador.php?acao="]', appendIconHistoricoProcessos);
+}
+function appendIconHistoricoProcessos(loop = true) {
+    var ifrVisualizacao = $($ifrVisualizacao).contents();
+    var titulo = 'Hist\u00F3rico de Processos Visitados';
+    var htmlIconHistorico =  '<a href="#" id="iconHistoricoProcessos" onclick="parent.getHistoryProcessosPro(); return false;" onmouseout="return infraTooltipOcultar();" onmouseover="return infraTooltipMostrar(\''+titulo+'\')" class="botaoSEI">'+
+                                '<img class="infraCorBarraSistema" tabindex="452" src="'+iconeHistoricoBarraPro()+'" alt="'+titulo+'" title="'+titulo+'">'+
+                                '</a>';
+    if (ifrVisualizacao.find('#iconHistoricoProcessos').length == 0) {
+        ifrVisualizacao.find('#divArvoreAcoes').append(htmlIconHistorico);
+    }
+    if (loop) { reagendarIconeBarraPro('appendIconHistoricoProcessos', appendIconHistoricoProcessos); }
+}
 function insertIconCompareDocs() {
     waitLoadPro($($ifrVisualizacao).contents(), '#divArvoreAcoes', 'a[href*="controlador.php?acao="]', appendIconCompareDocs);
 }
@@ -12816,6 +13235,7 @@ function appendIconBatchDocs(loop = true) {
     if (loop) { reagendarIconeBarraPro('appendIconBatchDocs', appendIconBatchDocs); }
 }
 function initDocLoteModalSelecaoDoc(TimeOut = 9000) {
+    if (document.documentElement.hasAttribute('data-seipro-documentos-lote')) { document.dispatchEvent(new CustomEvent('spro-documentos-lote-abrir')); return; }
     if (TimeOut <= 0) { return; }
     if (typeof $().chosen !== 'undefined' && typeof URL_SPRO !== 'undefined') { 
         docLoteModalSelecaoDoc();
@@ -13135,8 +13555,6 @@ function insertActionHipoteseLegal() {
                 }, 500);
             }
         });
-        target.find('#newdocsigilo').remove();
-        target.find('#lblHipoteseLegal').append('<span id="newdocsigilo" style="float: right;font-size: 0.8em;"><a onclick="parent.getJanelaProcessoPro().setNewDocSigilo(this)">Definir como padr\u00E3o para novos documentos</a></span>');
         target.find('#fldNivelAcesso').css('height','110%');
         target.find('#divInfraBarraComandosInferior').css('margin-top','20px');
 }
@@ -13149,27 +13567,6 @@ function enableConsultasExtras() {
                 window.location.reload();
             });
             $('#frmCheckerProcessoPro').remove();
-        }, 500);
-    });
-}
-function setNewDocSigilo(this_) {
-    var _this = $(this_);
-    var _parent = _this.closest('form');
-    var selectHipoteseLegal = _parent.find('#selHipoteseLegal');
-    var valueNivelAcesso = _parent.find('input[name="rdoNivelAcesso"]:checked');
-    var valueNewDocSigilo = (selectHipoteseLegal.length) ? selectHipoteseLegal.val()+'|'+valueNivelAcesso.val()+'|'+selectHipoteseLegal.find('option:selected').text() : '';
-
-    var urlConfigSigilo = url_host.replace('controlador.php','')+'?#&acao_pro=set_option&option_key=newdocsigilo&option_value='+encodeURIComponent(valueNewDocSigilo);
-    var urlConfigPublico = url_host.replace('controlador.php','')+'?#&acao_pro=set_option&option_key=newdocnivel&option_value=false';
-    if ( $('#frmCheckerProcessoPro').length == 0 ) { getCheckerProcessoPro(); }
-    $('#frmCheckerProcessoPro').attr('src', urlConfigSigilo).unbind().on('load', function(){
-        setTimeout(function(){ 
-            $('#frmCheckerProcessoPro').remove();
-            if ( $('#frmCheckerProcessoPro').length == 0 ) { getCheckerProcessoPro(); }
-            $('#frmCheckerProcessoPro').attr('src', urlConfigPublico).unbind().on('load', function(){
-                alertaBoxPro('Sucess', 'check-circle', 'Padr\u00E3o de sigilo definido com sucesso!');
-                $('#frmCheckerProcessoPro').remove();
-            });
         }, 500);
     });
 }
@@ -13356,7 +13753,17 @@ function initToolbarOnTop() {
         var topWindow = isNewSEI ? 80 : 200;
         var topElement = toolbar.offset().top;
             topElement = topElement-topWindow;
+        // SEI 4/5: a barra passa a fixa quando a posicao REAL dela dentro da area que rola chega ao topo (medida a cada
+        // rolagem: a visao nova do controle de processos e o legado mudam o espaco acima dela, e 80 fixo ficava
+        // errado). A barra que fica no fluxo e a original (sem .fixed) ou o clone que a substitui.
+        var limiteBarraPro = function (rolador) {
+            var naFila = $(divComandos).not('.fixed').first();
+            if (!isNewSEI || !naFila.length || !rolador || !rolador.getBoundingClientRect) return topWindow;
+            var distancia = naFila[0].getBoundingClientRect().top - rolador.getBoundingClientRect().top + rolador.scrollTop;
+            return Math.max(20, Math.round(distancia) - 6);
+        };
         $(isNewSEI ? '#divInfraAreaTelaD' : window).scroll(function(){
+            topWindow = isNewSEI ? limiteBarraPro(this) : topWindow;
             if ($(this).scrollTop() > topWindow) {
                 delayCrash = true;
                 setTimeout(function(){ delayCrash = false }, 300);
@@ -13621,6 +14028,11 @@ function loopIDProtocoloSEI(protocoloSEI, index, TimeOut = 200) {
 
 }
 function initBoxSearchProtocoloSEI() {
+    // Link Permanente novo (js/init_link_permanente.js, SEI Pro Lab): o modal e dele.
+    if (document.documentElement.hasAttribute('data-seipro-link-permanente')) {
+        document.dispatchEvent(new CustomEvent('spro-link-permanente-abrir'));
+        return;
+    }
     resetDialogBoxPro();
     var htmlBox =   '<div class="searchProtocoloSEI" style="width: 100%; float: left;"><textarea placeholder="Insira os n\u00FAmeros de processo ou n\u00FAmeros SEI, um em cada linha..." id="searchProtocoloSEI" style="width: 90%; border: 2px solid #c5c5c5; height: 330px; border-radius: 5px;"></textarea></div>'+
                     '<div id="resultProtocoloSEI" class="resultProtocoloSEI" style="float: right; display: none;">'+
@@ -13754,6 +14166,7 @@ function setNewDoc(id_procedimento, id_tipo_documento, insertHtml = false, openP
                                         });
                                         preencherHiddenLupasFormPro(form, param);
                                         param.rdoNivelAcesso = '0';
+                                        param.selHipoteseLegal = ''; // hipotese pre-selecionada do tipo conflita com o nivel Publico forcado
                                         param.hdnFlagDocumentoCadastro = '2';
                                         param.txaObservacoes = '';
                                         param.txtDescricao = '';
@@ -13880,6 +14293,7 @@ function setNewProc(id_tipo_procedimento, id_tipo_documento) {
                                     }
                                 });
                                 param.rdoNivelAcesso = '0';
+                                param.selHipoteseLegal = ''; // hipotese pre-selecionada do tipo conflita com o nivel Publico forcado
                                 param.hdnFlagProcedimentoCadastro = '2';
                                 param.rdoProtocolo = 'M';
                                 param.txaObservacoes = '';
@@ -13948,99 +14362,6 @@ function setSizeIframePro(tLeft, saveSize = true) {
                           +"</style>");
     if (saveSize) setOptionsPro('iframeSizeSlimPro',tLeft);
     if (isNewSEI) $('#divIframeArvore').css('width',tLeft);
-}
-function infraMenuSistemaEsquema() {
-    return false;
-}
-function infraMenuSistemaEsquemaPro() {
-    if (!delayCrash) {
-        if (isNewSEI) {
-            if (!checkMenuVisible()) {
-                showMenuSEIPro();
-            } else {
-                hideMenuSEIPro();
-            }
-        } else {
-            if ($('#divInfraAreaTelaE').is(':visible')) {
-                hideMenuSEIPro();
-            } else {
-                showMenuSEIPro();
-            }
-        }
-        delayCrash = true;
-        setTimeout(function(){ delayCrash = false }, 300);
-    }
-}
-function hideMenuSEIPro() {
-    if (verifyConfigValue('menususpenso') && !isNewSEI) {
-        $('#divInfraAreaTelaE').hide({ effect: 'slide', direction: 'left', duration: 300, complete: function(){ 
-                $(this).attr('style','display:none;');
-        }});
-        $(infraBarraS).addClass('barSuspenso_hide').removeClass('barSuspenso_show');
-        $('#divInfraAreaTelaE').hide();
-        $('#divInfraAreaTelaD').css({'width': '99%'});
-        setOptionsPro('showMenuSEIPro',true);
-        $('body').addClass('seiSlim_hidemenu');
-    } else {
-        $('#divInfraAreaTelaE').hide();
-        $('#divInfraAreaTelaD').css({'width': '99%'});
-        setOptionsPro('showMenuSEIPro',true);
-        $('body').addClass('seiSlim_hidemenu');
-        if (isNewSEI) {
-            $("#divInfraAreaTelaE").addClass("infraMenuAnimacao");
-            $("#divInfraAreaTelaE").addClass("text-truncate");
-            $("#divInfraAreaTelaE").removeClass("infraAreaTelaEExibeGrande");
-            $("#divInfraAreaTelaE").addClass("infraAreaTelaEEscondeGrande");
-            $("#divInfraAreaTelaE").removeClass("infraAreaTelaEExibePequeno")
-            $("#divInfraAreaTelaD").removeClass("infraAreaTelaDEscondePequeno");
-            $("#divInfraAreaTelaE").addClass("infraAreaTelaEEscondePequeno");
-            $("#divInfraSidebarMenu").css("overflow-x", "hidden");
-            if (verifyConfigValue('menususpenso')) $(infraBarraS).addClass('barSuspenso_hide').removeClass('barSuspenso_show');
-        }
-    }
-}
-function showMenuSEIPro() {
-    if (verifyConfigValue('menususpenso') && !isNewSEI) {
-        if (typeof $.easing !== 'undefined') {
-            $('#divInfraAreaTelaE').show({ effect: 'slide', direction: 'left', duration: 300, complete: function(){ 
-                $(this).removeAttr('style'); 
-            }});
-        }
-        $(infraBarraS).addClass('barSuspenso_show').removeClass('barSuspenso_hide');
-    } else {
-        $('#divInfraAreaTelaE').show();
-        $('#divInfraAreaTelaD').css({'width': '79%'});
-        setOptionsPro('showMenuSEIPro',false);
-        $('body').removeClass('seiSlim_hidemenu');
-        if (isNewSEI) {
-            $("#divInfraAreaTelaE").addClass("text-truncate");
-            $("#divInfraAreaTelaE").addClass("infraMenuAnimacao");
-            $("#divInfraAreaTelaE").addClass("infraAreaTelaEExibeGrande");
-            $("#divInfraAreaTelaE").removeClass("infraAreaTelaEEscondeGrande");
-            $("#divInfraAreaTelaE").addClass("infraAreaTelaEExibePequeno");
-            $("#divInfraAreaTelaD").addClass("infraAreaTelaDEscondePequeno");
-            $("#divInfraAreaTelaE").removeClass("infraAreaTelaEEscondePequeno");
-            if (verifyConfigValue('menususpenso')) $(infraBarraS).addClass('barSuspenso_show').removeClass('barSuspenso_hide');
-        }
-    }
-}
-function checkMenuVisible() {
-    let displayMenu = $('#divInfraAreaTelaE').attr('style');
-        displayMenu = typeof displayMenu !== 'undefined' ? displayMenu.replace(/ /g,'') : '';
-    return (displayMenu == 'display:none;') ? false : true;
-}
-function checkMenuSEIPro() {
-    setTimeout(() => {
-        $('#lnkInfraMenuSistema, #lnkInfraMenuSistema').attr('onclick','infraMenuSistemaEsquemaPro()');
-        if (verifyConfigValue('menususpenso')) {
-            $('#divInfraAreaTelaE').addClass('menuSuspenso');
-            $(infraBarraS).addClass('barSuspenso').attr('onclick','infraMenuSistemaEsquemaPro()');
-        }
-        if (getOptionsPro('showMenuSEIPro') && checkMenuVisible()) hideMenuSEIPro();
-    }, 500);
-
-    // OCULTA O ÍCONE NATIVO DE EXIBIR MENU DO SISTEMA PARA O SEI > 5.0
-    if (verifyConfigValue('menususpenso')) $('img[title="Exibir/Ocultar Menu do Sistema"]').hide();
 }
 
 // SUBSTITUI CAMPOS PERSONALIZADOS
@@ -14453,7 +14774,6 @@ function loadScriptPro() {
         $(document).ready(function () {
             loadScriptVisualizacaoPro();
             loadScriptArvorePro();
-            checkMenuSEIPro();
         });
     }
 }

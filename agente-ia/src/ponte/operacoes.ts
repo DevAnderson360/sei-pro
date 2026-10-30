@@ -20,7 +20,7 @@ import {
   type AlteracaoDocumento,
   type NovoDocumento,
 } from "@nucleo/dominio/documento";
-import { abrirEditor, editarConteudo, textoDoHtml, type EditorDocumento } from "@nucleo/dominio/editor";
+import { abrirEditor, editarConteudo, textoDoHtmlComOcultos, type EditorDocumento } from "@nucleo/dominio/editor";
 import { andamentos, type TipoHistorico } from "@nucleo/dominio/historico";
 import { listarOpcoes, type ListaOpcoes } from "@nucleo/dominio/opcoes";
 import { alterarProcesso, concluirProcesso, consultarProcesso, reabrirProcesso, type AlteracaoProcesso } from "@nucleo/dominio/processo";
@@ -291,6 +291,12 @@ function bytesParaBase64(b: Uint8Array): string {
 const LIMITE_ARQUIVO = 25 * 1024 * 1024;
 
 export const OPERACOES: Record<string, Op> = {
+  // Só o escopo dos favoritos (quem e onde): a lista em si o painel lê do storage da extensão.
+  "favoritos.escopo": async (sei) => {
+    const c = sei.contexto();
+    return { host: c.host, login: c.usuario.login.trim().toLowerCase(), unidade: c.unidade.id ? { id: c.unidade.id, sigla: c.unidade.sigla } : null };
+  },
+
   "caixa.listar": async (sei, a, sinal) => {
     const r = await listarCaixa(sei, { limite: Number(a.limite ?? 2000), sinal });
     return {
@@ -381,13 +387,52 @@ export const OPERACOES: Record<string, Op> = {
     const c = await lerConteudo(sei, d, { sinal });
     if (c.forma === "html") {
       const corpo = /<body[^>]*>([\s\S]*)<\/body>/i.exec(c.html)?.[1] ?? c.html;
-      return { ...meta, conteudo: { forma: "texto", texto: textoDoHtml(corpo.replace(/<(script|style)[\s\S]*?<\/\1>/gi, "")) } };
+      // `ocultos`: o que existe no documento e NÃO aparece na tela (fonte
+      // branca, display:none). É por aí que entra instrução dirigida a IA —
+      // quem marca é o painel, que tem a varredura (ver seguranca/injecao.ts).
+      const { texto, ocultos } = textoDoHtmlComOcultos(corpo.replace(/<(script|style)[\s\S]*?<\/\1>/gi, ""));
+      return { ...meta, conteudo: { forma: "texto", texto, ...(ocultos.length ? { ocultos } : {}) } };
     }
     const { bytes, tipo, nome } = c.arquivo;
     if (/^text\/|html|xml|json|csv/.test(tipo)) return { ...meta, conteudo: { forma: "texto", texto: new TextDecoder().decode(bytes) } };
     if (bytes.length > LIMITE_ARQUIVO) return { ...meta, conteudo: { forma: "grande", tipo, tamanho: bytes.length } };
     // PDF e imagem viram texto no painel (pdf.js / OCR), fora do alcance da página.
     return { ...meta, conteudo: { forma: "arquivo", tipo, nome, base64: bytesParaBase64(bytes) } };
+  },
+
+  /**
+   * O arquivo ORIGINAL de um documento externo, para o painel gravar no disco
+   * (`documento_baixar`). Com `somenteMetadados`, diz se dá para baixar e qual
+   * é o arquivo (nome, tipo, tamanho) — é o que o cartão de aprovação mostra.
+   *
+   * Documento do editor do SEI fica de fora: virar PDF é serviço do servidor
+   * do SEI ("Gerar PDF"), que o agente ainda não aciona.
+   */
+  "documento.baixar": async (sei, a, sinal) => {
+    const d = await localizarDocumento(sei, String(a.numero), { sinal });
+    if (d.documento.nivel === "sigiloso" || d.arvore.nivel === "sigiloso") {
+      throw new ErroSei("SEI_SIGILOSO", `O documento ${d.documento.numero} \u00E9 sigiloso: o agente n\u00E3o o baixa.`);
+    }
+    const meta = { ...resumoDocumento(d.documento), processo: d.arvore.protocolo };
+    const baixavel = /documento_download_anexo/.test(d.documento.src ?? "");
+    if (!baixavel && a.somenteMetadados === true) return { ...meta, baixavel };
+    if (!baixavel) {
+      throw new ErroSei(
+        "SEI_ACAO_INDISPONIVEL",
+        `O documento ${d.documento.numero} foi escrito no editor do SEI, e o agente ainda n\u00E3o sabe gerar o PDF dele. S\u00F3 documento externo (o arquivo anexado) pode ser baixado.`,
+      );
+    }
+    const c = await lerConteudo(sei, d, { sinal });
+    if (c.forma !== "arquivo") throw new ErroSei("SEI_ACAO_INDISPONIVEL", `O SEI n\u00E3o entregou o arquivo do documento ${d.documento.numero}.`);
+    const { bytes, tipo, nome } = c.arquivo;
+    if (bytes.length > LIMITE_ARQUIVO) {
+      throw new ErroSei("SEI_ACAO_INDISPONIVEL", `O arquivo do documento ${d.documento.numero} tem ${Math.round(bytes.length / 1024 / 1024)} MB, acima do limite de 25 MB do agente. Pe\u00E7a ao usu\u00E1rio para baix\u00E1-lo pelo SEI.`);
+    }
+    // O cartão de aprovação mostra o arquivo que SERÁ gravado: nome e tipo
+    // reais, lidos do SEI, e não um palpite pelo ícone da árvore. Os bytes
+    // ficam na página; só vão ao painel na hora de gravar.
+    if (a.somenteMetadados === true) return { ...meta, baixavel, arquivo: { tipo, nome, tamanho: bytes.length } };
+    return { ...meta, arquivo: { tipo, nome, tamanho: bytes.length, base64: bytesParaBase64(bytes) } };
   },
 
   /**

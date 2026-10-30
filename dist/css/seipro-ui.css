@@ -1,0 +1,97 @@
+/*
+ * Tokens de design do SEI Pro para as paginas internas da extensao (opcoes e
+ * Ferramentas de PDF). Mesma paleta do site seipro.app (assets/css/seipro.css),
+ * com tema escuro por prefers-color-scheme. Fontes do sistema: nada de recurso
+ * externo.
+ *
+ * REGRA: toda cor da interface vem destas variaveis. Um #hex solto numa regra
+ * fica claro no tema escuro (caixa branca em fundo escuro) -- o teste
+ * ferramentas-pdf/tests/verificar-tokens.ts barra isso. Excecao deliberada: a
+ * pagina do PDF (papel, #fff) e a tarja (#000) nao mudam de tema.
+ *
+ * Todo token de cor definido em :root TEM de ter par no bloco escuro.
+ */
+
+:root {
+  /* superficies */
+  --papel: #F5F3EE;
+  --papel-2: #ECE8DF;
+  --superficie: #FFFFFF;
+  --superficie-2: #FAF8F4;
+  --realce: #EEEAE1;
+
+  /* texto: --tinta-3 (apoio) tem 5,3:1 sobre o papel; nao clarear, reprova no AA */
+  --tinta: #0F1E33;
+  --tinta-2: #3C4A5E;
+  --tinta-3: #5A6678;
+
+  /* linhas */
+  --linha: #DDD7CB;
+  --linha-forte: #CFC8BA;
+
+  /* marca */
+  --azul: #0B5F91;
+  --azul-escuro: #073F61;
+  --azul-claro: #E6EEF3;
+  --sobre-azul: #FFFFFF;
+
+  /* estados */
+  --verde-claro: #E3F1DA;
+  --verde-borda: #BFDDAE;
+  --verde-texto: #2F5A12;
+  --erro: #B3261E;
+  --erro-fundo: #FBEDEB;
+  --erro-borda: #EBC3BE;
+  --atencao: #8A5200;
+  --atencao-fundo: #F6EBD5;
+
+  /* controles */
+  --cinza-icone: #A29D91;
+  --cinza-trilho: #C9C3B6;
+
+  /* fixos nos dois temas */
+  --verde: #7FB539;
+  --raio: 16px;
+  --raio-sm: 10px;
+  --altura-controle: 44px;
+  --sombra: 0 1px 2px rgba(15, 30, 51, .06), 0 8px 24px rgba(15, 30, 51, .06);
+  --texto: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --papel: #10171F;
+    --papel-2: #18222D;
+    --superficie: #17202A;
+    --superficie-2: #1C2733;
+    --realce: #243241;
+
+    --tinta: #E9EEF4;
+    --tinta-2: #B3BFCC;
+    --tinta-3: #98A6B5;
+
+    --linha: #2B3947;
+    --linha-forte: #3B4C5E;
+
+    --azul: #6BB4E6;
+    --azul-escuro: #9ACDF0;
+    --azul-claro: #1B2B3A;
+    --sobre-azul: #07202F;
+
+    --verde-claro: #1E2F1D;
+    --verde-borda: #34502F;
+    --verde-texto: #A9D87A;
+    --erro: #F2A29C;
+    --erro-fundo: #3A1F1D;
+    --erro-borda: #6B3430;
+    --atencao: #E8B04F;
+    --atencao-fundo: #3A2D14;
+
+    --cinza-icone: #6D7A88;
+    --cinza-trilho: #3A4756;
+
+    --sombra: none;
+  }
+}

@@ -1,0 +1,86 @@
+/* Tudo vale só com o atributo que o content script põe no <html>: desligada, a página é a do SEI. */
+
+/* Abaixo de 768px o SEI usa o menu de celular dele e nada daqui vale. */
+@media (min-width: 768px) {
+  /* ☰ no bloco do logo (o SEI novo e o antigo trazem o bloco; o ícone é desenhado aqui, sem fonte de ícones). */
+  :root[data-spro-menu-suspenso] :is(#divInfraBarraSistemaPadraoE, #divInfraBarraSistemaE) {
+    cursor: pointer;
+  }
+  :root[data-spro-menu-suspenso] :is(#divInfraBarraSistemaPadraoE, #divInfraBarraSistemaE)::before {
+    content: '';
+    display: inline-block;
+    flex: none;
+    align-self: center;
+    vertical-align: middle;
+    width: 30px;
+    height: 30px;
+    margin-right: 12px;
+    background: #fff;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 6h18M3 12h18M3 18h18' stroke='black' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 6h18M3 12h18M3 18h18' stroke='black' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat;
+  }
+  /* O botão nativo de exibir/ocultar menu do SEI 5 (link redondo ao lado do logo) dá lugar ao ☰: um só botão. */
+  :root[data-spro-menu-suspenso] #divInfraMenuSistema {
+    display: none;
+  }
+
+  /* SEI 4.1+ e 5: a coluna do menu sai do fluxo e o conteúdo ocupa a largura toda. */
+  :root[data-spro-menu-suspenso='novo'] #divInfraAreaTela {
+    position: relative;
+  }
+  :root[data-spro-menu-suspenso='novo'] #divInfraAreaTelaE {
+    position: absolute;
+    /* Ajuste fino medido: o menu e a barra de ações fixa terminam alinhados à borda da barra superior. */
+    top: 4px;
+    bottom: 0;
+    left: 0;
+    z-index: 1030;
+    width: min(320px, 85vw) !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    overflow-y: auto !important;
+    padding-top: var(--spro-menu-recuo, 0);
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition: transform 0.18s ease, visibility 0s linear 0.18s;
+  }
+  :root[data-spro-menu-suspenso='novo'][data-spro-menu='aberto'] #divInfraAreaTelaE {
+    transform: none;
+    visibility: visible;
+    box-shadow: 4px 0 18px rgba(0, 0, 0, 0.35);
+    transition: transform 0.18s ease;
+  }
+  :root[data-spro-menu-sem-animacao] #divInfraAreaTelaE {
+    transition: none !important;
+  }
+  :root[data-spro-menu-suspenso='novo'] div.barraBotoesSEI.fixed {
+    margin-top: -2px !important;
+  }
+  :root[data-spro-menu-suspenso='novo'] #divInfraAreaTelaD {
+    display: block !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    padding-left: 1rem !important;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :root[data-spro-menu-suspenso='novo'] #divInfraAreaTelaE,
+    :root[data-spro-menu-suspenso='novo'][data-spro-menu='aberto'] #divInfraAreaTelaE {
+      transition: none;
+    }
+  }
+}
+
+/* SEI 3 e 4.0: a coluna flutuante vira camada, como o legado fazia. */
+:root[data-spro-menu-suspenso='antigo'] #divInfraAreaTelaE {
+  position: absolute;
+  z-index: 99999;
+  background: #fff;
+  box-shadow: 3px 3px 5px 0 #8686868a;
+}
+:root[data-spro-menu-suspenso='antigo'][data-spro-menu='fechado'] #divInfraAreaTelaE {
+  display: none;
+}
+:root[data-spro-menu-suspenso='antigo'] #divInfraAreaTelaD {
+  width: 99%;
+}

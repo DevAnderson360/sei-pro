@@ -98,6 +98,20 @@ export function codificarLatin1(
 }
 
 /**
+ * Corpo de POST em UTF-8, como o `infraAjaxPost` do SEI monta para o
+ * `controlador_ajax.php` (que passa todo o `$_POST` por `InfraString::fromUTF8`).
+ * O texto vai antes para o Latin-1 seguro: o que não cabe no banco vira o
+ * equivalente em vez de "?".
+ */
+export function codificarUtf8(campos: ReadonlyArray<readonly [string, string]>): string {
+  const cod = (s: string) => encodeURIComponent(paraLatin1Seguro(s)).replace(/%20/g, "+");
+  return campos.map(([nome, valor]) => `${cod(nome)}=${cod(valor ?? "")}`).join("&");
+}
+
+/** Charset do corpo do `controlador_ajax.php`: o mesmo que o `infraAjaxPost` declara (sem charset). */
+export const TIPO_FORMULARIO_AJAX = "application/x-www-form-urlencoded";
+
+/**
  * Decodifica a resposta do SEI.
  *
  * `windows-1252` e não `iso-8859-1`: é o que o navegador de fato aplica quando a

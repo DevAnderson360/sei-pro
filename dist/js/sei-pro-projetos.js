@@ -24,7 +24,7 @@ function setProjetos(mode = 'insert', arrayProjetos = arrayConfigAtividades.proj
 
         var idOrder = (getOptionsPro('orderPanelHome') && jmespath.search(getOptionsPro('orderPanelHome'), "[?name=='projetosGantt'].index | length(@)") > 0) ? jmespath.search(getOptionsPro('orderPanelHome'), "[?name=='projetosGantt'].index | [0]") : '';
         var htmlProjetosGantt = '<div class="panelHomePro" style="display: inline-block; width: 100%;" id="projetosGantt" data-order="'+idOrder+'">'+
-                                '   <div class="infraBarraLocalizacao titlePanelHome"><i class="fa fa-tasks azulColor" style="margin: 0 5px; font-size: 1.1em;"></i> Projetos'+
+                                '   <div class="infraBarraLocalizacao titlePanelHome"><i class="fa fa-tasks azulColor" style="margin: 0 5px; font-size: 1.1em;"></i> '+(document.documentElement.hasAttribute('data-seipro-projetos') ? 'Projetos (Atividades)' : 'Projetos')+
                                 '       <a class="newLink" id="projetosGanttDiv_showIcon" onclick="toggleTablePro(\'#projetosGanttDiv\',\'show\')" onmouseover="return infraTooltipMostrar(\'Mostrar Tabela\');" onmouseout="return infraTooltipOcultar();" style="font-size: 11pt; '+(getOptionsPro('projetosGanttDiv') == 'hide' ? '' : 'display:none;')+'"><i class="fas fa-plus-square cinzaColor"></i></a>'+
                                 '       <a class="newLink" id="projetosGanttDiv_hideIcon" onclick="toggleTablePro(\'#projetosGanttDiv\',\'hide\')" onmouseover="return infraTooltipMostrar(\'Recolher Tabela\');" onmouseout="return infraTooltipOcultar();" style="font-size: 11pt; '+(getOptionsPro('projetosGanttDiv') == 'hide' ? 'display:none;' : '')+'"><i class="fas fa-minus-square cinzaColor"></i></a>'+
                                 '   </div>'+
@@ -605,13 +605,8 @@ function openProjetoConfig() {
                     '       </td>'+
                     '   </tr>'+
                     '   <tr style="height: 40px;">'+
-                    '       <td><i class="iconPopup far fa-hand-rock cinzaColor"></i> Ordenar pain\u00E9is de gest\u00E3o arrastando e soltando</td>'+
-                    '       <td>'+
-                    '           <div class="infraAncoraSigla">'+
-                    '               <input type="checkbox" onchange="changePanelSortPro(this)" name="infraAncoraSigla" class="infraLinkOrgao" id="panelSortPro" tabindex="0" '+statePanelSortPro+'>'+
-                    '               <label class="infraAreaDados" for="panelSortPro"></label>'+
-                    '           </div>'+
-                    '       </td>'+
+                    '       <td><i class="iconPopup fas fa-sort cinzaColor"></i> Ordem e visibilidade dos pain\u00E9is</td>'+
+                    '       <td><span class="info">Use o bot\u00E3o &quot;Ordenar e ocultar pain\u00E9is&quot; na barra do Controle de Processos.</span></td>'+
                     '   </tr>'+
                     '</table>';
     resetDialogBoxPro('dialogBoxPro');
@@ -1821,8 +1816,11 @@ function changeDocumentoRelacionado(this_) {
     var _parent = _this.closest('table');
     var _id_documento_sei = _parent.find('[data-key="id_documento_sei"]');
     var _documento_sei = _parent.find('[data-key="documento_sei"]');
-    if (_id_documento_sei.length) _id_documento_sei.val(_this.find('option:selected').attr('data_id_documento_sei'));
-    if (_documento_sei.length) _documento_sei.val(_this.find('option:selected').attr('data_nr_sei'));
+    // Os nomes usam hifen porque o DOMPurify remove atributo que nao seja data-* de verdade,
+    // e o select de prescricoes chega aqui montado como marcacao sanitizada. Esta funcao e
+    // compartilhada pelos dois selects, entao os dois emissores tem de usar a mesma forma.
+    if (_id_documento_sei.length) _id_documento_sei.val(_this.find('option:selected').attr('data-id-documento-sei'));
+    if (_documento_sei.length) _documento_sei.val(_this.find('option:selected').attr('data-nr-sei'));
 }
 function updateSelectConcluirProjetoEtapa() {
 	var docsArray = dadosProcessoPro.listDocumentos;
@@ -1830,12 +1828,12 @@ function updateSelectConcluirProjetoEtapa() {
 	select.empty().append($('<option/>'));
     $.each(docsArray, function (index, valueSelect) {
         select.append($('<option/>', { 
-            data_id_documento_sei: valueSelect.id_protocolo,
+            'data-id-documento-sei': valueSelect.id_protocolo,
             value : valueSelect.documento+' ('+valueSelect.nr_sei+')',
             text : valueSelect.documento+' ('+valueSelect.nr_sei+')',
-			data_nr_sei : valueSelect.nr_sei,
-			data_assinatura : valueSelect.data_assinatura,
-			data_documento : valueSelect.documento
+			'data-nr-sei' : valueSelect.nr_sei,
+			'data-assinatura' : valueSelect.data_assinatura,
+			'data-documento' : valueSelect.documento
         })).chosen("destroy").chosen({
             placeholder_text_single: ' ',
             no_results_text: 'Nenhum resultado encontrado',

@@ -1,0 +1,110 @@
+<!-- url: https://treinamento.sei.sp.gov.br/sei/controlador.php?acao=documento_mover&acao_origem=arvore_visualizar&acao_retorno=arvore_visualizar&id_procedimento=148265&id_documento=160172&arvore=1&infra_sistema=100000100&infra_unidade_atual=110000001&infra_hash=0000000000000000000000000000000000000000000000000000000000000000 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<!-- SINTETICA: montada a partir de sei/web/documento_mover.php do SEI 5.0.0 (nao e captura). Substituir pela captura real na Tarefa 13. Ver ../LEIAME.md. -->
+<html lang="pt-br" >
+<head >
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<title>SEI - Mover Documento</title>
+<style type="text/css">
+#lblProcedimentoDestino {position:absolute;left:0%;top:0%;}
+#txtProcedimentoDestino {position:absolute;left:0%;top:6%;width:25%;}
+#btnPesquisar {position:absolute;left:26%;top:5.7%;width:10%;}
+#lblIdentificacaoProcedimentoDestino {position:absolute;left:37%;top:0%;}
+#txtIdentificacaoProcedimentoDestino {position:absolute;left:37%;top:6%;width:50%;}
+#lblMotivo {position:absolute;left:0%;top:16%;width:50%;}
+#txaMotivo {position:absolute;left:0%;top:22%;width:87%;}
+#sbmMover {position:absolute;left:0%;top:57%;}
+</style>
+<script type="text/javascript" charset="iso-8859-1" src="/infra_js/InfraAjax.js?4.1.5-2.29.0"></script>
+<script type="text/javascript">
+  //atualiza árvore para mostrar o relacionamento
+
+var objAjaxProtocoloRI1023 = null;
+function inicializar(){
+
+  document.getElementById('txtProcedimentoDestino').focus();
+
+  objAjaxProtocoloRI1023 = new infraAjaxComplementar('txtProcedimentoDestino','controlador_ajax.php?acao_ajax=protocolo_RI1023&infra_sistema=100000100&infra_unidade_atual=110000001&infra_hash=0000000000000000000000000000000000000000000000000000000000000000');
+  objAjaxProtocoloRI1023.limparCampo = false;
+  objAjaxProtocoloRI1023.mostrarAviso = false;
+  objAjaxProtocoloRI1023.tempoAviso = 1000;
+
+  objAjaxProtocoloRI1023.prepararExecucao = function(){
+    return 'idProcedimento='+document.getElementById('txtProcedimentoDestino').value;
+  };
+
+  objAjaxProtocoloRI1023.processarErro = function(){
+    document.getElementById('txtProcedimentoDestino').focus();
+  }
+
+  objAjaxProtocoloRI1023.processarResultado = function(arr){
+    if (arr!=null){
+      document.getElementById('hdnIdProcedimentoDestino').value = arr['IdProcedimento'];
+      document.getElementById('txtProcedimentoDestino').value = arr['ProtocoloProcedimentoFormatado'];
+      document.getElementById('txtIdentificacaoProcedimentoDestino').value = arr['NomeTipoProcedimento'];
+      document.getElementById('txaMotivo').focus();
+    }else{
+      document.getElementById('hdnIdProcedimentoDestino').value = '';
+      document.getElementById('txtIdentificacaoProcedimentoDestino').value = '';
+      document.getElementById('txaMotivo').value = '';
+    }
+  };
+
+  infraEfeitoTabelas();
+}
+
+function OnSubmitForm() {
+
+  if (infraTrim(document.getElementById('hdnIdProcedimentoDestino').value)==''){
+    alert('Pesquise o Processo Destino.');
+    document.getElementById('txtProcedimentoDestino').focus();
+    return false;
+  }
+
+  if (infraTrim(document.getElementById('txaMotivo').value)==''){
+    alert('Motivo não informado.');
+    document.getElementById('txaMotivo').focus();
+    return false;
+  }
+
+  return true;
+}
+
+function pesquisar(){
+  if (infraTrim(document.getElementById('txtProcedimentoDestino').value)==''){
+    alert('Informe o número do processo destino.');
+    document.getElementById('txtProcedimentoDestino').focus();
+    return;
+  }
+  objAjaxProtocoloRI1023.executar();
+}
+</script>
+</head>
+<body onload="inicializar();"  >
+<div id="divInfraAreaGlobal">
+<div id="divInfraBarraLocalizacao" class="infraBarraLocalizacao" tabindex="450">Mover Documento</div>
+<form id="frmDocumentoMover" method="post" onsubmit="return OnSubmitForm();" action="controlador.php?acao=documento_mover&acao_origem=documento_mover&arvore=1&id_procedimento=148265&id_documento=160172&infra_sistema=100000100&infra_unidade_atual=110000001&infra_hash=0000000000000000000000000000000000000000000000000000000000000000">
+<input type="hidden" id="hdnInfraTipoPagina" name="hdnInfraTipoPagina" value="2"/>
+<div id="divInfraBarraComandosSuperior" class="infraBarraComandos">
+</div>
+<div id="divInfraAreaDados" class="infraAreaDados" style="height:30em;">
+  <label id="lblProcedimentoDestino" for="txtProcedimentoDestino" accesskey="" class="infraLabelObrigatorio">Processo Destino:</label>
+  <input type="text" id="txtProcedimentoDestino" name="txtProcedimentoDestino" class="infraText" value="" tabindex="501" />
+  <button type="button" accesskey="P" name="btnPesquisar" id="btnPesquisar" onclick="pesquisar();" value="Pesquisar" class="infraButton"><span class="infraTeclaAtalho">P</span>esquisar</button>
+
+  <label id="lblIdentificacaoProcedimentoDestino" for="txtIdentificacaoProcedimentoDestino" accesskey="" class="infraLabelObrigatorio">Tipo:</label>
+  <input type="text" id="txtIdentificacaoProcedimentoDestino" name="txtIdentificacaoProcedimentoDestino" readonly="readonly" class="infraText infraReadOnly" value="" tabindex="502" />
+
+   <label id="lblMotivo" for="txaMotivo" class="infraLabelObrigatorio">Motivo:</label>
+  <textarea id="txaMotivo" name="txaMotivo" rows="5" class="infraTextarea" tabindex="503"></textarea>
+
+  <button type="submit" accesskey="M" name="sbmMover" id="sbmMover" value="Mover" class="infraButton">&nbsp;&nbsp;&nbsp;<span class="infraTeclaAtalho">M</span>over&nbsp;&nbsp;&nbsp;</button>
+
+  <input type="hidden" id="hdnIdProcedimentoDestino" name="hdnIdProcedimentoDestino" value="" />
+
+</div>
+</form>
+</div>
+<input type="hidden" id="hdnInfraPrefixoCookie" name="hdnInfraPrefixoCookie" value="GESP-TREINAMENTO_SEI_pedro_soares"/>
+</body>
+</html>

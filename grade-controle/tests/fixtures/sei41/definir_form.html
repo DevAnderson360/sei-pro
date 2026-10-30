@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<!-- Fixture trimmed from a real SEI 4.1.5 (treinamento SP) capture, 10/10/2026: definir_form.html -->
+<html lang="pt-br"><head><meta charset="utf-8"><title>SEI - Definir Controle de Prazo</title></head><body>
+<form id="frmControlePrazoCadastro" method="post" onsubmit="return OnSubmitForm();" action="controlador.php?acao=controle_prazo_definir&acao_origem=controle_prazo_definir&infra_sistema=100000100&infra_unidade_atual=110000001&infra_hash=0000000000000000000000000000000000000000000000000000000000000000">
+  <input type="hidden" id="hdnInfraTipoPagina" name="hdnInfraTipoPagina" value="1">
+<div id="divInfraBarraComandosSuperior" class="infraBarraComandos">
+<a id="ancVoltarArvoreSuperior" href="javascript:seiVoltarArvoreProcesso()" class="btn" style="display:none;" title="Voltar para a Árvore do Processo" tabindex="451">
+          <img src="/infra_css/svg/voltar.svg?4.1.5-2.29.0">
+        </a>
+<button tabindex="451" type="submit" accesskey="S" id="sbmDefinirControlePrazo" name="sbmDefinirControlePrazo" value="Salvar" class="infraButton"><span class="infraTeclaAtalho">S</span>alvar</button>
+<button tabindex="452" type="button" accesskey="C" name="btnCancelar" id="btnCancelar" value="Cancelar" onclick="location.href='controlador.php?acao=procedimento_controlar&acao_origem=controle_prazo_definir&infra_sistema=100000100&infra_unidade_atual=110000001&infra_hash=0000000000000000000000000000000000000000000000000000000000000000#ID-150098';" class="infraButton"><span class="infraTeclaAtalho">C</span>ancelar</button>
+</div>
+<div id="divInfraAreaDados" class="infraAreaDados" style="height:15em;">
+
+    <div id="divOptDataCerta" class="infraDivRadio">
+      <input type="radio" name="rdoPrazo" id="optDataCerta" onclick="configurarPrazo();" value="1" class="infraRadio">
+      <span id="spnDataCerta"><label id="lblDataCerta" for="optDataCerta" class="infraLabelRadio" tabindex="501">Data certa</label></span>
+    </div>
+
+    <input type="text" id="txtPrazo" name="txtPrazo" onkeypress="return infraMascaraData(this, event)" class="infraText" value="" tabindex="502">
+    <img src="/infra_css/svg/calendario.svg" id="imgCalData" title="Selecionar Prazo" alt="Selecionar Prazo" class="infraImg" onclick="infraCalendario('txtPrazo',this);" tabindex="503">
+
+    <div id="divOptDias" class="infraDivRadio">
+      <input type="radio" name="rdoPrazo" id="optDias" onclick="configurarPrazo();" value="2" class="infraRadio">
+      <span id="spnDias"><label id="lblDias" for="optDias" class="infraLabelRadio" tabindex="504">Prazo em dias</label></span>
+    </div>
+
+    <input type="text" id="txtDias" name="txtDias" class="infraText" value="" onkeypress="return infraMascaraNumero(this,event);" maxlength="3" tabindex="505">
+
+    <div id="divSinDiasUteis" class="infraDivCheckbox">
+      <input type="checkbox" id="chkSinDiasUteis" name="chkSinDiasUteis" class="infraCheckbox" tabindex="506">
+      <label id="lblSinDiasUteis" for="chkSinDiasUteis" accesskey="" class="infraLabelCheckbox">Úteis</label>
+    </div>
+
+    
+    <div id="divOptConcluir" class="infraDivRadio">
+      <input type="radio" name="rdoPrazo" id="optConcluir" onclick="configurarPrazo();" value="3" class="infraRadio">
+      <span id="spnConcluir"><label id="lblConcluir" for="optConcluir" class="infraLabelRadio" tabindex="507">Concluir</label></span>
+    </div>
+
+    </div>
+
+  <input type="hidden" id="hdnIdControlePrazo" name="hdnIdControlePrazo" value="">
+  <input type="hidden" id="hdnIdProcedimentos" name="hdnIdProcedimentos" value="150098">
+</form>
+</body></html>

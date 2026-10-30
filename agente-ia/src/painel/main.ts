@@ -13,12 +13,13 @@
 import { Pseudonimos } from "@nucleo/privacidade/anonimizar";
 import { Motor, type TelaAtual } from "../motor/motor";
 import { promptSistema } from "../motor/prompt";
-import { COMPATIVEIS, conferirChave, criarProvedor, DOC_CHAVES, enderecoDoServico, listarModelos, MODELO_PADRAO, normalizarUrl, SERVICOS, TEMPERATURA_PADRAO, type Ajustes, type Servico } from "../motor/provedor";
+import { COMPATIVEIS, ENDERECO_OUTRO, atalhoDeEndereco, campoModeloEhSelect, conferirChave, criarProvedor, DOC_CHAVES, enderecoDoServico, listarModelos, MODELO_OUTRO, MODELO_PADRAO, normalizarUrl, SERVICOS, TEMPERATURA_PADRAO, type Ajustes, type Servico } from "../motor/provedor";
 import { RegistroTools } from "../motor/tools";
 import type { DecisaoPlano, ExecucaoAgenteAuxiliar, InterfaceMotor, PerfilAgente, PlanoPrevisto, RegistroUsoChamada, Tarefa, Uso } from "../motor/tipos";
 import { acumularUsoAuxiliar, normalizarUso, somarUso, usoVazio } from "../motor/uso";
 import { PontePainel } from "../ponte/cliente";
 import { normalizarLimitesAuxiliares, toolsMotor } from "../tools/motor";
+import { atualizarOpcaoProjetos } from "../tools/projetos";
 import { TOOLS_SEI } from "../tools/sei";
 import { copiarTexto, duracao, formatarUso, h, icone, markdown, markdownParaTexto, moeda } from "./dom";
 import * as historico from "./historico";
@@ -27,9 +28,49 @@ import { cotacaoDolar, type Cotacao } from "./cambio";
 import { sugestoesPara } from "./sugestoes";
 import { inversaDe, motivoSemDesfazer, type AcaoFeita, type ResultadoDeEscrita } from "./desfazer";
 import { avaliarRegras, guardarRegras, listarRegras, recadoDoBloqueio, REGRAS_SUGERIDAS, type Regra } from "./regras";
-import { cabeMaisUma, gastoDeHoje, somarGastoDoDia, SEM_LIMITE, type Limites } from "./gasto";
+import { CHAVE_CONFIG, configPadrao } from "./config";
+import { cabeMaisUma, gastoDeHoje, somarGastoDoDia, type Limites } from "./gasto";
 import { anotar, blocoDeMemoria, guardarMemoria, listarMemoria, MAX_TEXTO, type Lembranca } from "./memoria";
-import { descreverFrequencia, DIAS, guardarRotinas, impedimentoExecucaoRotina, listarRotinas, proximaExecucao, vencidas, type Rotina } from "./rotinas";
+import {
+  impedimentoExecucaoRotina,
+  alarmesDe,
+  avaliarPassos,
+  descreverAlcance,
+  estourouTeto,
+  descreverFrequencia,
+  guardarRotinas,
+  listarRotinas,
+  NOME_ALARME,
+  registrarExecucao,
+  textoDoAviso,
+  vencidas,
+  type Execucao,
+  type Rotina,
+} from "./rotinas";
+import { guardarConectores, listarConectores, type Conector } from "../mcp/conectores";
+import { linhasDeConectores, toolsMcp } from "../mcp/tools";
+import { retestarLocais } from "../mcp/verificacao";
+import { cartaoExterno, cartaoTransferencia, secaoConectores } from "./mcp-ui";
+import { apagarBaixados, listarBaixados, pedirPermissaoDeDownloads, registrarBaixado, salvarNoDisco, secaoBaixados, temPermissaoDeDownloads, type Baixado } from "./baixados";
+import { toolsBaixar } from "../tools/baixar";
+import { textoDaIntegridade, varrer } from "../seguranca/injecao";
+import { montarDiagnostico, type Diagnostico } from "./diagnostico";
+import { cartaoDeErro } from "./erro-ui";
+import { envelopar } from "../seguranca/envelope";
+import { secaoRotinas } from "./rotinas-ui";
+import { secaoArquivo, type OpcoesArquivoUi } from "./arquivo-ui";
+import { aplicarModo, mensagemDeErroPdf, type Anexo } from "./anexo";
+import { andamentoDoAnexo, chipDoAnexo, confirmarOcrLongo } from "./anexo-ui";
+import { lerPdfParaAnexo } from "./pdf";
+import { ControleArquivo, escolherArquivoSync, handlesNoIndexedDB, temSeletorDeArquivo } from "@comum/sincronia/arquivo";
+import { areaChrome } from "@comum/armazenamento/area";
+import { adaptadorAgente, type AdaptadorAgente } from "../arquivo/adaptador";
+import type { EnvelopeAgente } from "../arquivo/envelope";
+import { CHAVE_SEGREDOS, CHAVE_STATUS, fontesDoNavegador, type Mudancas } from "../arquivo/retrato";
+import { criarFila, deveAgendar, exportarBackup, fontesQueAvisam, importarBackup, NOME_DO_BACKUP, travarAdaptador } from "../arquivo/gatilho";
+import { espelharListas, lerListasDoLocal, trazerDoSync } from "./sincronia-listas";
+import { mudouParaOMotor, recarregarIntocados, type CampoDaConfig } from "./campos-config";
+import { aoAvisar, aplicarConfigDoSync, CHAVE_MIGRADO, espelharConfig } from "./espelho";
 import {
   baixarColecao,
   baixarSkillSeMudou,
@@ -54,7 +95,7 @@ import { CHAVE_FLUXOS, comIgnorada, guardarFluxos, guardarIgnorados, listarFluxo
 // `import type`: o esbuild descarta, e o bundle do painel nao ganha o sei-nucleo.
 import type { RespostaFluxo, SugestaoDeFluxo } from "../ponte/operacoes";
 
-interface Config {
+export interface Config {
   /** Onde a interface abre no Chrome. Ausente em configuracoes antigas = painel. */
   modoJanela?: "painel" | "flutuante";
   /** Mostrar o gasto em reais, pela cotação do dia. */
@@ -91,15 +132,16 @@ interface Config {
   rotinasPausadas: boolean;
 }
 
-/** `ms`: quanto a rodada inteira demorou, do envio à resposta pronta. */
+type Item =
+  /** `ms` (só na resposta do agente): quanto a rodada inteira demorou, do envio à resposta pronta. */
+  | { tipo: "usuario" | "agente" | "aviso" | "decisao"; texto: string; ms?: number }
+  /** `diagnostico`: o log de auditoria que o botão de copiar leva junto. */
+  | { tipo: "erro"; texto: string; ms?: number; diagnostico?: Diagnostico }
+  /** `nome`: o nome técnico da ferramenta. O `rotulo` não serve ao diagnóstico — ele traz número de processo. */
+  | { tipo: "tool"; rotulo: string; nome?: string; estado: "rodando" | "ok" | "falha"; detalhe?: string; acao?: string; desfeita?: boolean };
+
 type ItemAgente = { tipo: "agente"; texto: string; ms?: number };
 
-type Item =
-  | ItemAgente
-  | { tipo: "usuario" | "aviso" | "erro" | "decisao"; texto: string }
-  | { tipo: "tool"; rotulo: string; estado: "rodando" | "ok" | "falha"; detalhe?: string; acao?: string; desfeita?: boolean };
-
-const CHAVE_CONFIG = "agenteIA_config";
 const CHAVE_SESSAO = "agenteIA_conversa";
 
 const PRIVACIDADE_CURTA =
@@ -166,7 +208,7 @@ function ajudaDoServico(svc: Servico): Node[] {
 class App {
   private readonly raiz = document.getElementById("app")!;
   private readonly ponte = new PontePainel();
-  private config: Config = { modoJanela: "painel", reais: true, guardar: true, dias: 30, servico: "openrouter", url: "", chave: "", modelo: MODELO_PADRAO, nomes: true, cnpj: false, ajustes: {}, instrucoes: "", limites: SEM_LIMITE, cache: true, memoria: true, modeloAuxiliar: "", auxiliaresMaxParalelo: 3, auxiliaresMaxPassos: 14, rotinasPausadas: false };
+  private config: Config = configPadrao();
   private privacidade = new Pseudonimos();
   private motor: Motor | null = null;
   private transcricao: Item[] = [];
@@ -174,7 +216,11 @@ class App {
   private registrosUso: RegistroUsoChamada[] = [];
   private execucoesAuxiliares: ExecucaoAgenteAuxiliar[] = [];
   private tarefas: Tarefa[] = [];
-  private anexo: { nome: string; texto: string } | null = null;
+  private anexo: Anexo | null = null;
+  /** Geração da leitura de anexo em curso: trocar ou remover o anexo invalida a anterior. */
+  private geracaoAnexo = 0;
+  /** Há um PDF sendo lido (o envio espera). */
+  private lendoAnexo = false;
   private idConversa: string = crypto.randomUUID();
   private nomeSessao: NomeSessao = {};
   /** Skills do usuário (configurações), disponíveis por `/slug` e por `skill_ler`. */
@@ -194,7 +240,194 @@ class App {
 
   /** Perguntas que o agente faz sozinho de tempos em tempos. */
   private rotinas: Rotina[] = [];
-  private rotinasEmExecucao = new Set<string>();
+
+  /**
+   * Documentos desta conversa que traziam conteúdo suspeito.
+   *
+   * Alimenta o relatório de integridade e, principalmente, o aviso no cartão
+   * de aprovação: aprovar uma alteração proposta depois de ler um documento
+   * adulterado é uma decisão que precisa ser tomada sabendo disso.
+   */
+  private integridadeDaConversa: Array<{ documento: string; achados: Array<{ classe: string; trecho: string; motivo?: string }> }> = [];
+
+  /** O aviso da cota de sincronização aparece uma vez por sessão. */
+  private avisouDaCota = false;
+
+  /**
+   * Trava de reentrância da sincronização.
+   *
+   * `aplicarSincronizacao` grava no `local`, o que faz cada `guardarX`
+   * espelhar, e o espelho dispara o `onChanged` da área `sync` — que chamaria
+   * `aplicarSincronizacao` outra vez. O `espelhar` só grava o que mudou, então
+   * a cadeia morreria na segunda volta; esta trava a corta na primeira.
+   */
+  private sincronizando = false;
+
+  /** Redesenhos da configuração aberta, para o que vem do sync aparecer na hora. */
+  private redesenharConfig: Array<() => void> = [];
+  /** Redesenho da seção "Backup em arquivo", enquanto a configuração está aberta. */
+  private redesenharArquivo: (() => void) | null = null;
+  /** Os campos do diálogo aberto que o usuário não mexeu acompanham a config que mudou fora dele. */
+  private recarregarCamposConfig: (() => void) | null = null;
+  /** A config mudou fora do diálogo com o motor ocupado: refazer antes do próximo pedido. */
+  private motorDesatualizado = false;
+
+  /** Backup em arquivo: o adaptador (Exportar/Importar valem em todo navegador). */
+  private adaptadorArquivo: AdaptadorAgente | null = null;
+  /** O arquivo sincronizado: só onde há seletor de arquivo (Chrome/Edge). */
+  private controleArquivo: ControleArquivo<EnvelopeAgente> | null = null;
+
+  /**
+   * Trava comum da sincronia do `storage.sync` e da mescla do arquivo: as duas
+   * leem as listas e as regravam, e a do sync parte da memória do painel.
+   * Rodando juntas, uma regravaria a lista velha por cima da outra.
+   */
+  private travaLocal = criarFila();
+  /** Uma sincronização do arquivo (ou Exportar/Importar) de cada vez. */
+  private filaArquivo = criarFila();
+  private esperaArquivo: ReturnType<typeof setTimeout> | undefined;
+  /** O foco volta muitas vezes seguidas: no máximo uma leitura a cada 30 s por ele. */
+  private ultimoFoco = 0;
+
+  /**
+   * Liga o backup em arquivo. Depois de a mescla gravar no local (ainda na
+   * trava), o painel relê as listas, espera o espelho no `sync` e espelha a
+   * configuração: quando a sincronia do sync rodar, encontra tudo em dia.
+   */
+  private ligarArquivo(): void {
+    const fontes = fontesQueAvisam(fontesDoNavegador(), (m) => this.depoisDoArquivo(m).catch(() => undefined));
+    this.adaptadorArquivo = travarAdaptador(adaptadorAgente(fontes), this.travaLocal);
+    if (!temSeletorDeArquivo(window)) return;
+    this.controleArquivo = new ControleArquivo<EnvelopeAgente>({
+      area: areaChrome(chrome.storage.local, "local"),
+      dono: { host: "agente", login: "" },
+      chaveStatus: CHAVE_STATUS,
+      // Banco próprio: o `agenteIA` já tem a versão 1 com outras lojas.
+      handles: handlesNoIndexedDB("agenteIA_arquivo"),
+      escolher: (m) => escolherArquivoSync(m, NOME_DO_BACKUP, "Agente do SEI Pro"),
+      adaptador: this.adaptadorArquivo,
+    });
+  }
+
+  /** Na fila do arquivo; o que falhar não derruba o painel (a sincronia já vira `StatusArquivo`). */
+  private naFilaDoArquivo<T>(tarefa: () => Promise<T>): Promise<T> {
+    return this.filaArquivo(tarefa);
+  }
+
+  /** Grava o arquivo daqui a 15 s, juntando as mudanças seguidas (pela fila, como as outras). */
+  private agendarArquivo(): void {
+    if (!this.controleArquivo) return;
+    clearTimeout(this.esperaArquivo);
+    this.esperaArquivo = setTimeout(() => void this.sincronizarArquivo(), 15_000);
+  }
+
+  /** Sincroniza agora (na fila); falha vira `StatusArquivo`, e o que sobrar não derruba o painel. */
+  private sincronizarArquivo(pedir = false): Promise<unknown> {
+    const controle = this.controleArquivo;
+    if (!controle) return Promise.resolve();
+    return this.naFilaDoArquivo(() => controle.sincronizar(pedir)).catch(() => undefined);
+  }
+
+  /** O que a mescla do arquivo gravou no local passa à memória do painel e ao `sync`. */
+  private async depoisDoArquivo(m: Mudancas): Promise<void> {
+    if (m.config) {
+      const salvo = (await chrome.storage.local.get(CHAVE_CONFIG))[CHAVE_CONFIG] as Partial<Config> | undefined;
+      const antes = this.config;
+      this.config = { ...this.config, ...salvo };
+      // A configuração do arquivo não passa por `aplicarConfig`: sem isto o
+      // `sync` (velho) ganharia de volta na próxima sincronia.
+      await espelharConfig(this.config);
+      this.configMudouDeFora(antes);
+    }
+    ({ skills: this.skills, colecoes: this.colecoes, regras: this.regras, memoria: this.memoria, rotinas: this.rotinas, conectores: this.conectores, fluxos: this.fluxos } =
+      await lerListasDoLocal());
+    this.fluxosIgnorados = await listarIgnorados();
+    await espelharListas({ skills: this.skills, colecoes: this.colecoes, regras: this.regras, memoria: this.memoria, rotinas: this.rotinas, conectores: this.conectores, fluxos: this.fluxos });
+    for (const redesenhar of this.redesenharConfig) redesenhar();
+  }
+
+  /**
+   * A config mudou fora do diálogo (o arquivo, outra janela): os campos do
+   * diálogo aberto que o usuário não mexeu passam a mostrar a nova — senão o
+   * "Salvar" gravaria a velha por cima —, e o motor é refeito como em
+   * `aplicarConfig` (mantendo a conversa e os pseudônimos), mas só se mudou
+   * algo que ele lê, e nunca no meio de um pedido.
+   */
+  private configMudouDeFora(antes: Config): void {
+    this.recarregarCamposConfig?.();
+    if (!this.motor || !mudouParaOMotor(antes, this.config)) return;
+    if (this.motor.ocupado || this.rotinaEmCurso) this.motorDesatualizado = true;
+    else this.refazerMotor();
+  }
+
+  /** Backup em arquivo: o que a seção da configuração chama. */
+  private opcoesArquivoUi(): OpcoesArquivoUi | null {
+    const adaptador = this.adaptadorArquivo;
+    if (!adaptador) return null;
+    const controle = this.controleArquivo;
+    return {
+      temSeletor: Boolean(controle),
+      configurado: async () => (controle ? controle.configurado() : false),
+      status: async () => (controle ? controle.status() : null),
+      // Escolher, reconectar e "agora" pedem o seletor ou a permissão, que só
+      // valem logo depois do clique: não esperam na fila atrás de uma
+      // sincronização lenta. A mescla do local continua na `travaLocal`.
+      escolher: async (m) => void (await controle?.escolher(m)),
+      reconectar: async () => void (await controle?.reconectar()),
+      agora: async () => void (await controle?.sincronizar(true)),
+      esquecer: async () => {
+        clearTimeout(this.esperaArquivo);
+        if (controle) await this.naFilaDoArquivo(() => controle.esquecer());
+      },
+      segredos: {
+        ler: async () => (await chrome.storage.local.get(CHAVE_SEGREDOS))[CHAVE_SEGREDOS] === true,
+        gravar: async (v) => {
+          await chrome.storage.local.set({ [CHAVE_SEGREDOS]: v });
+          // A caixa não agenda pelo `onChanged` (é da própria sincronia): grava já.
+          await this.sincronizarArquivo();
+        },
+      },
+      removerSegredos: async () => {
+        if (!controle) return;
+        adaptador.removerSegredosNaProxima();
+        await this.sincronizarArquivo();
+      },
+      exportar: async () => {
+        // O mesmo envelope da sincronia (diário carimbado, caixa dos segredos
+        // daqui), sem consumir o "remover segredos" pendente.
+        const url = URL.createObjectURL(new Blob([await this.naFilaDoArquivo(() => exportarBackup(adaptador))], { type: "application/json" }));
+        const a = h("a", { href: url, download: NOME_DO_BACKUP });
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+      },
+      // A mescla grava no local; as fontes recarregam o painel e o `onChanged` agenda o arquivo.
+      importar: async (arquivo) => {
+        const texto = await arquivo.text();
+        return this.naFilaDoArquivo(() => importarBackup(texto, adaptador));
+      },
+    };
+  }
+
+  /** Servidores MCP que o usuário ligou (ver `mcp/conectores.ts`). */
+  private conectores: Conector[] = [];
+
+  /**
+   * Rotina sendo executada agora.
+   *
+   * É o que permite à rotina autônoma aprovar o próprio plano sem um segundo
+   * motor: `aprovarPlano` consulta isto e decide por `avaliarPassos` em vez
+   * de abrir o cartão. Fora de rotina, vale `null` e tudo segue como sempre.
+   */
+  private rotinaEmCurso: { rotina: Rotina; escritas: string[] } | null = null;
+
+  /**
+   * Vigia do teto de gasto da rotina em curso.
+   *
+   * O teto é por execução, e o custo só se conhece rodada a rodada: a conta é
+   * feita a cada atualização de uso e, se estourar, a rodada é interrompida no
+   * meio em vez de seguir gastando sem ninguém olhando.
+   */
+  private tetoDaRotina: { rotina: Rotina; base: number; parar: AbortController; avisado: boolean } | null = null;
 
   /** Fluxos mapeados no Estúdio de Fluxo, e o que o usuário mandou não sugerir. */
   private fluxos: Fluxo[] = [];
@@ -224,6 +457,8 @@ class App {
   private bolhaAtual: { el: HTMLElement; texto: string; pendente: boolean; fechada?: boolean } | null = null;
   /** Última resposta fechada da rodada: recebe o carimbo de tempo no fim. */
   private ultimaResposta: { el: HTMLElement; item: ItemAgente } | null = null;
+  /** Cópias de documentos do SEI que o agente gravou em Downloads (ver `baixados.ts`). */
+  private baixados: Baixado[] = [];
   private aoFimDoPlano: (() => void) | null = null;
   private toolsEl = new Map<string, { el: HTMLElement; item: Extract<Item, { tipo: "tool" }> }>();
   private progressoAuxiliares = new Map<string, string>();
@@ -240,21 +475,56 @@ class App {
     this.regras = await listarRegras();
     this.memoria = await listarMemoria();
     this.rotinas = await listarRotinas();
+    this.conectores = await listarConectores();
+    this.baixados = await listarBaixados();
     this.fluxos = await listarFluxos();
     this.fluxosIgnorados = await listarIgnorados();
+    await this.aplicarSincronizacao();
+    this.ligarArquivo();
     void this.sincronizarSkills();
     void this.sincronizarColecoes();
+    void this.retestarConectoresLocais();
     this.ponte.aoMudar(() => this.atualizarAba());
     // O Estúdio de Fluxo é outra página: quando o usuário salva um fluxo lá, o
     // painel precisa passar a usá-lo sem esperar um recarregamento.
     chrome.storage.onChanged.addListener((mud, area) => {
-      if (area !== "local" || !mud[CHAVE_FLUXOS]) return;
-      this.fluxos = (mud[CHAVE_FLUXOS].newValue as Fluxo[]) ?? [];
-      void this.avaliarFluxos();
+      if (area === "local") {
+        // Mudou algo do agente que vai ao arquivo: grava daqui a pouco. As
+        // chaves da própria sincronia (status, diário, caixa) não agendam.
+        if (deveAgendar(Object.keys(mud))) this.agendarArquivo();
+        if (mud[CHAVE_STATUS]) this.redesenharArquivo?.();
+        const cfg = mud[CHAVE_CONFIG]?.newValue as Partial<Config> | undefined;
+        if (cfg && JSON.stringify({ ...this.config, ...cfg }) !== JSON.stringify(this.config)) {
+          // A configuração mudou fora deste painel (o arquivo a trouxe, ou outra janela).
+          const antes = this.config;
+          this.config = { ...this.config, ...cfg };
+          this.configMudouDeFora(antes);
+          for (const redesenhar of this.redesenharConfig) redesenhar();
+        }
+      }
+      if (area === "local" && mud[CHAVE_FLUXOS]) {
+        this.fluxos = (mud[CHAVE_FLUXOS].newValue as Fluxo[]) ?? [];
+        void this.avaliarFluxos();
+        return;
+      }
+      // Outro computador mudou a configuração: traz para cá sem recarregar.
+      // O `espelhar` deste navegador também dispara isto; `aplicarDoSync` é
+      // idempotente, então o pior caso é uma leitura a mais.
+      if (area === "sync" && Object.keys(mud).some((k) => k.startsWith("spro_"))) void this.aplicarSincronizacao();
     });
     await this.telaConversa();
     void this.atualizarCambio();
-    void historico.podar(this.config.dias).catch(() => undefined);
+    void historico
+      .podar(this.config.dias)
+      .then(() => this.agendarArquivo())
+      .catch(() => undefined);
+    // O arquivo pode ter mudado em outro computador: lê ao abrir e quando o painel volta ao foco.
+    void this.sincronizarArquivo();
+    window.addEventListener("focus", () => {
+      if (Date.now() - this.ultimoFoco < 30_000) return;
+      this.ultimoFoco = Date.now();
+      void this.sincronizarArquivo();
+    });
     if (!this.config.chave) this.abrirConfig(true);
   }
 
@@ -269,33 +539,52 @@ class App {
     this.elConversa = h("div", { class: "conversa", role: "log", "aria-live": "polite" });
     this.elEntrada = h("textarea", { rows: "2", placeholder: "Pe\u00E7a algo sobre o SEI...", "aria-label": "Mensagem" });
     this.elEnviar = h("button", { class: "enviar" });
-    this.elAnexo = h("div", { class: "anexo", hidden: true });
+    this.elAnexo = h("div", { class: "anexo-area", hidden: true });
     this.elMenu = h("div", { class: "menu", role: "menu", hidden: true });
     this.elPensando = h("div", { class: "pensando", role: "status" }, icone("estrela", 16), h("span", { class: "palavra" }), h("span", { class: "tempo" }));
 
-    const arquivo = h("input", { type: "file", accept: ".csv,.txt,.md,.json,.tsv", class: "sr-only" });
-    const anexar = h("button", { class: "icone", title: "Anexar planilha CSV ou texto", "aria-label": "Anexar arquivo" }, icone("clipe"));
+    const arquivo = h("input", { type: "file", accept: ".pdf,.csv,.txt,.md,.json,.tsv", class: "sr-only" });
+    const anexar = h("button", { class: "icone", title: "Anexar PDF, planilha CSV ou texto", "aria-label": "Anexar arquivo" }, icone("clipe"));
     const sugerir = h("button", { class: "icone", title: "Sugest\u00F5es de pedido", "aria-label": "Sugest\u00F5es de pedido" }, icone("lampada"));
 
     anexar.addEventListener("click", () => arquivo.click());
     arquivo.addEventListener("change", async () => {
       const f = arquivo.files?.[0];
+      arquivo.value = "";
       if (!f) return;
+      const geracao = ++this.geracaoAnexo;
+      this.anexo = null;
       const bytes = new Uint8Array(await f.arrayBuffer());
+      if (/\.pdf$/i.test(f.name) || f.type === "application/pdf") {
+        // O PDF é lido aqui, neste computador: ao serviço de IA vai só o texto.
+        const andamento = andamentoDoAnexo(f.name, () => this.removerAnexo());
+        this.elAnexo.hidden = false;
+        this.elAnexo.replaceChildren(andamento.elemento);
+        this.lendoAnexo = true;
+        try {
+          const lido = await lerPdfParaAnexo(bytes, {
+            aoProgredir: (e) => geracao === this.geracaoAnexo && andamento.atualizar(e),
+            cancelado: () => geracao !== this.geracaoAnexo,
+            confirmarOcr: (p) => confirmarOcrLongo((op) => this.abrirModal(op), p),
+          });
+          if (geracao !== this.geracaoAnexo) return;
+          this.mostrarAnexo({ nome: f.name, texto: lido.texto, paginas: lido.paginas, modo: "inteiro", naoLidas: lido.naoLidas, motivoNaoLidas: lido.motivoNaoLidas });
+        } catch (e) {
+          if (geracao !== this.geracaoAnexo) return;
+          this.removerAnexo();
+          if ((e as { name?: string } | null)?.name !== "OperacaoCancelada") this.adicionar({ tipo: "aviso", texto: mensagemDeErroPdf(e) });
+        } finally {
+          if (geracao === this.geracaoAnexo) this.lendoAnexo = false;
+        }
+        return;
+      }
       let texto: string;
       try {
         texto = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
       } catch {
         texto = new TextDecoder("windows-1252").decode(bytes); // CSV do Excel
       }
-      this.anexo = { nome: f.name, texto: texto.slice(0, 60_000) };
-      this.elAnexo.hidden = false;
-      this.elAnexo.replaceChildren(
-        icone("clipe", 13),
-        h("span", {}, `${f.name} \u2014 ${texto.length.toLocaleString("pt-BR")} caracteres`),
-        h("button", { class: "icone pequeno", title: "Remover anexo", "aria-label": "Remover anexo", onclick: () => ((this.anexo = null), (this.elAnexo.hidden = true)) }, icone("fechar", 14)),
-      );
-      arquivo.value = "";
+      this.mostrarAnexo({ nome: f.name, texto, modo: "inteiro" });
     });
 
     sugerir.addEventListener("click", (ev) => {
@@ -379,6 +668,19 @@ class App {
     await this.restaurarSessao();
     this.atualizarAba();
     void this.rodarRotinas();
+    void this.sincronizarAlarmes();
+    // Com o painel aberto, quem confere os vencimentos é esta varredura: o
+    // alarme do navegador acorda o service worker, não esta página.
+    setInterval(() => void this.rodarRotinas(), 5 * 60 * 1000);
+    // O background avisa quando um alarme vence; executar é sempre aqui.
+    try {
+      const porta = chrome.runtime.connect({ name: "agente-vivo" });
+      porta.onMessage.addListener((m: { tipo?: string }) => {
+        if (m?.tipo === "rodarRotinas") void this.rodarRotinas();
+      });
+    } catch {
+      /* sem background (Firefox): a varredura periódica cobre */
+    }
     this.redesenhar();
     this.elEntrada.focus();
   }
@@ -474,6 +776,8 @@ class App {
     this.chaveTela = chave;
     this.tela = aba ? ((await this.ponte.executar("tela", {}).catch(() => null)) as TelaAtual | null) : null;
     if (this.tela) this.tela.editores = this.ponte.editores();
+    // A sugestão dos projetos depende da opção "Gerenciar Projetos": relida a cada tela (só no pacote com o módulo).
+    await atualizarOpcaoProjetos();
     if (!this.transcricao.length && !this.arquivada) this.redesenhar();
     await this.avaliarFluxos();
   }
@@ -602,7 +906,22 @@ class App {
   }
 
   /** Medidor do cabeçalho: valor e, no title, de onde ele veio. */
+  /** Interrompe a rotina que passou do próprio teto de gasto. */
+  private conferirTetoDaRotina(): void {
+    const vigia = this.tetoDaRotina;
+    if (!vigia || vigia.avisado) return;
+    const gasto = this.uso.custo - vigia.base;
+    if (!estourouTeto(vigia.rotina, gasto, this.cambio?.valor ?? 5.5)) return;
+    vigia.avisado = true;
+    vigia.parar.abort();
+    this.adicionar({
+      tipo: "aviso",
+      texto: `A rotina "${vigia.rotina.nome}" passou do teto de R$ ${vigia.rotina.teto?.toFixed(2).replace(".", ",")} por execu\u00E7\u00E3o e foi interrompida.`,
+    });
+  }
+
   private mostrarUso(): void {
+    this.conferirTetoDaRotina();
     if (!this.elCusto) return;
     const uso = this.arquivada?.uso ?? this.uso;
     this.elCusto.textContent = formatarUso(uso, this.cambio);
@@ -719,6 +1038,7 @@ class App {
                 "aria-label": "Excluir",
                 onclick: async () => {
                   await historico.remover(c.id).catch(() => undefined);
+                  this.agendarArquivo();
                   linha.remove();
                   if (!corpo.querySelector(".linha")) desenhar([]);
                 },
@@ -738,6 +1058,7 @@ class App {
         return;
       }
       await historico.limpar().catch(() => undefined);
+      this.agendarArquivo();
       apagarTudo.replaceChildren(icone("lixeira", 15), "Apagar todas");
       desenhar([]);
     });
@@ -759,7 +1080,7 @@ class App {
         this.nomeSessao = c.nomeSessao ?? estado.nomeSessao ?? { tituloOriginal: c.titulo };
         this.arquivada = null;
         this.motor = this.criarMotor(Pseudonimos.importar(estado.pseudonimos, { nomes: this.config.nomes, cnpj: this.config.cnpj }));
-        this.motor.restaurar([...estado.historico], uso);
+        this.motor.restaurar([...estado.historico], uso, estado.envelope);
         this.transcricao = (estado.transcricao as Item[]).map((i) =>
           i.tipo === "tool" && i.estado === "rodando" ? { ...i, estado: "falha", detalhe: "interrompido" } : i,
         );
@@ -817,7 +1138,15 @@ class App {
       ),
     );
     const ajudaServico = h("div", { class: "ajuda" }, ...ajudaDoServico(this.config.servico));
-    const url = h("input", { type: "url", placeholder: "https://.../v1", value: this.config.url, list: "urlsCompativeis", spellcheck: "false", "aria-label": "Endere\u00E7o do servi\u00E7o" });
+    // Select de atalhos (NVIDIA/Groq/Ollama) + campo livre em "Outro". O datalist
+    // filtrava pelo valor atual e o chevron n\u00E3o reabria a lista com a URL cheia.
+    const url = h("input", { type: "url", placeholder: "https://.../v1", value: this.config.url, spellcheck: "false", "aria-label": "Endere\u00E7o do servi\u00E7o" });
+    const urlAtalho = h(
+      "select",
+      { "aria-label": "Atalho de endere\u00E7o" },
+      ...COMPATIVEIS.map((c) => h("option", { value: c.url }, c.nome)),
+      h("option", { value: "" }, "Outro (digitar o endere\u00E7o)"),
+    );
     const ajudaUrl = h("div", { class: "ajuda" });
     const chave = h("input", { type: "password", placeholder: "sk-or-v1-...", value: this.config.chave, autocomplete: "off", autofocus: true, "aria-label": "Chave do servi\u00E7o" });
     const verChave = h("button", { class: "icone", title: "Mostrar a chave", "aria-label": "Mostrar a chave" }, icone("olho"));
@@ -829,6 +1158,9 @@ class App {
     });
     const modelo = h("select", { "aria-label": "Modelo" }, h("option", { value: this.config.modelo }, this.config.modelo));
     const modeloAux = h("select", { "aria-label": "Modelo das tarefas auxiliares" }, h("option", { value: "" }, "O mesmo da conversa"));
+    const modeloAuxLivre = h("input", { type: "text", placeholder: "o mesmo da conversa", value: this.config.modeloAuxiliar, spellcheck: "false", "aria-label": "Modelo das tarefas auxiliares" });
+    const modeloLivre = h("input", { type: "text", placeholder: "nome do modelo no servi\u00E7o", value: this.config.modelo, list: "modelosCompativeis", spellcheck: "false", "aria-label": "Modelo" });
+    const listaModelos = h("datalist", { id: "modelosCompativeis" });
     const auxiliaresMaxParalelo = h("input", { type: "number", min: "1", max: "8", step: "1", value: String(this.config.auxiliaresMaxParalelo), "aria-label": "Máximo de tarefas auxiliares paralelas" });
     const auxiliaresMaxPassos = h("input", { type: "number", min: "1", max: "30", step: "1", value: String(this.config.auxiliaresMaxPassos), "aria-label": "Máximo de rodadas por agente auxiliar" });
     let rotinasPausadas = this.config.rotinasPausadas;
@@ -867,12 +1199,19 @@ class App {
       }
     };
 
+    // O modo do endere\u00E7o s\u00F3 muda por escolha no select, nunca pelo que se digita:
+    // se dependesse do texto, o campo sumiria no meio da digita\u00E7\u00E3o ao casar com um atalho.
+    let enderecoLivre = !atalhoDeEndereco(this.config.url);
+    const sincronizarUrlAtalho = (): void => {
+      urlAtalho.value = enderecoLivre ? ENDERECO_OUTRO : (atalhoDeEndereco(url.value)?.url ?? ENDERECO_OUTRO);
+      url.hidden = !enderecoLivre;
+    };
     const campoUrl = h(
       "div",
       { class: "campo" },
       h("label", {}, "Endere\u00E7o do servi\u00E7o"),
+      urlAtalho,
       url,
-      h("datalist", { id: "urlsCompativeis" }, ...COMPATIVEIS.map((c) => h("option", { value: c.url }, c.nome))),
       ajudaUrl,
     );
     const notaCompativel = h(
@@ -885,8 +1224,8 @@ class App {
         "Fora do OpenRouter o agente n\u00E3o tem como exigir que o servi\u00E7o n\u00E3o guarde o que recebe: quem escolhe o endere\u00E7o responde por ele. E nem todo modelo sabe usar ferramentas \u2014 se o agente n\u00E3o conseguir agir no SEI, troque de modelo.",
       ),
     );
-    const linhaModelo = h("div", { class: "com-botao" }, modelo, buscar);
-    const linhaAux = h("div", {}, modeloAux);
+    const linhaModelo = h("div", { class: "com-botao" }, modelo, modeloLivre, buscar);
+    const linhaAux = h("div", {}, modeloAux, modeloAuxLivre);
 
     /**
      * Preenche o seletor de modelos com o catálogo do serviço.
@@ -896,12 +1235,23 @@ class App {
      * é buscada quando a permissão já existe; nos demais casos quem dá o gesto
      * é o próprio usuário, trocando o serviço ou clicando em "Atualizar".
      */
+    /** Compatível: true depois de um /models bem-sucedido nesta abertura do modal. */
+    let catalogoCompativel = false;
+    /** Compat\u00EDvel com cat\u00E1logo: o usu\u00E1rio escolheu "Outro" para digitar um modelo fora da lista. */
+    let modeloOutro = false;
+    const invalidarCatalogo = (): void => {
+      catalogoCompativel = false;
+      modeloOutro = false;
+    };
+
     const carregarModelos = async (gesto: boolean): Promise<void> => {
       const svc = servico.value as Servico;
       const endereco = enderecoDoServico(svc, url.value);
       // Ler `modelo.value` aqui não serve: o select é reescrito enquanto carrega
       // (e chegou a gravar "Buscando modelos..." como se fosse o modelo).
-      const escolhido = modeloAtual || SERVICOS[svc].modeloPadrao || "";
+      const escolhido = (
+        svc === "compativel" && !campoModeloEhSelect(svc, catalogoCompativel, modeloOutro) ? modeloLivre.value.trim() : modeloAtual
+      ) || SERVICOS[svc].modeloPadrao || "";
       if (svc === "compativel" && !/^https?:\/\//.test(endereco)) return;
       const origens = [`${new URL(endereco).origin}/*`];
       const temPermissao = svc === "openrouter" || (await chrome.permissions.contains({ origins: origens }).catch(() => false));
@@ -924,7 +1274,10 @@ class App {
         if ((servico.value as Servico) !== svc) return; // trocou de serviço no meio do caminho
         if (!lista.length) throw new Error("O servi\u00E7o n\u00E3o devolveu nenhum modelo.");
         const comPreco = svc === "openrouter";
+        const temEscolhido = lista.some((m) => m.id === escolhido);
+        modeloOutro = false;
         modelo.replaceChildren(
+          ...(temEscolhido || !escolhido ? [] : [h("option", { value: escolhido, selected: true }, `${escolhido} (atual)`)]),
           ...lista.map((m) =>
             h(
               "option",
@@ -932,6 +1285,7 @@ class App {
               comPreco ? `${m.nome} \u2014 US$ ${m.precoEntrada.toFixed(2)} / ${m.precoSaida.toFixed(2)}` : m.nome,
             ),
           ),
+          ...(svc === "compativel" ? [h("option", { value: MODELO_OUTRO }, "Outro (digitar o nome do modelo)")] : []),
         );
         modeloAux.replaceChildren(
           h("option", { value: "", ...(this.config.modeloAuxiliar ? {} : { selected: true }) }, "O mesmo da conversa"),
@@ -943,13 +1297,23 @@ class App {
             ),
           ),
         );
-        modeloAtual = modelo.value;
+        modeloAtual = modelo.value || escolhido;
+        if (svc === "compativel") {
+          catalogoCompativel = true;
+          modeloLivre.value = modeloAtual;
+          ajustarServico();
+        }
         ajudaModelo.textContent = comPreco
           ? "S\u00F3 modelos que usam ferramentas; pre\u00E7os em d\u00F3lares por milh\u00E3o de tokens (entrada / sa\u00EDda)."
           : `${lista.length} modelo(s) do servi\u00E7o. A lista vem do pr\u00F3prio fabricante.`;
         status.textContent = "";
         status.className = "status";
       } catch (e) {
+        if (svc === "compativel") {
+          invalidarCatalogo();
+          listaModelos.replaceChildren();
+          ajustarServico();
+        }
         modelo.replaceChildren(h("option", { value: escolhido, selected: true }, escolhido || "(sem modelo)"));
         ajudaModelo.textContent = "";
         status.className = "status erro";
@@ -966,17 +1330,29 @@ class App {
       campoUrl.hidden = !comp;
       // O aviso de política de dados vale para tudo que não é OpenRouter.
       notaCompativel.hidden = svc === "openrouter";
-      // Todos os serviços usam somente o catálogo devolvido por /models.
+      // Com catálogo (OpenRouter etc., ou compatível depois do Atualizar), o
+      // select abre sempre a lista inteira. Sem catálogo no compatível — servidor
+      // sem /models, ou ainda sem buscar — o nome continua digitável (input).
+      // O datalist filtrava pelo valor atual e escondia as opções com o campo
+      // já preenchido; por isso o select toma o lugar dele quando há lista.
+      const comSelect = campoModeloEhSelect(svc, catalogoCompativel);
+      const modeloDigitado = !campoModeloEhSelect(svc, catalogoCompativel, modeloOutro);
+      modelo.hidden = !comSelect;
+      modeloAux.hidden = !comSelect;
+      modeloAuxLivre.hidden = comSelect;
+      modeloLivre.hidden = !modeloDigitado || !comp;
       chave.placeholder = SERVICOS[svc].exemploChave;
       ajudaServico.replaceChildren(...ajudaDoServico(svc));
-      const preset = COMPATIVEIS.find((c) => c.url === normalizarUrl(url.value));
+      const preset = atalhoDeEndereco(url.value);
       ajudaUrl.textContent = preset ? preset.ajuda : SERVICOS.compativel.ajuda;
+      if (comp) sincronizarUrlAtalho();
       // Ao trocar de fabricante, o modelo do anterior não serve: sugere o de casa
       // (e num serviço sem sugestão, limpa em vez de deixar o nome alheio).
       const sugestao = SERVICOS[svc].modeloPadrao ?? "";
       // Trocou de fabricante: o modelo do anterior não existe lá.
       if (svc !== servicoAtual) {
         modeloAtual = svc === this.config.servico ? this.config.modelo : sugestao;
+        invalidarCatalogo();
         servicoAtual = svc;
       }
       return svc;
@@ -984,14 +1360,43 @@ class App {
     let modeloAtual = this.config.modelo;
     let servicoAtual: Servico = this.config.servico;
     modelo.addEventListener("change", () => {
-      if (modelo.value) modeloAtual = modelo.value;
+      if (modelo.value === MODELO_OUTRO) {
+        // "Outro": volta o campo livre, j\u00E1 com o modelo que estava escolhido.
+        modeloOutro = true;
+        modeloLivre.value = modeloAtual;
+        ajustarServico();
+        modeloLivre.focus();
+        modeloLivre.select();
+        return;
+      }
+      if (!modelo.value) return;
+      modeloAtual = modelo.value;
+      // Voltou a escolher da lista: o campo livre sai de cena.
+      if (modeloOutro) {
+        modeloOutro = false;
+        ajustarServico();
+      }
     });
     servico.addEventListener("change", () => {
       ajustarServico();
       // O `change` É o gesto do usuário: dá para pedir a permissão e já listar.
       void carregarModelos(true);
     });
-    url.addEventListener("input", ajustarServico);
+    urlAtalho.addEventListener("change", () => {
+      invalidarCatalogo();
+      enderecoLivre = !urlAtalho.value;
+      if (enderecoLivre) {
+        if (atalhoDeEndereco(url.value)) url.value = "";
+      } else {
+        url.value = urlAtalho.value;
+      }
+      ajustarServico();
+      if (enderecoLivre) url.focus();
+    });
+    url.addEventListener("input", () => {
+      invalidarCatalogo();
+      ajustarServico();
+    });
     buscar.addEventListener("click", () => void carregarModelos(true));
     chave.addEventListener("change", () => {
       if ((servico.value as Servico) !== "compativel") void carregarModelos(false);
@@ -1114,96 +1519,50 @@ class App {
     );
 
     // ------------------------------------------------- rotinas
-    const listaRotinas = h("div", { class: "skills" });
-    const novaRotina = h("button", {}, "Nova rotina");
+    const conectoresUI = secaoConectores({
+      conectores: () => this.conectores,
+      definir: async (lista) => {
+        this.conectores = lista;
+        await guardarConectores(lista);
+        atualizarResumos();
+      },
+      abrirModal: (op) => this.abrirModal(op),
+      aviso: (texto) => this.adicionar({ tipo: "aviso", texto }),
+    });
     const pausarRotinas = h("button", {}, rotinasPausadas ? "Retomar todas" : "Pausar todas");
-    const desenharRotinas = () => {
-      listaRotinas.replaceChildren(
-        ...(this.rotinas.length
-          ? this.rotinas.map((ro) =>
-              h(
-                "div",
-                { class: "skill rotina" },
-                h("input", {
-                  type: "checkbox",
-                  class: "switch",
-                  title: ro.ativa ? "Ativa" : "Desligada",
-                  ...(ro.ativa ? { checked: true } : {}),
-                  onchange: async (ev: Event) => {
-                    ro.ativa = (ev.target as HTMLInputElement).checked;
-                    await guardarRotinas(this.rotinas);
-                  },
-                }),
-                h(
-                  "div",
-                  { class: "skill-texto" },
-                  h("strong", {}, ro.nome),
-                  h("code", {}, descreverFrequencia(ro)),
-                  h("small", {}, ro.pergunta),
-                  h("small", { class: "origem" }, `${ro.ultimaEm ? `rodou em ${new Date(ro.ultimaEm).toLocaleString("pt-BR")}` : "ainda n\u00E3o rodou"} \u00B7 proxima ${proximaExecucao(ro).toLocaleString("pt-BR")}`),
-                  ro.ultimoResultado ? h("small", { class: "resultado-rotina" }, ro.ultimoResultado) : null,
-                  ro.ultimoErro ? h("small", { class: "falha" }, ro.ultimoErro) : null,
-                ),
-                h("button", { title: "Executar esta rotina agora", onclick: async () => { await this.executarRotina(ro, true); desenharRotinas(); } }, "Rodar agora"),
-                h("button", { class: "icone", title: "Editar", "aria-label": `Editar ${ro.nome}`, onclick: () => this.editarRotina(ro, desenharRotinas) }, icone("lapis", 15)),
-                h(
-                  "button",
-                  {
-                    class: "icone",
-                    title: "Remover",
-                    "aria-label": `Remover ${ro.nome}`,
-                    onclick: async () => {
-                      this.rotinas = this.rotinas.filter((x) => x.id !== ro.id);
-                      await guardarRotinas(this.rotinas);
-                      desenharRotinas();
-                    },
-                  },
-                  icone("lixeira", 15),
-                ),
-              ),
-            )
-          : [
-              h(
-                "div",
-                { class: "ajuda" },
-                "Nenhuma rotina. Rotina \u00E9 uma pergunta que o agente faz sozinho de tempos em tempos \u2014 \u201Cprocessos parados h\u00E1 mais de 30 dias\u201D, \u201Cdocumentos sem assinatura na unidade\u201D.",
-              ),
-            ]),
-      );
-      atualizarResumos();
-    };
-    desenharRotinas();
-    novaRotina.addEventListener("click", () => this.editarRotina(null, desenharRotinas));
     pausarRotinas.addEventListener("click", async () => {
       rotinasPausadas = !rotinasPausadas;
       this.config.rotinasPausadas = rotinasPausadas;
       pausarRotinas.textContent = rotinasPausadas ? "Retomar todas" : "Pausar todas";
-      const cartao = secaoAgentes.querySelector<HTMLElement>('[data-agente="rotinas"]');
-      if (cartao) {
-        cartao.className = `skill agente-status ${rotinasPausadas ? "inativo" : "ativo"}`;
-        const estado = cartao.querySelector("code");
-        if (estado) estado.textContent = rotinasPausadas ? "desativado" : "ativo";
-      }
       await chrome.storage.local.set({ [CHAVE_CONFIG]: this.config });
+      await this.sincronizarAlarmes();
       atualizarResumos();
     });
-    const secaoRotinas = h(
-      "div",
-      { class: "campo" },
-      h("label", {}, "Rotinas"),
-      listaRotinas,
-      h("div", { class: "com-botao" }, novaRotina, pausarRotinas),
-      h(
-        "div",
-        { class: "nota" },
-        icone("escudo", 15),
-        h(
-          "span",
-          {},
-          "Rotina \u00E9 s\u00F3 LEITURA: ela nunca altera nada no SEI. E ela roda quando voc\u00EA abre o agente depois do hor\u00E1rio marcado \u2014 a extens\u00E3o vive no seu navegador, com a sua sess\u00E3o, e n\u00E3o h\u00E1 servidor do SEI Pro para agir de madrugada.",
-        ),
-      ),
-    );
+    const rotinasUI = secaoRotinas({
+      rotinas: () => this.rotinas,
+      definir: async (lista) => {
+        this.rotinas = lista;
+        await guardarRotinas(lista);
+        await this.sincronizarAlarmes();
+        atualizarResumos();
+      },
+      skills: () => this.skills.map((s) => ({ id: s.id, nome: s.nome })),
+      escritasDisponiveis: () =>
+        [...TOOLS_SEI, ...toolsMotor()]
+          .filter((t) => t.efeito !== "leitura" && t.efeito !== "interna" && t.efeito !== "externo")
+          .map((t) => ({ nome: t.nome, efeito: t.efeito })),
+      abrirModal: (op) => this.abrirModal(op),
+      rodarAgora: (r) => void this.rodarRotina(r, "manual"),
+      pedirPermissaoDeAviso: () => this.pedirPermissaoDeAviso(),
+    });
+    const secaoRotinasEl = h("div", {}, pausarRotinas, rotinasUI.elemento);
+    const opcoesArquivo = this.opcoesArquivoUi();
+    const arquivoUI = opcoesArquivo ? secaoArquivo(opcoesArquivo) : null;
+    this.redesenharArquivo = arquivoUI ? () => arquivoUI.redesenhar() : null;
+    const secaoArquivoEl = arquivoUI?.elemento ?? null;
+    // Enquanto a configuração está aberta, o que chega do sync redesenha as
+    // listas; ao fechar, os redesenhos saem (o DOM deixou de existir).
+    this.redesenharConfig = [() => rotinasUI.redesenhar(), () => conectoresUI.redesenhar(), ...(arquivoUI ? [() => arquivoUI.redesenhar()] : [])];
 
     // ------------------------------------------------- memória da unidade
     const usarMemoria = h("input", { type: "checkbox", class: "switch", ...(this.config.memoria ? { checked: true } : {}) });
@@ -1447,7 +1806,7 @@ class App {
         id: "rotinas",
         nome: "Rotinas automáticas",
         modelo: this.config.modeloAuxiliar || this.config.modelo,
-        permissao: "somente leitura",
+        permissao: this.rotinas.some((r) => r.alcance !== "leitura") ? "conforme alcance de cada rotina" : "somente leitura",
         ativo: this.rotinas.some((r) => r.ativa) && !rotinasPausadas,
         ultimaExecucao: ultimaRotina || undefined,
         uso: usoRotinas,
@@ -1483,7 +1842,7 @@ class App {
         h("div", { class: "campo-fino" }, h("label", {}, "Tarefas paralelas"), auxiliaresMaxParalelo, h("small", {}, "De 1 a 8; padrão 3.")),
         h("div", { class: "campo-fino" }, h("label", {}, "Rodadas por auxiliar"), auxiliaresMaxPassos, h("small", {}, "De 1 a 30; padrão 14.")),
       ),
-      h("div", { class: "nota" }, icone("escudo", 15), h("span", {}, "Auxiliares e rotinas são sempre somente leitura, não pedem aprovação e não podem delegar novamente. O gasto entra na conversa atual.")),
+      h("div", { class: "nota" }, icone("escudo", 15), h("span", {}, "Auxiliares são somente leitura e não podem delegar novamente. Rotinas respeitam o alcance escolhido no cadastro. O gasto entra na conversa atual.")),
     );
 
     const resumos = {
@@ -1510,13 +1869,14 @@ class App {
     const qtd2 = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
     atualizarResumos = () => {
       const svc = SERVICOS[(servico.value as Servico) ?? this.config.servico];
-      const nomeModelo = modelo.value || this.config.modelo;
+      const nomeModelo = (campoModeloEhSelect(servico.value as Servico, catalogoCompativel, modeloOutro) ? modelo.value : modeloLivre.value) || this.config.modelo;
       resumos.ia.textContent = `${svc.nome.replace(/ \(.*\)$/, "")} \u00B7 ${nomeModelo || "sem modelo"}`;
       resumos.agentes.textContent = `${auxiliaresMaxParalelo.value} auxiliar(es) em paralelo \u00B7 ${auxiliaresMaxPassos.value} rodadas \u00B7 rotinas ${rotinasPausadas ? "pausadas" : "ativas"}`;
       const colecoes = this.colecoes.length ? `, ${qtd2(this.colecoes.length, "cole\u00E7\u00E3o", "cole\u00E7\u00F5es")}` : "";
       resumos.sabe.textContent = `${qtd2(this.skills.length, "skill", "skills")}${colecoes} \u00B7 mem\u00F3ria ${usarMemoria.checked ? `com ${qtd2(this.memoria.length, "lembran\u00E7a", "lembran\u00E7as")}` : "desligada"}`;
       const ativas = this.regras.filter((r) => r.ativa).length;
-      resumos.pode.textContent = `${ativas ? qtd2(ativas, "regra ativa", "regras ativas") : "sem regras"} \u00B7 ${nomes.checked ? "nomes mascarados" : "nomes vis\u00EDveis"}`;
+      const ligados = this.conectores.filter((c) => c.ativo).length;
+      resumos.pode.textContent = `${ativas ? qtd2(ativas, "regra ativa", "regras ativas") : "sem regras"} \u00B7 ${ligados ? qtd2(ligados, "conector", "conectores") : "sem conector"} \u00B7 ${nomes.checked ? "nomes mascarados" : "nomes vis\u00EDveis"}`;
       const teto = [
         Number(limiteConversa.value) > 0 ? `R$ ${limiteConversa.value}/conversa` : "",
         Number(limiteDia.value) > 0 ? `R$ ${limiteDia.value}/dia` : "",
@@ -1528,6 +1888,57 @@ class App {
     atualizarResumos();
     for (const el of [servico, modelo, modeloAux, auxiliaresMaxParalelo, auxiliaresMaxPassos, modoJanela, nomes, cnpj, usarCache, usarMemoria, guardar, dias, limiteConversa, limiteDia])
       el.addEventListener("change", atualizarResumos);
+
+    // A config que os campos mostram; quando ela muda fora do diálogo (o
+    // Importar logo acima, o arquivo escolhido, outra janela), os campos que o
+    // usuário não mexeu passam a mostrar a nova (ver `campos-config.ts`).
+    let mostrada: Config = structuredClone(this.config);
+    const texto = (e: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement, de: (c: Config) => string): CampoDaConfig => ({
+      ler: () => e.value,
+      escrever: (v) => void (e.value = String(v)),
+      de,
+    });
+    const caixa = (e: HTMLInputElement, de: (c: Config) => boolean): CampoDaConfig => ({ ler: () => e.checked, escrever: (v) => void (e.checked = Boolean(v)), de });
+    const fino = (v: number | undefined): string => (v === undefined ? "" : String(v));
+    const camposDaConfig: CampoDaConfig[] = [
+      texto(servico, (c) => c.servico),
+      texto(url, (c) => c.url),
+      texto(chave, (c) => c.chave),
+      // O seletor de modelos é reescrito pelo catálogo: quem guarda a escolha é `modeloAtual`.
+      { ler: () => modeloAtual, escrever: (v) => void (modeloAtual = String(v)), de: (c) => c.modelo },
+      texto(modeloLivre, (c) => c.modelo),
+      texto(modeloAux, (c) => c.modeloAuxiliar),
+      texto(modeloAuxLivre, (c) => c.modeloAuxiliar),
+      texto(modoJanela, (c) => c.modoJanela ?? "painel"),
+      texto(auxiliaresMaxParalelo, (c) => String(c.auxiliaresMaxParalelo)),
+      texto(auxiliaresMaxPassos, (c) => String(c.auxiliaresMaxPassos)),
+      { ler: () => rotinasPausadas, escrever: (v) => { rotinasPausadas = Boolean(v); pausarRotinas.textContent = rotinasPausadas ? "Retomar todas" : "Pausar todas"; }, de: (c) => c.rotinasPausadas },
+      caixa(nomes, (c) => c.nomes),
+      caixa(cnpj, (c) => c.cnpj),
+      caixa(guardar, (c) => c.guardar),
+      caixa(emReais, (c) => c.reais),
+      caixa(usarCache, (c) => c.cache),
+      caixa(usarMemoria, (c) => c.memoria),
+      texto(limiteConversa, (c) => (c.limites.conversa ? String(c.limites.conversa) : "")),
+      texto(limiteDia, (c) => (c.limites.dia ? String(c.limites.dia) : "")),
+      texto(dias, (c) => String(c.dias)),
+      texto(instrucoes, (c) => c.instrucoes),
+      texto(temperatura.campo, (c) => fino(c.ajustes.temperatura)),
+      texto(topP.campo, (c) => fino(c.ajustes.topP)),
+      texto(maxTokens.campo, (c) => fino(c.ajustes.maxTokens)),
+      texto(penFrequencia.campo, (c) => fino(c.ajustes.penalidadeFrequencia)),
+      texto(penPresenca.campo, (c) => fino(c.ajustes.penalidadePresenca)),
+    ];
+    this.recarregarCamposConfig = () => {
+      const servicoAntes = servico.value;
+      const trocados = recarregarIntocados(camposDaConfig, mostrada, this.config);
+      mostrada = structuredClone(this.config);
+      if (!trocados) return;
+      if (servico.value !== servicoAntes) ajustarServico();
+      // O seletor de modelos volta a mostrar a escolha (`modeloAtual`).
+      void carregarModelos(false);
+      atualizarResumos();
+    };
 
     const salvar = h("button", { class: "primario" }, obrigatorio ? "Salvar e come\u00E7ar" : "Salvar");
     const dlg = this.abrirModal({
@@ -1551,6 +1962,7 @@ class App {
             { class: "campo" },
             h("label", {}, "Modelo"),
             linhaModelo,
+            listaModelos,
             ajudaModelo,
             notaCompativel,
           ),
@@ -1562,6 +1974,7 @@ class App {
           "Permiss\u00F5es e seguran\u00E7a",
           resumos.pode,
           secaoRegras,
+          conectoresUI.elemento,
           h(
             "div",
             { class: "campo" },
@@ -1570,6 +1983,18 @@ class App {
             h("label", { class: "linha-switch" }, cnpj, h("span", {}, "Mascarar tamb\u00E9m CNPJ", h("small", {}, "Empresas; CPF, e-mail e telefone s\u00E3o sempre mascarados."))),
             h("div", { class: "nota" }, icone("escudo", 15), h("span", {}, PRIVACIDADE)),
           ),
+          secaoBaixados({
+            listar: async () => (this.baixados = await listarBaixados()),
+            apagar: async () => {
+              // O clique no botão é o gesto que o navegador exige para pedir a permissão.
+              await pedirPermissaoDeDownloads();
+              const r = await apagarBaixados();
+              this.baixados = [];
+              return r;
+            },
+            permitido: temPermissaoDeDownloads,
+            pedirPermissao: pedirPermissaoDeDownloads,
+          }).elemento,
         ),
         grupo(
           "Gasto",
@@ -1621,6 +2046,16 @@ class App {
             h(
               "div",
               { class: "nota" },
+              icone("baixar", 15),
+              h(
+                "span",
+                {},
+                "A configura\u00E7\u00E3o do agente acompanha a sua conta do navegador: instru\u00E7\u00F5es, regras, rotinas, mem\u00F3ria, conectores e fluxos aparecem nos seus outros computadores. Ficam S\u00D3 aqui a chave do servi\u00E7o de IA, os tokens dos conectores, o texto das skills coladas \u00E0 m\u00E3o (as do GitHub viajam pelo endere\u00E7o) e as conversas. Se o backup em arquivo estiver ligado, tudo isso vai para o arquivo (a chave e os tokens s\u00F3 se voc\u00EA marcar essa op\u00E7\u00E3o).",
+              ),
+            ),
+            h(
+              "div",
+              { class: "nota" },
               icone("escudo", 15),
               h(
                 "span",
@@ -1629,12 +2064,23 @@ class App {
               ),
             ),
           ),
-          secaoRotinas,
+          secaoRotinasEl,
         ),
+        secaoArquivoEl ? grupo("Backup em arquivo", h("small", {}, "Opcional"), secaoArquivoEl) : null,
         h("div", { class: "nota atencao rodape-modal" }, icone("alerta", 15), h("span", {}, RESPONSABILIDADE)),
       ],
       acoes: [status, obrigatorio ? null : h("button", { onclick: () => dlg.close() }, "Cancelar"), salvar],
     });
+
+    dlg.addEventListener(
+      "close",
+      () => {
+        this.redesenharConfig = [];
+        this.redesenharArquivo = null;
+        this.recarregarCamposConfig = null;
+      },
+      { once: true },
+    );
 
     salvar.addEventListener("click", async () => {
       const erro = (texto: string) => {
@@ -1648,7 +2094,9 @@ class App {
       const k = chave.value.trim();
       const enderecoLivre = comp ? normalizarUrl(url.value) : "";
       const endereco = enderecoDoServico(svc, enderecoLivre);
-      const m = modelo.value || modeloAtual || SERVICOS[svc].modeloPadrao || MODELO_PADRAO;
+      const m = campoModeloEhSelect(svc, catalogoCompativel, modeloOutro)
+        ? modelo.value || modeloAtual || SERVICOS[svc].modeloPadrao || MODELO_PADRAO
+        : modeloLivre.value.trim();
       if (!k) return erro("Informe a chave.");
       if (comp && !/^https?:\/\//.test(endereco)) return erro("Informe o endere\u00E7o do servi\u00E7o (come\u00E7ando com https://).");
       if (!m) return erro("Escolha o modelo.");
@@ -1711,7 +2159,7 @@ class App {
         limites: { conversa: Math.max(0, Number(limiteConversa.value) || 0), dia: Math.max(0, Number(limiteDia.value) || 0) },
         cache: usarCache.checked,
         memoria: usarMemoria.checked,
-        modeloAuxiliar: modeloAux.value.trim(),
+        modeloAuxiliar: (campoModeloEhSelect(svc, catalogoCompativel) ? modeloAux.value : modeloAuxLivre.value).trim(),
         auxiliaresMaxParalelo: Math.floor(maxParalelo ?? 3),
         auxiliaresMaxPassos: Math.floor(maxPassosAuxiliar ?? 14),
         rotinasPausadas,
@@ -1742,81 +2190,6 @@ class App {
     void carregarModelos(false);
   }
 
-  /** Cadastro de uma rotina. */
-  private editarRotina(rotina: Rotina | null, aoFechar: () => void): void {
-    const nome = h("input", { type: "text", value: rotina?.nome ?? "", placeholder: "Processos parados", "aria-label": "Nome da rotina" });
-    const pergunta = h("textarea", { rows: "3", placeholder: "Liste os processos da minha unidade sem andamento h\u00E1 mais de 30 dias, do mais antigo para o mais novo.", "aria-label": "Pergunta" }, rotina?.pergunta ?? "");
-    const frequencia = h(
-      "select",
-      { "aria-label": "Frequ\u00EAncia" },
-      ...([["diaria", "Todo dia"], ["semanal", "Toda semana"], ["mensal", "Todo m\u00EAs"]] as Array<[string, string]>).map(([v, t]) =>
-        h("option", { value: v, ...(rotina?.frequencia === v ? { selected: true } : {}) }, t),
-      ),
-    );
-    const diaSemana = h(
-      "select",
-      { "aria-label": "Dia da semana" },
-      ...DIAS.map((d, i) => h("option", { value: String(i + 1), ...((rotina?.diaSemana ?? 1) === i + 1 ? { selected: true } : {}) }, d)),
-    );
-    const diaMes = h("input", { type: "number", min: "1", max: "28", value: String(rotina?.diaMes ?? 1), "aria-label": "Dia do m\u00EAs" });
-    const hora = h("input", { type: "time", value: rotina?.hora ?? "08:00", "aria-label": "A partir das" });
-    const status = h("div", { class: "status" });
-    const salvar = h("button", { class: "primario" }, rotina ? "Salvar" : "Adicionar");
-    const ajustar = () => {
-      diaSemana.hidden = frequencia.value !== "semanal";
-      diaMes.hidden = frequencia.value !== "mensal";
-    };
-    frequencia.addEventListener("change", ajustar);
-    const dlg = this.abrirModal({
-      titulo: rotina ? "Editar rotina" : "Nova rotina",
-      corpo: [
-        h("div", { class: "campo" }, h("label", {}, "Nome"), nome),
-        h(
-          "div",
-          { class: "campo" },
-          h("label", {}, "Pergunta"),
-          pergunta,
-          h("div", { class: "ajuda" }, "Escreva como escreveria na conversa. S\u00F3 perguntas de leitura \u2014 rotina n\u00E3o altera nada no SEI."),
-        ),
-        h(
-          "div",
-          { class: "campo" },
-          h("label", {}, "Quando"),
-          h("div", { class: "com-botao" }, frequencia, diaSemana, diaMes, hora),
-          h("div", { class: "ajuda" }, "A rotina roda na primeira vez que voc\u00EA abrir o agente depois desse hor\u00E1rio."),
-        ),
-      ],
-      acoes: [status, h("button", { onclick: () => dlg.close() }, "Cancelar"), salvar],
-    });
-    ajustar();
-    salvar.addEventListener("click", async () => {
-      const n = nome.value.trim();
-      const q = pergunta.value.trim();
-      if (!n || !q) {
-        status.className = "status erro";
-        status.textContent = "Informe o nome e a pergunta.";
-        return;
-      }
-      const nova: Rotina = {
-        id: rotina?.id ?? crypto.randomUUID(),
-        nome: n,
-        pergunta: q,
-        frequencia: frequencia.value as Rotina["frequencia"],
-        hora: hora.value || "08:00",
-        ...(frequencia.value === "semanal" ? { diaSemana: Number(diaSemana.value) } : {}),
-        ...(frequencia.value === "mensal" ? { diaMes: Math.min(28, Math.max(1, Number(diaMes.value) || 1)) } : {}),
-        ativa: rotina?.ativa ?? true,
-        // Rotina nova não dispara retroativamente: conta a partir de agora.
-        ultimaEm: rotina?.ultimaEm ?? Date.now(),
-        ...(rotina?.ultimoResultado ? { ultimoResultado: rotina.ultimoResultado } : {}),
-      };
-      this.rotinas = rotina ? this.rotinas.map((x) => (x.id === rotina.id ? nova : x)) : [...this.rotinas, nova];
-      await guardarRotinas(this.rotinas);
-      aoFechar();
-      dlg.close();
-    });
-  }
-
   /**
    * Roda as rotinas vencidas, uma de cada vez.
    *
@@ -1829,62 +2202,175 @@ class App {
   private async rodarRotinas(): Promise<void> {
     const pendentes = vencidas(this.rotinas, new Date(), this.config.rotinasPausadas);
     if (!pendentes.length || !this.config.chave) return;
+    if (this.motor?.ocupado || this.rotinaEmCurso) return;
     for (let i = 0; i < 20 && !this.ponte.atual(); i += 1) await new Promise((r) => setTimeout(r, 1000));
     if (!this.ponte.atual()) return;
-    for (const rotina of pendentes) await this.executarRotina(rotina, false);
+    for (const rotina of pendentes) {
+      if (!(await this.rodarRotina(rotina, "vencida"))) break;
+    }
   }
 
-  /** Executa uma rotina pela agenda ou pelo comando explicito "Rodar agora". */
-  private async executarRotina(rotina: Rotina, manual: boolean): Promise<void> {
-    if (this.rotinasEmExecucao.has(rotina.id)) {
-      this.adicionar({ tipo: "aviso", texto: `A rotina "${rotina.nome}" já está em execução.` });
-      return;
-    }
+  /**
+   * Uma execução de rotina, do aviso na conversa ao registro no histórico.
+   *
+   * Devolve `false` quando não vale seguir para a próxima — hoje, teto de
+   * gasto estourado.
+   *
+   * Leitura roda no agente auxiliar (contexto próprio, ferramentas só de
+   * leitura). Os outros alcances rodam no motor da conversa: é ele que tem a
+   * interface do painel, e é `rotinaEmCurso` que diz ao `aprovarPlano` se o
+   * plano se aprova sozinho ou se espera o usuário.
+   */
+  private async rodarRotina(rotina: Rotina, motivo: "vencida" | "manual"): Promise<boolean> {
     const emReais = (d: number) => d * (this.cambio?.valor ?? 5.5);
     const veredito = cabeMaisUma(this.config.limites, emReais(this.uso.custo), await gastoDeHoje());
-    const impedimento = impedimentoExecucaoRotina({
-      manual,
-      pausadas: this.config.rotinasPausadas,
-      temChave: Boolean(this.config.chave),
-      abaConectada: Boolean(this.ponte.atual()),
-      gastoPermitido: veredito.permite,
+    if (!veredito.permite) {
+      this.adicionar({ tipo: "aviso", texto: `A rotina "${rotina.nome}" n\u00E3o rodou: ${veredito.motivo}` });
+      return false;
+    }
+    const impedimento = impedimentoExecucaoRotina({ manual: motivo === "manual", pausadas: this.config.rotinasPausadas, temChave: Boolean(this.config.chave), abaConectada: Boolean(this.ponte.atual()), gastoPermitido: veredito.permite });
+    if (impedimento || this.rotinaEmCurso) {
+      this.adicionar({ tipo: "aviso", texto: `A rotina "${rotina.nome}" espera: ${impedimento ?? "outra rotina em execucao"}.` });
+      return false;
+    }
+    const skills = (rotina.skills ?? []).map((id) => this.skills.find((s) => s.id === id)).filter((s): s is SkillUsuario => Boolean(s));
+    const pedido = comSkills(rotina.pergunta.trim(), skills);
+    if (!pedido.trim()) {
+      this.adicionar({
+        tipo: "aviso",
+        texto: `A rotina "${rotina.nome}" n\u00E3o tem instru\u00E7\u00E3o: o texto est\u00E1 em branco e as skills escolhidas n\u00E3o existem mais.`,
+      });
+      return true;
+    }
+    this.adicionar({
+      tipo: "aviso",
+      texto: `Rotina "${rotina.nome}" (${motivo === "manual" ? "pedida por voc\u00EA" : descreverFrequencia(rotina)}) \u2014 ${descreverAlcance(rotina.alcance)}.`,
     });
-    if (impedimento) {
-      const motivo = veredito.permite ? impedimento : veredito.motivo;
-      this.adicionar({ tipo: "aviso", texto: `A rotina "${rotina.nome}" não rodou: ${motivo}.` });
-      return;
+
+    // Alcance que escreve usa o motor da conversa; se ele está no meio de um
+    // pedido do usuário, a rotina espera a próxima oportunidade.
+    if (rotina.alcance !== "leitura" && this.motor?.ocupado) {
+      this.adicionar({ tipo: "aviso", texto: `A rotina "${rotina.nome}" espera: o agente est\u00E1 trabalhando no seu pedido.` });
+      return true;
     }
 
-    this.rotinasEmExecucao.add(rotina.id);
-    this.adicionar({ tipo: "aviso", texto: `Rotina "${rotina.nome}" (${manual ? "execução manual" : descreverFrequencia(rotina)}) \u2014 só leitura, sem alterar nada no SEI.` });
+    if (this.motorDesatualizado && !this.motor?.ocupado) this.refazerMotor();
     const antes = this.uso.custo;
+    const curso = { rotina, escritas: [] as string[] };
+    this.rotinaEmCurso = curso;
+    const parar = new AbortController();
+    this.tetoDaRotina = { rotina, base: antes, parar, avisado: false };
     let resultado = "";
-    let erro = "";
+    let ok = true;
+    // Falha na EXECUÇÃO, que é o que desliga uma rotina autônoma. Estourar o
+    // teto de gasto também marca a execução como malsucedida, mas não é
+    // defeito de escrita e não desliga nada.
+    let falhouExecutando = false;
     try {
-      resultado = await this.delegar(rotina.pergunta, new AbortController().signal, "rotina");
-      this.adicionar({ tipo: "agente", texto: resultado });
+      if (rotina.alcance === "leitura") {
+        resultado = await this.delegar(pedido, parar.signal, "rotina");
+        this.adicionar({ tipo: "agente", texto: resultado });
+      } else {
+        this.motor ??= this.criarMotor();
+        await this.motor.enviar(pedido, parar.signal);
+        resultado = this.ultimoTextoDoAgente();
+      }
     } catch (e) {
-      erro = (e as Error).message;
-      this.adicionar({ tipo: "erro", texto: `Rotina "${rotina.nome}": ${erro}` });
+      ok = false;
+      falhouExecutando = true;
+      resultado = `Falhou: ${(e as Error).message}`;
+      const recado = `Rotina "${rotina.nome}": ${(e as Error).message}`;
+      this.adicionar({ tipo: "erro", texto: recado, diagnostico: await this.diagnosticoDoErro(recado, e) });
     } finally {
-      this.rotinasEmExecucao.delete(rotina.id);
+      this.rotinaEmCurso = null;
+      this.tetoDaRotina = null;
     }
     const gasto = this.uso.custo - antes;
     if (gasto > 0) await somarGastoDoDia(emReais(gasto));
-    this.rotinas = this.rotinas.map((r) =>
-      r.id === rotina.id
-        ? {
-            ...r,
-            ultimaEm: Date.now(),
-            ultimaSituacao: erro ? "erro" : "sucesso",
-            ultimaConversaId: this.idConversa,
-            ...(resultado ? { ultimoResultado: resultado } : {}),
-            ...(erro ? { ultimoErro: erro } : { ultimoErro: undefined }),
-          }
-        : r,
-    );
+    if (estourouTeto(rotina, gasto, this.cambio?.valor ?? 5.5)) {
+      ok = false;
+      resultado = `Interrompida: passou do teto de R$ ${rotina.teto?.toFixed(2).replace(".", ",")} por execução.`;
+    }
+
+    // Escrita que falhou numa rotina autônoma desliga a rotina: insistir
+    // sozinha, sem ninguém olhando, é pior que parar e avisar.
+    const desligar = falhouExecutando && rotina.alcance === "autonoma" && curso.escritas.length > 0;
+    const execucao: Execucao = {
+      em: Date.now(),
+      ok,
+      resumo: resultado.slice(0, 300),
+      custo: gasto,
+      ...(curso.escritas.length ? { escritas: [...new Set(curso.escritas)] } : {}),
+    };
+    let atualizada = { ...registrarExecucao(rotina, execucao), ultimoResultado: resultado, ultimoErro: ok ? undefined : resultado, ultimaSituacao: ok ? "sucesso" as const : "erro" as const, ultimaConversaId: this.idConversa };
+    if (desligar) atualizada = { ...atualizada, ativa: false, falhas: (rotina.falhas ?? 0) + 1 };
+    this.rotinas = this.rotinas.map((x) => (x.id === rotina.id ? atualizada : x));
     await guardarRotinas(this.rotinas);
     await this.salvarSessao();
+    if (desligar) void this.sincronizarAlarmes();
+    if (rotina.avisar) await this.avisarRotina(atualizada, execucao, desligar);
+    return true;
+  }
+
+  /** O último texto que o agente escreveu na conversa (o resultado da rotina). */
+  private ultimoTextoDoAgente(): string {
+    for (let i = this.transcricao.length - 1; i >= 0; i -= 1) {
+      const item = this.transcricao[i];
+      if (item.tipo === "agente") return item.texto;
+    }
+    return "";
+  }
+
+  /**
+   * Alarmes do navegador, um por rotina agendada.
+   *
+   * O alarme não executa nada: ele acorda o `background.js`, que avisa o
+   * painel (se estiver aberto) ou mostra uma notificação de pendência. No
+   * Firefox não há background, e aí a varredura periódica do painel é tudo.
+   */
+  private async sincronizarAlarmes(): Promise<void> {
+    if (!chrome.alarms?.create) return;
+    try {
+      const existentes = await chrome.alarms.getAll();
+      for (const a of existentes) if (a.name.startsWith(NOME_ALARME)) await chrome.alarms.clear(a.name);
+      for (const { nome, periodoMin } of alarmesDe(this.config.rotinasPausadas ? [] : this.rotinas)) {
+        chrome.alarms.create(nome, { periodInMinutes: periodoMin, delayInMinutes: 1 });
+      }
+    } catch {
+      /* navegador sem a API de alarmes: a varredura periódica cobre */
+    }
+  }
+
+  /** Avisa que a rotina terminou. Sem permissão de notificação, não faz nada. */
+  private async avisarRotina(rotina: Rotina, execucao: Execucao, desligada: boolean): Promise<void> {
+    if (!chrome.notifications?.create) return;
+    try {
+      if (!(await chrome.permissions.contains({ permissions: ["notifications"] }))) return;
+      const { titulo, corpo } = textoDoAviso(rotina, execucao, desligada);
+      chrome.notifications.create(`rotina-fim:${rotina.id}:${execucao.em}`, {
+        type: "basic",
+        iconUrl: chrome.runtime.getURL("icons/menu/botpro_icon.svg"),
+        title: titulo,
+        message: corpo,
+      });
+    } catch {
+      /* sem permissão ou sem API: a rotina já rodou, o aviso é extra */
+    }
+  }
+
+  /**
+   * Pede a permissão de notificação.
+   *
+   * Tem de vir de um gesto do usuário — por isso só é chamada do clique na
+   * caixa "avisar quando terminar", nunca na abertura do painel.
+   */
+  private async pedirPermissaoDeAviso(): Promise<boolean> {
+    try {
+      if (await chrome.permissions.contains({ permissions: ["notifications"] })) return true;
+      return await chrome.permissions.request({ permissions: ["notifications"] });
+    } catch {
+      return false;
+    }
   }
 
   /**
@@ -1951,8 +2437,8 @@ class App {
       privacidade: this.privacidade,
       sei: (op, args, s2) => this.executarLeitura(op, args, s2),
       limitePassos: this.config.auxiliaresMaxPassos,
-      sistema: (tela) =>
-        `${promptSistema(tela, new Date(), this.config.instrucoes, this.skills, blocoDeMemoria(this.memoria))}
+      sistema: (tela, nonce) =>
+        `${promptSistema(tela, new Date(), this.config.instrucoes, this.skills, blocoDeMemoria(this.memoria), "", nonce)}
 
 Voc\u00EA \u00E9 um AUXILIAR: recebeu uma tarefa de leitura de outro agente e n\u00E3o fala com o usu\u00E1rio.
 - S\u00F3 tem ferramentas de leitura. N\u00E3o prometa nem planeje escrita.
@@ -2388,17 +2874,67 @@ Voc\u00EA \u00E9 um AUXILIAR: recebeu uma tarefa de leitura de outro agente e n\
     });
   }
 
+  /**
+   * Traz do `storage.sync` o que foi configurado em outro computador.
+   *
+   * Na primeira vez é UNIÃO (ninguém tem chaves `spro_*` antes desta versão, e
+   * apagar o que ainda não subiu seria perder cadastro); depois, o `sync` manda
+   * — inclusive na exclusão, que é a chave deixar de existir lá.
+   */
+  private async aplicarSincronizacao(): Promise<void> {
+    if (this.sincronizando) return;
+    this.sincronizando = true;
+    const marca = await chrome.storage.local.get(CHAVE_MIGRADO).catch(() => ({}) as Record<string, unknown>);
+    const primeira = !marca?.[CHAVE_MIGRADO];
+    aoAvisar((texto) => {
+      if (this.avisouDaCota) return;
+      this.avisouDaCota = true;
+      this.adicionar({ tipo: "aviso", texto });
+    });
+    try {
+      // Na trava comum com o arquivo: parte das listas da memória, e o
+      // arquivo não pode estar no meio de gravar o local (ver `ligarArquivo`).
+      await this.travaLocal(async () => {
+        const l = await trazerDoSync(
+          { skills: this.skills, colecoes: this.colecoes, regras: this.regras, memoria: this.memoria, rotinas: this.rotinas, conectores: this.conectores, fluxos: this.fluxos },
+          primeira,
+        );
+        ({ skills: this.skills, colecoes: this.colecoes, regras: this.regras, memoria: this.memoria, rotinas: this.rotinas, conectores: this.conectores, fluxos: this.fluxos } = l);
+        if (primeira) {
+          void espelharConfig(this.config);
+          await chrome.storage.local.set({ [CHAVE_MIGRADO]: Date.now() });
+        }
+        const cfg = await aplicarConfigDoSync(this.config);
+        if (cfg.mudou) this.config = cfg.config;
+      });
+    } catch {
+      /* sem sincronização (Firefox sem conta, API ausente): segue só com o local */
+    } finally {
+      this.sincronizando = false;
+    }
+    for (const redesenhar of this.redesenharConfig) redesenhar();
+  }
+
   /** Salva a configuração e refaz o motor mantendo a conversa e os pseudônimos. */
   private async aplicarConfig(nova: Config): Promise<void> {
     this.config = nova;
     await chrome.storage.local.set({ [CHAVE_CONFIG]: this.config });
-    this.motor?.parar();
-    const historico = this.motor?.mensagens() ?? [];
-    this.motor = this.criarMotor(Pseudonimos.importar(this.privacidade.exportar(), { nomes: nova.nomes, cnpj: nova.cnpj }));
-    if (historico.length) this.motor.restaurar([...historico], this.uso);
+    // A configuração acompanha a conta do navegador; a chave do serviço, não.
+    void espelharConfig(this.config);
+    this.refazerMotor();
     void this.atualizarCambio();
     this.redesenhar();
     this.elEntrada.focus();
+  }
+
+  /** Refaz o motor com a config atual, mantendo a conversa e os pseudônimos. */
+  private refazerMotor(): void {
+    this.motorDesatualizado = false;
+    this.motor?.parar();
+    const historico = this.motor?.mensagens() ?? [];
+    const envelope = this.motor?.envelope;
+    this.motor = this.criarMotor(Pseudonimos.importar(this.privacidade.exportar(), { nomes: this.config.nomes, cnpj: this.config.cnpj }));
+    if (historico.length) this.motor.restaurar([...historico], this.uso, envelope);
   }
 
   // ------------------------------------------------------------- conversa
@@ -2414,6 +2950,44 @@ Voc\u00EA \u00E9 um AUXILIAR: recebeu uma tarefa de leitura de outro agente e n\
   }
 
   /** `mapa`: pseudônimos restaurados da sessão; sem ele, conversa nova. */
+  /**
+   * Reteste de abertura: o servidor da própria máquina é ligado e desligado
+   * pelo usuário, e o estado guardado ontem não diz nada sobre hoje.
+   */
+  private async retestarConectoresLocais(): Promise<void> {
+    const antes = this.conectores;
+    const depois = await retestarLocais(antes).catch(() => antes);
+    // Só o que o teste mudou, sobre a lista de AGORA: o usuário pode ter
+    // editado um conector enquanto o servidor não respondia.
+    const mudou = depois.filter((c, i) => JSON.stringify({ ...c, verificadoEm: 0 }) !== JSON.stringify({ ...antes[i], verificadoEm: 0 }));
+    if (!mudou.length) return;
+    this.conectores = this.conectores.map((c) => {
+      const novo = mudou.find((x) => x.id === c.id);
+      return novo ? { ...c, tools: novo.tools, servidor: novo.servidor, verificadoEm: novo.verificadoEm, erro: novo.erro, semResposta: novo.semResposta } : c;
+    });
+    await guardarConectores(this.conectores);
+  }
+
+  /**
+   * Ferramentas dos conectores MCP.
+   *
+   * Só a conversa principal as recebe. O agente auxiliar (`delegar`) fica de
+   * fora de propósito: a interface dele não tem como pedir autorização ao
+   * usuário, e ferramenta de conector pode ter efeito no mundo (abrir um
+   * chamado, criar uma página) — não é leitura inofensiva como as do SEI.
+   */
+  private toolsDeConectores(): ReturnType<typeof toolsMcp> {
+    return toolsMcp({
+      arquivos: () => this.baixados.map((b) => b.caminho),
+      baixados: () => this.baixados,
+      conectores: () => this.conectores,
+      guardar: async (c) => {
+        this.conectores = this.conectores.map((x) => (x.id === c.id ? c : x));
+        await guardarConectores(this.conectores);
+      },
+    });
+  }
+
   private criarMotor(mapa?: Pseudonimos): Motor {
     this.privacidade = mapa ?? new Pseudonimos({ nomes: this.config.nomes, cnpj: this.config.cnpj });
     return new Motor({
@@ -2421,11 +2995,14 @@ Voc\u00EA \u00E9 um AUXILIAR: recebeu uma tarefa de leitura de outro agente e n\
       tools: new RegistroTools([
         ...TOOLS_SEI,
         ...toolsMotor(this.skills, { maxParalelo: this.config.auxiliaresMaxParalelo, maxPassos: this.config.auxiliaresMaxPassos }),
+        ...this.toolsDeConectores(),
+        // Fora do agente auxiliar e das rotinas: grava no disco do usuário.
+        ...toolsBaixar({ salvar: (a) => salvarNoDisco(a), registrar: async (b) => void (this.baixados = await registrarBaixado(b)) }),
       ]),
       ui: this.interfaceMotor(),
       privacidade: this.privacidade,
       sei: (op, args, sinal) => (op === "editores" ? Promise.resolve(this.ponte.editores()) : this.executarLeitura(op, args, sinal)),
-      sistema: (tela) => promptSistema(tela, new Date(), this.config.instrucoes, this.skills, blocoDeMemoria(this.memoria)),
+      sistema: (tela, nonce) => promptSistema(tela, new Date(), this.config.instrucoes, this.skills, blocoDeMemoria(this.memoria), linhasDeConectores(this.conectores), nonce),
       delegar: (tarefa, sinal) => this.delegar(tarefa, sinal),
       lembrar: (fato) => this.lembrar(fato),
       regras: (passos) => {
@@ -2439,6 +3016,12 @@ Voc\u00EA \u00E9 um AUXILIAR: recebeu uma tarefa de leitura de outro agente e n\
   private async enviar(texto: string): Promise<void> {
     const t = texto.trim();
     if (!t || !this.motor || this.motor.ocupado) return;
+    // Enviar agora iria sem o PDF que ainda está sendo lido — e cancelaria a leitura sem avisar.
+    if (this.lendoAnexo) {
+      this.adicionar({ tipo: "aviso", texto: "Aguarde a leitura do PDF terminar (ou cancele) antes de enviar." });
+      return;
+    }
+    if (this.motorDesatualizado) this.refazerMotor();
     if (!this.config.chave) {
       this.abrirConfig(true);
       return;
@@ -2455,21 +3038,32 @@ Voc\u00EA \u00E9 um AUXILIAR: recebeu uma tarefa de leitura de outro agente e n\
     const custoAntes = this.uso.custo;
     const comecou = Date.now();
     this.ultimaResposta = null;
-    const comAnexo = this.anexo ? `${t}\n\n[Anexo: ${this.anexo.nome}]\n${this.anexo.texto}` : t;
+    // O arquivo anexado também é conteúdo de fora: uma planilha ou um texto
+    // recebido de terceiro pode trazer instrução escondida igual a uma
+    // petição. Vai varrido e dentro do envelope da conversa.
+    this.motor ??= this.criarMotor();
+    let comAnexo = t;
+    if (this.anexo) {
+      const varrido = varrer(aplicarModo(this.anexo).texto);
+      if (varrido.achados.length) {
+        this.integridadeDaConversa.push({ documento: this.anexo.nome, achados: varrido.achados });
+        this.adicionar({ tipo: "aviso", texto: textoDaIntegridade(this.anexo.nome, varrido.achados) });
+      }
+      comAnexo = `${t}\n\n${envelopar(`anexo ${this.anexo.nome}`, varrido.texto, this.motor.envelope)}`;
+    }
     // `/slug` na mensagem: o conteúdo da skill vai junto, como material de apoio.
     const usadas = skillsCitadas(t, this.skills);
     const comContexto = comSkills(comAnexo, usadas);
     this.adicionar({ tipo: "usuario", texto: this.anexo ? `${t}\n\u{1F4CE} ${this.anexo.nome}` : t });
     for (const sk of usadas) this.adicionar({ tipo: "tool", rotulo: `Skill: ${sk.nome}`, estado: "ok" });
-    this.anexo = null;
-    this.elAnexo.hidden = true;
+    this.removerAnexo();
     try {
       const promessa = this.motor.enviar(comContexto);
       this.estadoEnvio();
       this.pensar(true);
       await promessa;
     } catch (e) {
-      this.adicionar({ tipo: "erro", texto: (e as Error).message });
+      this.adicionar({ tipo: "erro", texto: (e as Error).message, diagnostico: await this.diagnosticoDoErro((e as Error).message, e) });
     } finally {
       this.pensar(false);
       this.carimbarRodada(Date.now() - comecou);
@@ -2524,6 +3118,41 @@ Voc\u00EA \u00E9 um AUXILIAR: recebeu uma tarefa de leitura de outro agente e n\
     return el;
   }
 
+  /**
+   * Reúne o que um chamado precisa saber sobre a falha.
+   *
+   * O que NÃO entra está documentado em `diagnostico.ts`; aqui o cuidado é um
+   * só: das ferramentas vai o NOME, nunca o rótulo — "Histórico de
+   * 99906.713-630.000032/2025-82" levaria o número do processo junto.
+   */
+  private async diagnosticoDoErro(mensagem: string, e?: unknown): Promise<Diagnostico> {
+    const bruto = e as { status?: number; corpo?: string } | undefined;
+    const ferramentas = this.transcricao
+      .filter((x): x is Extract<Item, { tipo: "tool" }> => x.tipo === "tool" && Boolean(x.nome))
+      .slice(-5)
+      .map((x) => ({ nome: x.nome as string, ok: x.estado !== "falha", ...(x.estado === "falha" && x.detalhe ? { erro: x.detalhe } : {}) }));
+    // "Failed to fetch" tanto é falta de rede quanto falta de autorização ao
+    // endereço do serviço; conferir aqui separa os dois para quem for ajudar.
+    const alvo = enderecoDoServico(this.config.servico, this.config.url);
+    const acessoAoServico = await chrome.permissions
+      .contains({ origins: [`${new URL(alvo).origin}/*`] })
+      .catch(() => undefined);
+    return montarDiagnostico({
+      mensagem,
+      ...(acessoAoServico === undefined ? {} : { acessoAoServico }),
+      ...(bruto?.status || bruto?.corpo ? { erro: { status: bruto.status, corpo: bruto.corpo } } : {}),
+      config: { servico: this.config.servico, url: this.config.url, modelo: this.config.modelo, modeloAuxiliar: this.config.modeloAuxiliar, cache: this.config.cache },
+      extensao: { nome: chrome.runtime.getManifest().name, versao: chrome.runtime.getManifest().version },
+      navegador: navigator.userAgent,
+      uso: this.uso,
+      rodadas: this.motor?.mensagens().length ?? 0,
+      ...(this.tela ? { tela: { versao: this.tela.versao, processo: this.tela.processo } } : {}),
+      ferramentas,
+      conectores: this.conectores.map((c) => ({ nome: c.nome, ativo: c.ativo })),
+      integridade: this.integridadeDaConversa.length,
+    });
+  }
+
   private desenharItem(item: Item): HTMLElement {
     if (item.tipo === "tool") {
       const acao = item.acao ? this.feitos.get(item.acao) : undefined;
@@ -2542,10 +3171,10 @@ Voc\u00EA \u00E9 um AUXILIAR: recebeu uma tarefa de leitura de outro agente e n\
       );
     }
     if (item.tipo === "agente") {
-      return this.desenharResposta(item);
+      return this.desenharResposta({ ...item, tipo: "agente" });
     }
     if (item.tipo === "aviso" || item.tipo === "decisao") return h("div", { class: "msg aviso" }, icone("alerta", 14), h("span", {}, item.texto));
-    if (item.tipo === "erro") return h("div", { class: "msg erro" }, icone("alerta", 14), h("span", {}, item.texto));
+    if (item.tipo === "erro") return cartaoDeErro(item.texto, item.diagnostico);
     return h("div", { class: "msg usuario" }, item.texto);
   }
 
@@ -2652,6 +3281,12 @@ Voc\u00EA \u00E9 um AUXILIAR: recebeu uma tarefa de leitura de outro agente e n\
 
   private interfaceMotor(): InterfaceMotor {
     return {
+      aprovarExterno: (p) => cartaoExterno(p, (op) => this.abrirModal(op)),
+      aprovarTransferencia: (p) => cartaoTransferencia(p, (op) => this.abrirModal(op)),
+      integridade: (documento, achados) => {
+        this.integridadeDaConversa.push({ documento, achados });
+        this.adicionar({ tipo: "aviso", texto: textoDaIntegridade(documento, achados) });
+      },
       texto: (delta) => {
         if (!this.bolhaAtual) {
           this.pensar(false);
@@ -2680,9 +3315,9 @@ Voc\u00EA \u00E9 um AUXILIAR: recebeu uma tarefa de leitura de outro agente e n\
         this.aoFimDoPlano?.();
         this.aoFimDoPlano = null;
       },
-      toolIniciada: (id, _nome, rotulo) => {
+      toolIniciada: (id, nome, rotulo) => {
         this.fecharBolha();
-        const item: Extract<Item, { tipo: "tool" }> = { tipo: "tool", rotulo, estado: "rodando" };
+        const item: Extract<Item, { tipo: "tool" }> = { tipo: "tool", rotulo, nome, estado: "rodando" };
         this.toolsEl.set(id, { el: this.adicionar(item), item });
       },
       toolTerminada: (id, ok, resumo) => {
@@ -2701,16 +3336,37 @@ Voc\u00EA \u00E9 um AUXILIAR: recebeu uma tarefa de leitura de outro agente e n\
         // botão de desfazer nasce junto com a linha da ação.
         if (t) t.item.acao = id;
       },
-      aprovarPlano: (p) => this.cartaoPlano(p),
+      aprovarPlano: (p) => {
+        const curso = this.rotinaEmCurso;
+        // Rotina que aprova sozinha decide aqui, pelas cercas de avaliarPassos.
+        // Alcance "aprovar" NÃO entra: o cartão é justamente o que ela quer.
+        if (curso && curso.rotina.alcance !== "aprovar") {
+          const veredito = avaliarPassos(
+            curso.rotina,
+            p.passos.map((passo) => ({ tool: passo.tool, efeito: passo.efeito })),
+          );
+          if (!veredito.aprovado) {
+            this.adicionar({ tipo: "aviso", texto: `Rotina "${curso.rotina.nome}": ${veredito.motivo}` });
+            return Promise.resolve({ aprovado: false, motivo: veredito.motivo });
+          }
+          for (const passo of p.passos) curso.escritas.push(passo.tool);
+          this.adicionar({
+            tipo: "aviso",
+            texto: `Rotina "${curso.rotina.nome}" vai executar sem aprova\u00E7\u00E3o: ${p.passos.map((passo) => passo.rotulo).join("; ")}`,
+          });
+          return Promise.resolve({ aprovado: true });
+        }
+        return this.cartaoPlano(p);
+      },
       progressoPlano: () => undefined,
-      consentir: (_tipo, detalhe) => this.cartaoConsentimento(detalhe),
+      consentir: (tipo, detalhe) => this.cartaoConsentimento(tipo, detalhe),
       perguntar: (pergunta, opcoes) => this.cartaoPergunta(pergunta, opcoes),
       tarefas: (lista) => {
         this.tarefas = lista;
         this.desenharTarefas();
       },
-      uso: (u, chamada) => {
-        this.uso = u;
+      uso: (_total, chamada) => {
+        this.uso = somarUso(this.uso, chamada);
         this.registrosUso.push({ ...chamada, conversaId: this.idConversa });
         this.mostrarUso();
       },
@@ -2777,6 +3433,22 @@ Voc\u00EA \u00E9 um AUXILIAR: recebeu uma tarefa de leitura de outro agente e n\
         h("div", { class: "cartao-topo" }, h("span", { class: "badge" }, icone("lapis", 15)), h("h4", {}, "Aprovar altera\u00E7\u00F5es no SEI")),
         p.passos.length > 1 || p.objetivo !== p.passos[0]?.rotulo ? h("div", { class: "sub" }, p.objetivo) : null,
         ...(p.avisos ?? []).map((a) => h("div", { class: "nota atencao" }, icone("alerta", 15), h("span", {}, a))),
+        // Quem aprova precisa saber que a proposta veio depois de ler um
+        // documento que trazia instrução escondida.
+        ...(this.integridadeDaConversa.length
+          ? [
+              h(
+                "div",
+                { class: "nota atencao" },
+                icone("escudo", 15),
+                h(
+                  "span",
+                  {},
+                  `Aten\u00E7\u00E3o: ${this.integridadeDaConversa.length === 1 ? "um documento lido nesta conversa trazia" : `${this.integridadeDaConversa.length} documentos lidos nesta conversa traziam`} conte\u00FAdo dirigido a IA (${this.integridadeDaConversa.map((x) => x.documento).join(", ")}). As instru\u00E7\u00F5es foram ignoradas, mas confira se o que est\u00E1 sendo proposto \u00E9 mesmo o que voc\u00EA pediu.`,
+                ),
+              ),
+            ]
+          : []),
         ...p.passos.map((passo, i) => {
           const linhas = passo.previa.slice(0, 15).map((item) =>
             item.erro
@@ -2845,19 +3517,26 @@ Voc\u00EA \u00E9 um AUXILIAR: recebeu uma tarefa de leitura de outro agente e n\
     });
   }
 
-  private cartaoConsentimento(detalhe: string): Promise<boolean> {
+  private cartaoConsentimento(tipo: "restrito" | "conector", detalhe: string): Promise<boolean> {
+    const titulo = tipo === "conector" ? "Enviar dados a um conector" : "Documento restrito";
+    const explicacao =
+      tipo === "conector"
+        ? "O conte\u00FAdo deste pedido vai sair do seu navegador para o servidor do conector, que \u00E9 um servi\u00E7o de terceiro (dados pessoais v\u00E3o mascarados). Permitir?"
+        : "O agente precisa enviar o conte\u00FAdo de documentos RESTRITOS ao modelo de IA (com dados pessoais mascarados). Permitir nesta conversa?";
+    const feito = tipo === "conector" ? "Envio ao conector permitido." : "Leitura de restritos permitida nesta conversa.";
+    const negado = tipo === "conector" ? "Envio ao conector n\u00E3o permitido." : "Leitura de restritos n\u00E3o permitida.";
     this.fecharBolha();
     this.pensar(false);
     return new Promise((resolver) => {
       const cartao = h(
         "div",
         { class: "cartao consentimento" },
-        h("div", { class: "cartao-topo" }, h("span", { class: "badge" }, icone("alerta", 15)), h("h4", {}, "Documento restrito")),
+        h("div", { class: "cartao-topo" }, h("span", { class: "badge" }, icone("alerta", 15)), h("h4", {}, titulo)),
         h("div", { class: "sub" }, detalhe),
-        h("div", {}, "O agente precisa enviar o conte\u00FAdo de documentos RESTRITOS ao modelo de IA (com dados pessoais mascarados). Permitir nesta conversa?"),
+        h("div", {}, explicacao),
       );
       const decidir = (sim: boolean) => {
-        this.encerrarCartao(cartao, ".acoes", sim ? "Leitura de restritos permitida nesta conversa." : "Leitura de restritos n\u00E3o permitida.", sim);
+        this.encerrarCartao(cartao, ".acoes", sim ? feito : negado, sim);
         resolver(sim);
       };
       cartao.append(h("div", { class: "acoes" }, h("button", { class: "primario", onclick: () => decidir(true) }, "Permitir"), h("button", { onclick: () => decidir(false) }, "N\u00E3o permitir")));
@@ -2885,6 +3564,27 @@ Voc\u00EA \u00E9 um AUXILIAR: recebeu uma tarefa de leitura de outro agente e n\
     });
   }
 
+  /** Mostra o chip do anexo; "Cortar em 60 mil" troca o modo e redesenha. */
+  private mostrarAnexo(a: Anexo): void {
+    this.anexo = a;
+    this.elAnexo.hidden = false;
+    this.elAnexo.replaceChildren(
+      chipDoAnexo(a, {
+        remover: () => this.removerAnexo(),
+        cortar: () => this.anexo && this.mostrarAnexo({ ...this.anexo, modo: "cortado" }),
+      }),
+    );
+  }
+
+  /** Tira o anexo e cancela a leitura de PDF em curso, se houver. */
+  private removerAnexo(): void {
+    this.geracaoAnexo += 1;
+    this.lendoAnexo = false;
+    this.anexo = null;
+    this.elAnexo.hidden = true;
+    this.elAnexo.replaceChildren();
+  }
+
   // ------------------------------------------------------------- sessão
 
   /** Grava a transcrição e o estado retomável no histórico local do navegador. */
@@ -2904,6 +3604,7 @@ Voc\u00EA \u00E9 um AUXILIAR: recebeu uma tarefa de leitura de outro agente e n\
         itens: this.transcricao,
         ...(this.motor ? { estado: this.capturarEstado() } : {}),
       })
+      .then(() => this.agendarArquivo())
       .catch(() => undefined);
   }
 
@@ -2913,6 +3614,7 @@ Voc\u00EA \u00E9 um AUXILIAR: recebeu uma tarefa de leitura de outro agente e n\
       versao: historico.VERSAO_ESTADO_CONVERSA,
       nomeSessao: { ...this.nomeSessao },
       idConversa: this.idConversa,
+      envelope: this.motor.envelope,
       historico: [...this.motor.mensagens()],
       transcricao: this.transcricao,
       uso: this.uso,
@@ -2940,7 +3642,7 @@ Voc\u00EA \u00E9 um AUXILIAR: recebeu uma tarefa de leitura de outro agente e n\
     if (!d || !this.motor || this.transcricao.length) return;
     this.motor = this.criarMotor(Pseudonimos.importar(d.pseudonimos, { nomes: this.config.nomes, cnpj: this.config.cnpj }));
     const uso = normalizarUso(d.uso);
-    this.motor.restaurar(d.historico, uso);
+    this.motor.restaurar(d.historico, uso, d.envelope);
     this.idConversa = d.idConversa ?? this.idConversa;
     const primeira = d.transcricao.find((i) => i.tipo === "usuario");
     this.nomeSessao = d.nomeSessao ?? { tituloOriginal: tituloSessao(primeira && "texto" in primeira ? primeira.texto : undefined) };
@@ -2956,5 +3658,5 @@ Voc\u00EA \u00E9 um AUXILIAR: recebeu uma tarefa de leitura de outro agente e n\
 const app = new App();
 // Diagnóstico: acessível só no console desta página da extensão (o SEI não a enxerga).
 Object.defineProperty(window, "agenteIA", { value: app });
-Object.defineProperty(window, "agenteIADiag", { value: { extrairTextoPdf, historico, inversaDe } });
+Object.defineProperty(window, "agenteIADiag", { value: { extrairTextoPdf, historico, inversaDe, markdown } });
 void app.iniciar();

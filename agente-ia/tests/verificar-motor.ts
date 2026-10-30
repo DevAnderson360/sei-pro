@@ -7,11 +7,12 @@
 import { Pseudonimos } from "@nucleo/privacidade/anonimizar";
 import { s, validar } from "../src/motor/esquema";
 import { Motor, resolverReferencias } from "../src/motor/motor";
+import { promptSistema } from "../src/motor/prompt";
 import { Acumulador } from "../src/motor/provedor";
-import { RegistroTools } from "../src/motor/tools";
 import type { DecisaoPlano, InterfaceMotor, Mensagem, PlanoPrevisto, Provedor, RegistroUsoChamada, RespostaLLM, Uso } from "../src/motor/tipos";
 import { acumularUsoAuxiliar, usoVazio } from "../src/motor/uso";
 import { TOOLS_MOTOR, toolsMotor } from "../src/tools/motor";
+import { definirTool, RegistroTools } from "../src/motor/tools";
 import { TOOLS_SEI } from "../src/tools/sei";
 import { checar, secao } from "./util";
 
@@ -70,6 +71,28 @@ function seiFalso(log: Array<{ op: string; args: Record<string, unknown> }>) {
 }
 
 export async function verificarMotor(): Promise<void> {
+  secao("motor: retomada local preserva envelope sem chamar o provedor");
+  {
+    let chamadas = 0;
+    const motor = new Motor({
+      provedor: { modelo: "teste", conversar: async () => { chamadas++; return { texto: "ok", chamadas: [], fim: "stop" }; } },
+      tools: new RegistroTools([]),
+      ui: ui(),
+      privacidade: new Pseudonimos(),
+      sistema: (_tela, nonce) => `Envelope ${nonce}`,
+      sei: async () => ({}),
+    });
+    const mensagens: Mensagem[] = [{ role: "user", content: "documento guardado" }, { role: "assistant", content: "analise anterior" }];
+    motor.restaurar(mensagens, usoVazio(), "a1b2c3d4");
+    checar("restaurar nao chama a IA", chamadas === 0);
+    checar("mensagens anteriores permanecem", motor.mensagens().length === 2);
+    checar("delimitador da conversa permanece", motor.envelope === "a1b2c3d4");
+    motor.restaurar(mensagens, usoVazio(), "<invalido>");
+    checar("delimitador invalido nao entra no prompt", motor.envelope === "a1b2c3d4");
+    await motor.enviar("continuar");
+    checar("somente a nova pergunta chama a IA", chamadas === 1);
+  }
+
   secao("esquema");
   const esq = s.objeto({ n: s.inteiro({ min: 1 }), "t?": s.texto({ enum: ["a", "b"] }), l: s.lista(s.texto()) });
   checar("coage numero e lista de um", JSON.stringify(validar(esq, { n: "3", l: "x" }).valor) === JSON.stringify({ n: 3, l: ["x"] }));
@@ -134,6 +157,31 @@ export async function verificarMotor(): Promise<void> {
     checar("mensagem do usuario anonimizada", !tudo.includes("111.444.777-35") && tudo.includes("[CPF_1]"));
     checar("resultado da tool anonimizado (cpf e interessado)", !tudo.includes("529.982.247-25") && !tudo.includes("Maria Aparecida Souza"), tudo.slice(-400));
     checar("protocolo preservado", tudo.includes("50300.018905/2018-67"));
+  }
+
+  secao("motor: a previa aprovada acompanha a execucao do passo");
+  {
+    const recebidas: unknown[] = [];
+    const gravar = definirTool({
+      nome: "teste_gravar",
+      descricao: "Grava algo, para o teste.",
+      parametros: s.objeto({ alvo: s.texto() }),
+      efeito: "escrita",
+      rotulo: () => "Gravar",
+      previsualizar: async (a) => [{ alvo: String(a.alvo), resumo: "", mudancas: [{ campo: "Destino", antes: "", depois: `pasta/${String(a.alvo)}` }] }],
+      executar: async (_a, ctx) => (recebidas.push(ctx.previa), { aplicado: true }),
+    });
+    const m = new Motor({
+      provedor: provedor([() => ({ texto: "", chamadas: [chamada("teste_gravar", { alvo: "a.pdf" })], fim: "tool_calls" })], []),
+      tools: new RegistroTools([gravar]),
+      ui: ui({ aprovado: true }),
+      privacidade: new Pseudonimos(),
+      sei: seiFalso([]),
+      sistema: () => "sistema",
+    });
+    await m.enviar("grave");
+    const previa = recebidas[0] as Array<{ mudancas: Array<{ depois: string }> }> | undefined;
+    checar("a ferramenta recebe a previa que o usuario viu no cartao", previa?.[0]?.mudancas[0]?.depois === "pasta/a.pdf", recebidas);
   }
 
   secao("motor: escrita vira plano; recusa volta ao modelo");
@@ -317,6 +365,151 @@ export async function verificarMotor(): Promise<void> {
   checar("auxiliar so recebe leitura e nao pode delegar", toolsDoAuxiliar.every((t) => t.efeito === "leitura" || t.nome === "skill_ler") && !toolsDoAuxiliar.some((t) => t.nome === "delegar"));
   const usoAuxiliar = acumularUsoAuxiliar(usoVazio(), usoVazio(), { entrada: 8, saida: 2, total: 10, custo: 0.01 });
   checar("usage do auxiliar soma tambem na conversa", usoAuxiliar.execucao.total === 10 && usoAuxiliar.conversa.total === 10 && usoAuxiliar.conversa.custo === 0.01, usoAuxiliar);
+
+  secao("motor: tool externa");
+  {
+    const externa = definirTool({
+      nome: "mcp_chamar",
+      descricao: "chama uma ferramenta de conector do usuario, fora do SEI, com o que o modelo mandar",
+      parametros: s.objeto({ tool: s.texto() }),
+      efeito: "externo",
+      rotulo: () => "Conector: buscar",
+      executar: async (_a, ctx) => `visto: ${ctx.anonimizar("o CPF 529.982.247-25")}`,
+    });
+    const vistos: Mensagem[][] = [];
+    const painel = ui();
+    const m = new Motor({
+      provedor: provedor([() => ({ texto: "", chamadas: [chamada("mcp_chamar", { tool: "buscar" })], fim: "tool_calls" })], vistos),
+      tools: new RegistroTools([externa]),
+      ui: painel,
+      privacidade: new Pseudonimos(),
+      sei: seiFalso([]),
+      sistema: () => "sistema",
+    });
+    await m.enviar("use o conector");
+    checar("tool externa NAO vira plano", painel.planos.length === 0, painel.planos);
+    const resultado = m.mensagens().find((x) => x.role === "tool") as { content: string } | undefined;
+    checar("executou", Boolean(resultado));
+    checar(
+      "recebe o anonimizador no contexto",
+      Boolean(resultado) && resultado!.content.includes("[CPF_1]") && !resultado!.content.includes("529.982.247-25"),
+      resultado?.content,
+    );
+  }
+
+  secao("motor: consentimento de conector e proprio");
+  {
+    const tipos: string[] = [];
+    const duasVezes = definirTool({
+      nome: "mcp_chamar",
+      descricao: "chama uma ferramenta de conector do usuario duas vezes, para provar que o consentimento nao e memoizado",
+      parametros: s.objeto({}),
+      efeito: "externo",
+      rotulo: () => "Conector",
+      executar: async (_a, ctx) => {
+        await ctx.consentirConector("primeiro conector");
+        await ctx.consentirConector("segundo conector");
+        await ctx.consentirRestrito("documento restrito");
+        await ctx.consentirRestrito("outro documento restrito");
+        return "ok";
+      },
+    });
+    const painel = { ...ui(), consentir: async (tipo: "restrito" | "conector") => (tipos.push(tipo), true) };
+    const m = new Motor({
+      provedor: provedor([() => ({ texto: "", chamadas: [chamada("mcp_chamar", {})], fim: "tool_calls" })], []),
+      tools: new RegistroTools([duasVezes]),
+      ui: painel,
+      privacidade: new Pseudonimos(),
+      sei: seiFalso([]),
+      sistema: () => "sistema",
+    });
+    await m.enviar("use o conector");
+    checar("cada conector pergunta de novo (nao memoiza)", tipos.filter((x) => x === "conector").length === 2, tipos);
+    checar("restrito continua perguntando uma vez por conversa", tipos.filter((x) => x === "restrito").length === 1, tipos);
+  }
+
+  secao("motor: prompt com conectores");
+  {
+    const texto = promptSistema(null, new Date(2026, 9, 1), "", [], "", '\n- Conectores do usuário: "Notion"');
+    checar("o trecho dos conectores entra no prompt", texto.includes("Conectores do usuário"), texto.slice(-200));
+    checar("sem conectores, o prompt nao muda", !promptSistema(null, new Date(2026, 9, 1)).includes("Conectores do usuário"));
+  }
+
+  secao("motor: a passada final (aoModelo) vale so para a chamada que a pediu");
+  {
+    // A passada troca "segredo" por "[x]"; a que lança impede que qualquer coisa do resultado vá ao modelo.
+    const trocar = (t: string) => t.replace(/segredo/g, "[x]");
+    const lancar = () => {
+      throw new Error("falhou");
+    };
+    const previa = async () => [{ alvo: "a", mudancas: [{ campo: "c", antes: "", depois: "d" }], resumo: "r" }];
+    const ferramenta = (nome: string, efeito: "leitura" | "escrita", passada?: (t: string) => string) =>
+      definirTool({
+        nome,
+        descricao: `ferramenta de prova ${nome}: devolve um texto com a palavra segredo e, se for o caso, pede a passada final`,
+        parametros: s.objeto({}),
+        efeito,
+        rotulo: () => nome,
+        executar: async (_a, ctx) => {
+          if (passada) ctx.aoModelo?.(passada);
+          // As leituras rodam em paralelo: a outra roda enquanto esta espera.
+          await new Promise((r) => setTimeout(r, 5));
+          return { texto: `segredo de ${nome}` };
+        },
+        ...(efeito === "escrita" ? { previsualizar: previa } : {}),
+      });
+    const registro = new RegistroTools([
+      ferramenta("le_com_passada", "leitura", trocar),
+      ferramenta("le_sem_passada", "leitura"),
+      ferramenta("le_que_lanca", "leitura", lancar),
+      ferramenta("escreve_com_passada", "escrita", trocar),
+      ferramenta("escreve_sem_passada", "escrita"),
+      ferramenta("escreve_que_lanca", "escrita", lancar),
+    ]);
+    /** As mensagens de ferramenta que o modelo recebe, por id da chamada, numa rodada com `nomes`. */
+    const rodada = async (nomes: string[]): Promise<Map<string, string>> => {
+      const m = new Motor({
+        provedor: provedor([() => ({ texto: "", chamadas: nomes.map((n) => chamada(n, {})), fim: "tool_calls" })], []),
+        tools: registro,
+        ui: ui({ aprovado: true }),
+        privacidade: new Pseudonimos(),
+        sei: seiFalso([]),
+        sistema: () => "s",
+      });
+      await m.enviar("prova");
+      return new Map(m.mensagens().flatMap((x) => (x.role === "tool" ? [[x.tool_call_id, x.content] as [string, string]] : [])));
+    };
+    const puro = (nome: string) => JSON.stringify({ texto: `segredo de ${nome}` });
+    const ERRO = "nada dele foi enviado";
+    const leituras = await rodada(["le_com_passada", "le_sem_passada", "le_que_lanca"]);
+    checar(
+      "leituras em paralelo: cada uma com a sua passada (a de uma nao vale para a outra)",
+      leituras.get("le_com_passada") === JSON.stringify({ texto: "[x] de le_com_passada" }) && leituras.get("le_sem_passada") === puro("le_sem_passada"),
+      [...leituras],
+    );
+    checar(
+      "passada que lanca: so a mensagem de erro vai ao modelo, nada do resultado",
+      (leituras.get("le_que_lanca") ?? "").includes(ERRO) && !(leituras.get("le_que_lanca") ?? "").includes("segredo"),
+      leituras.get("le_que_lanca"),
+    );
+    const sozinha = await rodada(["le_sem_passada"]);
+    checar("ferramenta sem passada: a saida e identica ao resultado", sozinha.get("le_sem_passada") === puro("le_sem_passada"), sozinha.get("le_sem_passada"));
+    const escritas = await rodada(["escreve_com_passada", "escreve_sem_passada"]);
+    checar(
+      "passos do mesmo plano: a passada de um nao vale para o resultado do outro",
+      escritas.get("escreve_com_passada") === JSON.stringify({ texto: "[x] de escreve_com_passada" }) &&
+        escritas.get("escreve_sem_passada") === puro("escreve_sem_passada"),
+      [...escritas],
+    );
+    const escritas2 = await rodada(["escreve_que_lanca", "escreve_sem_passada"]);
+    checar(
+      "passo cuja passada lanca: so ele vira a mensagem de erro; o outro passo do plano chega inteiro",
+      (escritas2.get("escreve_que_lanca") ?? "").includes(ERRO) &&
+        !(escritas2.get("escreve_que_lanca") ?? "").includes("segredo") &&
+        escritas2.get("escreve_sem_passada") === puro("escreve_sem_passada"),
+      [...escritas2],
+    );
+  }
 
   secao("tools: contrato");
   checar("toda escrita tem previa", tools.todas().every((t) => t.efeito === "leitura" || t.efeito === "interna" || typeof t.previsualizar === "function"));

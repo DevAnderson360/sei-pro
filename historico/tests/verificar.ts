@@ -1,0 +1,25 @@
+import { resumo } from "./util";
+import { verificarApp } from "./verificar-app";
+import { verificarCaptura } from "./verificar-captura";
+import { verificarComponentes } from "./verificar-componentes";
+import { verificarDias } from "./verificar-dias";
+import { verificarFavoritos } from "./verificar-favoritos";
+import { verificarLateral } from "./verificar-lateral";
+import { verificarMigracao } from "./verificar-migracao";
+import { verificarModal } from "./verificar-modal";
+import { verificarOperacoes } from "./verificar-operacoes";
+import { verificarRepositorio } from "./verificar-repositorio";
+import { verificarVisita } from "./verificar-visita";
+
+verificarDias();
+verificarVisita();
+verificarOperacoes();
+await verificarRepositorio();
+verificarMigracao();
+await verificarCaptura();
+verificarComponentes();
+await verificarApp();
+await verificarModal();
+await verificarLateral();
+await verificarFavoritos();
+resumo();

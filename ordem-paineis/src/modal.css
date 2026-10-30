@@ -1,0 +1,77 @@
+/*
+ * O modal "Ordem dos painéis", dentro do Shadow DOM, depois do base.css do sei-comum (tokens, botões,
+ * dialog.spro-dialogo, cabeçalho com ladrilho, rodapé). Aqui só a lista dos painéis.
+ */
+.spro-pnl-dica {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--spro-suave);
+}
+.spro-pnl-lista {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.spro-pnl-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 6px 6px 8px;
+  background: var(--spro-fundo-2);
+  border: 1px solid var(--spro-borda);
+  border-radius: var(--spro-raio);
+  cursor: grab;
+  transition:
+    border-color var(--spro-dur),
+    box-shadow var(--spro-dur),
+    opacity var(--spro-dur);
+}
+.spro-pnl-item:hover {
+  border-color: var(--spro-borda-forte);
+}
+.spro-pnl-alca {
+  display: inline-flex;
+  color: var(--spro-fraco);
+}
+.spro-pnl-nome {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.spro-pnl-mostrar,
+.spro-pnl-fixo {
+  font-size: 12.5px;
+  color: var(--spro-suave);
+  white-space: nowrap;
+}
+.spro-pnl-mostrar {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+.spro-pnl-arrastando {
+  opacity: 0.45;
+}
+.spro-pnl-antes {
+  box-shadow: 0 -3px 0 var(--spro-destaque);
+}
+.spro-pnl-depois {
+  box-shadow: 0 3px 0 var(--spro-destaque);
+}
+.spro-pnl-descer svg {
+  transform: rotate(180deg);
+}
+.spro-pnl-aviso {
+  font-size: 12px;
+  color: var(--spro-suave);
+}
+.spro-pnl-aviso:empty {
+  display: none;
+}

@@ -72,7 +72,7 @@ function initToolbarDocs(TimeOut = 9000) {
     }
 }
 function setToolbarDocs() {
-    var selectedItensMenu = ( typeof localStorageRestorePro('configViewFlashMenuPro') !== 'undefined' && !$.isEmptyObject(localStorageRestorePro('configViewFlashMenuPro')) ) ? localStorageRestorePro('configViewFlashMenuPro') : [['Copiar n\u00FAmero do processo'],['Copiar link do processo'],['Enviar Documento Externo'],['A\u00E7\u00F5es em lote'],['Atribuir Processo'],['Add/Remover Urg\u00EAncia']];
+    var selectedItensMenu = ( typeof localStorageRestorePro('configViewFlashMenuPro') !== 'undefined' && !$.isEmptyObject(localStorageRestorePro('configViewFlashMenuPro')) ) ? (function(l){ return Array.isArray(l) ? l.map(function(v){ return (v && v[0] == 'A\u00E7\u00F5es em lote') ? ['A\u00E7\u00F5es em Lote'] : v; }) : l; })(localStorageRestorePro('configViewFlashMenuPro')) : [['Copiar n\u00FAmero do processo'],['Copiar link do processo'],['Enviar Documento Externo'],['A\u00E7\u00F5es em Lote'],['Atribuir Processo'],['Add/Remover Urg\u00EAncia']];
     var selectedItensDocMenu = ( typeof localStorageRestorePro('configViewFlashDocMenuPro') !== 'undefined' && !$.isEmptyObject(localStorageRestorePro('configViewFlashDocMenuPro')) ) ? localStorageRestorePro('configViewFlashDocMenuPro') : [['Copiar n\u00FAmero SEI'],['Copiar nome do documento'],['Copiar link do documento'],['Duplicar documento'],['Copiar para...']];
     var selectedItensDocArvore = ( typeof localStorageRestorePro('configViewFlashDocArvorePro') !== 'undefined' && !$.isEmptyObject(localStorageRestorePro('configViewFlashDocArvorePro')) ) ? localStorageRestorePro('configViewFlashDocArvorePro') : [["Copiar n\u00FAmero SEI"],["Copiar link do documento"],["Duplicar documento"]];
         selectedItensPanelArvore = ( typeof localStorageRestorePro('configViewFlashPanelArvorePro') !== 'undefined' && !$.isEmptyObject(localStorageRestorePro('configViewFlashPanelArvorePro')) ) ? localStorageRestorePro('configViewFlashPanelArvorePro') : [["Anota\u00E7\u00F5es"],["Marcador"],["Acompanhamento Especial"],["Tipo de Procedimento"],["Assuntos"],["Interessados"],["Atribui\u00E7\u00E3o"],["N\u00EDvel de Acesso"],["Observa\u00E7\u00F5es"]];
@@ -186,7 +186,7 @@ function actionToolbarPro(this_, triggerButton) {
         } else if ( button_txt == 'Copiar n\u00FAmero SEI' ) {
             callActionsArvore(doc, 'copy');
             button_clicktxt = 'N\u00FAmero copiado!';
-        } else if ( button_txt == 'A\u00E7\u00F5es em lote' ) {
+        } else if ( button_txt == 'A\u00E7\u00F5es em Lote' ) {
             parent.getDocumentosActions();
             closeToolbarPro();
         } else if ( button_txt == 'Enviar Documento Externo' ) {
@@ -1091,7 +1091,7 @@ function loadUploadArvore() {
         for (var k in params.paramsForm) {
             if (postData !== '') postData = postData + '&';
             var valor = (k=='hdnAnexos') ? params.paramsForm[k] : escapeComponent(params.paramsForm[k]);
-                valor = (k=='txtNumero') ? parent.encodeURI_toHex(params.paramsForm[k].normalize('NFC')) : valor;                
+                valor = (k=='txtNumero' || k=='txtNomeArvore') ? parent.encodeURI_toHex(params.paramsForm[k].normalize('NFC')) : valor;
                 postData = postData + k + '=' + valor;
         }
         params.paramsForm = postData;
@@ -1392,7 +1392,16 @@ function submitUploadArvore(htmlAnexo, queuedFiles, mode, result, arrayDropzone,
             param.hdnIdTipoConferencia = param.selTipoConferencia;
             param.txaObservacoes = "";
             param.txtDataElaboracao = txtDataElaboracao;
-            param.txtNumero = escapeComponent(nameDoc);
+            // O nome do arquivo e texto livre: no SEI 4 e 5, que tem os dois campos, vai no "Nome na Arvore"
+            // (no documento externo o "Numero" e opcional e o SEI so valida o tamanho). Antes ia sempre no
+            // "Numero", que e o numero do documento para a pesquisa do SEI. No SEI 3 so existe o "Numero".
+            // Na arvore o resultado e o mesmo: o SEI exibe "Tipo Numero NomeArvore".
+            if (form.find('#txtNomeArvore').length) {
+                param.txtNomeArvore = escapeComponent(nameDoc);
+                param.txtNumero = '';
+            } else {
+                param.txtNumero = escapeComponent(nameDoc);
+            }
             // console.log(parent.checkConfigValue('newdocformat'), parent.getConfigValue('newdocformat'), param.rdoFormato, param.hdnIdTipoConferencia);
             arrayDropzone.options.url = urlUpload;
             arrayDropzone.options.params = {
@@ -2088,6 +2097,25 @@ function optionSearchInteressado(this_) {
     }
     _this.find('i').toggleClass('fa-check-square fa-square');
 }
+// Prazo do controle nativo do SEI (4.1.5+), lido da acao CONTROLEPRAZO que o SEI declara no script da arvore
+// (NosAcoes e variavel local da pagina, nao e global): sem requisicao. O titulo vem como
+// "Controle de Prazo:\nSIGLA dd/mm/aaaa (10 dias | atrasado N dias | ate hoje | concluido em dd/mm/aaaa)".
+function getHtmlPrazoNativoArvore() {
+    try {
+        var fonte = '';
+        for (var i = 0; i < document.scripts.length; i++) { fonte += document.scripts[i].textContent + '\n'; }
+        var acao = /infraArvoreAcao\("CONTROLEPRAZO","[^"]*","[^"]*","(?:[^"\\]|\\.)*",(?:null|"(?:[^"\\]|\\.)*"),"((?:[^"\\]|\\.)*)"/.exec(fonte);
+        if (!acao) return '';
+        var m = /(\d{2}\/\d{2}\/\d{4})\s*\(([^)]*)\)/.exec(acao[1].replace(/\\n/g, ' '));
+        if (!m) return '';
+        var estado = m[2].toLowerCase();
+        var cor = estado.indexOf('atrasado') === 0 ? '#c0392b' : (estado.indexOf('conclu') === 0 ? '#2e7d32' : '#4285f4');
+        var texto = $('<div></div>').text(m[1]+' ('+m[2]+')').html();
+        return '<a class="newLink spro-prazo-nativo" style="cursor:default;display:block;max-width: calc(100% - 70px);" onmouseover="return infraTooltipMostrar(\'Controle de prazo do SEI\');" onmouseout="return infraTooltipOcultar();"><i class="fas fa-clock" style="color:'+cor+';"></i> Prazo: '+texto+'</a>';
+    } catch (e) {
+        return '';
+    }
+}
 function setDadosProcessoArvore(dadosProcessoPro = false) {
     var id_procedimento = getParamsUrlPro(window.location.href).id_procedimento;
         id_procedimento = (typeof id_procedimento === 'undefined') ? getParamsUrlPro(window.location.href).id_protocolo : id_procedimento;
@@ -2117,6 +2145,7 @@ function setDadosProcessoArvore(dadosProcessoPro = false) {
         var htmlMarcador = parent.getHtmlMarcador(id_procedimento, processoAberto);
         var iconMarcador = htmlMarcador.icon;
         var linkPrazo = htmlMarcador.prazo;
+            linkPrazo = linkPrazo + getHtmlPrazoNativoArvore();
         var dataMarcador = htmlMarcador.data;
 
         if (typeof prop !== 'undefined' && typeof prop.txtDescricao !== 'undefined' && prop.txtDescricao && prop.txtDescricao.toLowerCase().indexOf('(urgente)') !== -1) {
@@ -2655,6 +2684,47 @@ function initNumericDocsPro(loop = true) {
         });
     }
 }
+// Destaca na arvore os documentos gerados na unidade atual que ainda nao foram assinados. O SEI ja pinta
+// de #cc9e80 o documento nao assinado de OUTRA unidade (no desabilitado); o da propria unidade fica igual
+// aos assinados. A unidade geradora vem da acao UNIDADE_GERADORA (#anchorUG<id>, SEI 4.0+; no 3.x nao
+// existe e a funcao nao marca nada) e a assinatura, da acao ASSINATURA (#anchorA<id>). So entram os
+// documentos do editor (interno e circular): externo e formulario nao se assinam por aqui, e o cancelado
+// troca de icone. Refaz do zero a cada chamada: a arvore recarrega depois de assinar e ao abrir pasta.
+function initDestacarNaoAssinadosPro() {
+    if ($('head').find('style[data-style="seipro-naoassinados"]').length == 0) {
+        $('head').append("<style type='text/css' data-style='seipro-naoassinados'> "
+            +"   #divArvore a.naoAssinadoPro > span[id^='span'] { "
+            +"      box-shadow: inset 2px 0 0 rgba(214, 150, 20, .75);"
+            +"      border-radius: 3px;"
+            +"      padding: 1px 6px 1px 7px;"
+            +"      transition: background .2s ease;"
+            +"    } "
+            // Selecionado: o SEI pinta o texto de branco sobre o fundo dele; o fundo ambar cobriria esse fundo
+            // e o nome sumiria. O selecionado fica so com o filete.
+            +"   #divArvore a.naoAssinadoPro > span[id^='span']:not(.infraArvoreNoSelecionado) { background: rgba(234, 170, 40, .5); } "
+            +"   #divArvore a.naoAssinadoPro:hover > span[id^='span']:not(.infraArvoreNoSelecionado) { background: rgba(234, 170, 40, .6); } "
+            +"   body.dark-mode #divArvore a.naoAssinadoPro > span[id^='span'] { box-shadow: inset 2px 0 0 rgba(240, 190, 80, .8); } "
+            +"   body.dark-mode #divArvore a.naoAssinadoPro > span[id^='span']:not(.infraArvoreNoSelecionado) { background: rgba(240, 190, 80, .16); } "
+            +"</style>");
+    }
+    var sigla = (typeof parent.siglaUnidadeAtual !== 'undefined' && parent.siglaUnidadeAtual) ? parent.siglaUnidadeAtual.trim().toUpperCase() : '';
+    $('#divArvore a.naoAssinadoPro').removeClass('naoAssinadoPro').each(function(){
+        if ($(this).data('naoAssinadoTitlePro') !== undefined) $(this).attr('title', $(this).data('naoAssinadoTitlePro'));
+    });
+    if (!sigla) return;
+    $('#divArvore a[id^="anchorUG"]').each(function(){
+        if ($(this).text().trim().toUpperCase() !== sigla) return;
+        var id = this.id.replace('anchorUG', '');
+        if (document.getElementById('anchorA'+id)) return;
+        var icone = $('#icon'+id).attr('src') || '';
+        if (!/documento_(interno|circular)/.test(icone)) return;
+        var doc = $('#anchor'+id);
+        if (!doc.length) return;
+        var title = doc.attr('title') || '';
+        doc.data('naoAssinadoTitlePro', title).addClass('naoAssinadoPro')
+           .attr('title', (title ? title+' \u2014 ' : '')+'Pendente de assinatura na unidade '+parent.siglaUnidadeAtual.trim());
+    });
+}
 function getSumDocsPasta(loop) {
     if (parent.getOptionsPro('sumDocsPasta')) {
         return parent.getOptionsPro('sumDocsPasta');
@@ -2846,6 +2916,9 @@ function initSeiProArvore(loop = true) {
     if (typeof parent.verifyConfigValue !== 'undefined'  && parent.verifyConfigValue('numerar_documentos') ) { 
         initNumericDocsPro();
     }
+    if (typeof parent.verifyConfigValue !== 'undefined'  && parent.verifyConfigValue('destacarnaoassinados') ) {
+        initDestacarNaoAssinadosPro();
+    }
     if (
         (typeof parent.initAtividadesProcesso === 'function' || typeof parent.initAtividadesProcesso !== 'undefined') && 
         parent.checkConfigValue('gerenciaratividades') && localStorage.getItem('configBasePro_atividades') !== null &&
@@ -2864,9 +2937,6 @@ function initSeiProArvore(loop = true) {
     }
     if (typeof localStorageRestorePro === "function" && typeof parent.checkConfigValue !== 'undefined' && parent.checkConfigValue('uploaddocsexternos')) {
         initUploadArvore();
-    }
-    if (typeof localStorageRestorePro === "function" && typeof parent.checkConfigValue !== 'undefined' && parent.verifyConfigValue('menususpenso')) {
-        parent.hideMenuSistemaView();
     }
     if (typeof parent.setClickUrlAmigavel !== 'undefined'  && parent.verifyConfigValue('urlamigavel')) {
         parent.setClickUrlAmigavel();

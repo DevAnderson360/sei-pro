@@ -1,0 +1,35 @@
+<!-- url: https://sei.exemplo.gov.br/sei/controlador.php?acao=documento_cadastrar&acao_origem=documento_escolher_tipo&id_procedimento=500&id_serie=12&infra_sistema=100000100&infra_unidade_atual=110000001&infra_hash=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa -->
+<html><head><title>SEI - Gerar Documento</title></head><body>
+<form id="frmDocumentoCadastro" method="post" action="controlador.php?acao=documento_cadastrar&amp;acao_origem=documento_cadastrar&amp;id_procedimento=500&amp;id_serie=12&amp;infra_sistema=100000100&amp;infra_unidade_atual=110000001&amp;infra_hash=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa">
+<input type="hidden" id="hdnIdSerie" name="hdnIdSerie" value="12"/>
+<input type="radio" id="optProtocoloDocumentoTextoBase" name="rdoTextoInicial" value="D"/>
+<input type="text" id="txtProtocoloDocumentoTextoBase" name="txtProtocoloDocumentoTextoBase" value=""/>
+<input type="radio" id="optTextoPadrao" name="rdoTextoInicial" value="T"/>
+<select id="selTextoPadrao" name="selTextoPadrao">
+<option value="null" selected="selected"> </option>
+<option value="230">Despacho</option>
+<option value="5">OF&Iacute;CIO</option>
+<option value="51">Of&iacute;cio 5 anos</option>
+</select>
+<input type="hidden" id="hdnIdTextoPadrao" name="hdnIdTextoPadrao" value=""/>
+<input type="radio" id="optNenhum" name="rdoTextoInicial" value="N" checked="checked"/>
+<label id="lblNumero" for="txtNumero" class="infraLabelOpcional">N&uacute;mero:</label>
+<input type="text" id="txtNumero" name="txtNumero" value=""/>
+<label id="lblNomeArvore" for="txtNomeArvore" class="infraLabelOpcional">Nome na &Aacute;rvore:</label>
+<input type="text" id="txtNomeArvore" name="txtNomeArvore" value=""/>
+<input type="text" id="txtDescricao" name="txtDescricao" maxlength="250" value=""/>
+<select id="selInteressados" name="selInteressados" multiple="multiple">
+<option value="100013362">Fulano de Tal</option>
+</select>
+<input type="hidden" id="hdnInteressados" name="hdnInteressados" value=""/>
+<textarea id="txaObservacoes" name="txaObservacoes"></textarea>
+<input type="radio" id="optSigiloso" name="rdoNivelAcesso" value="2"/>
+<input type="radio" id="optRestrito" name="rdoNivelAcesso" value="1"/>
+<input type="radio" id="optPublico" name="rdoNivelAcesso" value="0"/>
+<input type="hidden" id="hdnStaNivelAcessoLocal" name="hdnStaNivelAcessoLocal" value=""/>
+<select id="selHipoteseLegal" name="selHipoteseLegal"><option value="null"> </option><option value="34" selected="selected">Informa&ccedil;&atilde;o Pessoal</option></select>
+<input type="hidden" id="hdnIdHipoteseLegal" name="hdnIdHipoteseLegal" value=""/>
+<input type="hidden" id="hdnFlagDocumentoCadastro" name="hdnFlagDocumentoCadastro" value="1"/>
+</form>
+<script>objLupaInteressados = new infraLupaSelect('selInteressados','hdnInteressados','x');</script>
+</body></html>

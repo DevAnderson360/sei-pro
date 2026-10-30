@@ -1,0 +1,54 @@
+/* O modal "Prazo", dentro do Shadow DOM, depois do base.css do sei-comum. */
+.spro-prz-titulo { margin: 0; }
+.spro-prz-campo {
+  display: grid;
+  gap: 5px;
+}
+.spro-prz-campo[hidden],
+.spro-prz-linha[hidden],
+.spro-prz-rodape button[hidden] { display: none; }
+.spro-prz-rotulo {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--spro-suave);
+}
+.spro-prz-linha {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.spro-prz-dias { width: 90px; }
+.spro-prz-hora { width: 130px; }
+.spro-prz-interruptor,
+.spro-prz-uteis {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+.spro-prz-interruptor { font-weight: 600; }
+.spro-prz-destino {
+  margin: 0;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--spro-suave);
+  background: var(--spro-fundo-2);
+  border-radius: var(--spro-raio);
+}
+.spro-prz-destino:empty,
+.spro-prz-erro:empty,
+.spro-prz-progresso:empty,
+.spro-prz-falhas:empty { display: none; }
+.spro-prz-erro {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--spro-perigo, #c0392b);
+}
+.spro-prz-progresso { margin: 0; font-size: 12.5px; color: var(--spro-suave); }
+.spro-prz-falhas {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12.5px;
+  color: var(--spro-perigo, #c0392b);
+}

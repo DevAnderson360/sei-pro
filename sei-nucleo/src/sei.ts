@@ -11,7 +11,7 @@
 
 import { abrirArvore, type Arvore } from "./dominio/arvore";
 import { Formulario } from "./formulario/formulario";
-import { linksAssinados, parametros } from "./links/links";
+import { linkDoMenu, linksAssinados, parametros } from "./links/links";
 import { analisarHtml, decodificarEntidades, textoDe } from "./sessao/dom";
 import { ErroSei } from "./sessao/erros";
 import { criarHttp, type DependenciasHttp, type Http, type OpcoesHttp, type Pagina } from "./sessao/http";
@@ -21,7 +21,8 @@ export interface ContextoSei {
   /** "4.1.5", "5.0.4"... ou "" quando a tela não informa. */
   versao: string;
   maior: number;
-  unidade: { sigla: string; nome: string };
+  /** `id` é o `infra_unidade_atual` (vazio se a tela não o mostra). */
+  unidade: { id: string; sigla: string; nome: string };
   usuario: { nome: string; login: string; orgao?: string };
 }
 
@@ -30,6 +31,20 @@ export function lerVersao(html: string): string {
   const titulo = /Sistema Eletr(?:\u00F4|&ocirc;|\\u00F4)nico de Informa[^"]*?Vers(?:\u00E3|&atilde;)o\s*([\d.]+)/i.exec(html);
   if (titulo) return titulo[1];
   return /\.(?:js|svg|css)\?(\d+\.\d+\.\d+)-/.exec(html)?.[1] ?? "";
+}
+
+/**
+ * id da unidade atual. SEI 4/5: o link de troca de unidade (`#lnkInfraUnidade`)
+ * traz `infra_unidade_atual` no onclick. Sem cabeçalho, vale a URL da tela. No
+ * SEI 3 a unidade é o `#selInfraUnidades`.
+ */
+export function lerIdUnidade(pagina: Pagina): string {
+  const onclick = pagina.doc.querySelector("#lnkInfraUnidade")?.getAttribute("onclick") ?? "";
+  const doLink = /infra_unidade_atual=(\d+)/.exec(onclick)?.[1];
+  if (doLink) return doLink;
+  const daUrl = /[?&]infra_unidade_atual=(\d+)/.exec(pagina.url)?.[1];
+  if (daUrl) return daUrl;
+  return pagina.doc.querySelector("#selInfraUnidades option[selected]")?.getAttribute("value") ?? "";
 }
 
 /** Lê unidade e usuário do cabeçalho de qualquer tela completa do SEI. */
@@ -43,7 +58,11 @@ export function lerContexto(pagina: Pagina): ContextoSei {
     host: new URL(pagina.url).host,
     versao,
     maior: Number(versao.split(".")[0]) || 0,
-    unidade: { sigla: textoDe(unidade), nome: unidade?.getAttribute("title") ?? "" },
+    unidade: {
+      id: lerIdUnidade(pagina),
+      sigla: textoDe(unidade) || textoDe(d.querySelector("#selInfraUnidades option[selected]")),
+      nome: unidade?.getAttribute("title") ?? "",
+    },
     usuario: { nome: nome.trim(), login: login.trim(), orgao: orgao.trim() },
   };
 }
@@ -86,20 +105,9 @@ export class Sei {
     return lerContexto(this.base());
   }
 
-  /** Link assinado de um item do menu principal (ex.: `procedimento_controlar`). */
+  /** Link assinado de um item do menu principal (ex.: `procedimento_controlar`): `linkDoMenu` na tela base. */
   linkMenu(acao: string): string {
-    // Procura primeiro no menu: a mesma ação aparece em outros lugares da tela
-    // com parâmetros extras (ex.: `procedimento_controlar&tipo_filtro=M` é a
-    // caixa filtrada por marcador, e usá-la mudaria a visão do usuário).
-    const base = this.base();
-    const menu = [...base.doc.querySelectorAll("#infraMenu a[href], #main-menu a[href], .infraMenu a[href]")]
-      .map((a) => a.getAttribute("href") ?? "")
-      .join("\n");
-    const candidatos = linksAssinados(menu).filter((l) => parametros(l).get("acao") === acao);
-    const todos = candidatos.length ? candidatos : linksAssinados(base.html).filter((l) => parametros(l).get("acao") === acao);
-    const l = todos.sort((a, b) => [...parametros(a).keys()].length - [...parametros(b).keys()].length)[0];
-    if (!l) throw new ErroSei("SEI_ACAO_INDISPONIVEL", `O menu do SEI n\u00E3o oferece "${acao}" para este usu\u00E1rio.`);
-    return l;
+    return linkDoMenu(this.base(), acao);
   }
 
   /** Recarrega a tela base (depois de trocar de unidade, por exemplo). */
@@ -156,6 +164,14 @@ export class Sei {
   invalidar(idProcedimento?: string): void {
     if (idProcedimento) this.arvores.delete(idProcedimento);
     else this.arvores.clear();
+  }
+
+  /**
+   * Esquece onde uma referência foi localizada (chamar quando um documento
+   * muda de processo: o nº SEI passa a levar a outra árvore).
+   */
+  esquecer(referencia: string): void {
+    this.localizados.delete(referencia.trim());
   }
 
   /**

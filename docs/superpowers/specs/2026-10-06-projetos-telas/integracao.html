@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Projetos - Tela 3: lateral e SEI</title>
+<link rel="stylesheet" href="/files/base.css">
+<style>
+  body { margin: 0; font-family: var(--spro-fonte); font-size: 13px; color: var(--spro-texto); background: var(--spro-pagina); }
+  .explica { max-width: 1280px; margin: 0 auto; padding: 22px 20px 4px; }
+  .explica h1 { font-size: 20px; margin: 0 0 6px; }
+  .explica p { margin: 4px 0; color: var(--spro-suave); line-height: 1.5; max-width: 1000px; }
+  .explica .linha { display: flex; gap: 10px; margin-top: 10px; }
+  .grade { max-width: 1280px; margin: 0 auto; padding: 14px 20px 30px; display: grid; grid-template-columns: 400px 1fr; gap: 26px 28px; align-items: start; }
+  .col2 { display: grid; gap: 26px; }
+  .cena > .rot { display: flex; align-items: baseline; gap: 10px; margin: 0 0 10px; flex-wrap: wrap; }
+  .cena > .rot b { font-size: 14.5px; }
+  .cena > .rot span { color: var(--spro-suave); }
+  .av { flex: none; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 9.5px; font-weight: 700; color: #fff; }
+  .st { flex: none; display: inline-grid; place-items: center; width: 16px; height: 16px; }
+
+  /* ---- Lateral ---- */
+  .lateral { width: 380px; height: 760px; border: 1px solid var(--spro-borda-forte); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; background: var(--spro-pagina); box-shadow: var(--spro-sombra-2); }
+  .chrome { height: 34px; flex: none; display: flex; align-items: center; gap: 8px; padding: 0 12px; background: var(--spro-fundo-3); color: var(--spro-suave); font-size: 12px; border-bottom: 1px solid var(--spro-borda); }
+  .abas-shell { flex: none; display: flex; gap: 2px; padding: 8px 8px 0; background: var(--spro-fundo); border-bottom: 1px solid var(--spro-borda); }
+  .abas-shell button { all: unset; position: relative; display: inline-flex; align-items: center; gap: 6px; padding: 7px 8px 9px; color: var(--spro-suave); font-weight: 500; border-radius: 8px 8px 0 0; cursor: pointer; font-size: 12.5px; }
+  .abas-shell button[aria-selected="true"] { color: var(--spro-texto); font-weight: 650; }
+  .abas-shell button[aria-selected="true"] .spro-icone { color: var(--spro-destaque); }
+  .abas-shell button[aria-selected="true"]::after { content: ""; position: absolute; left: 8px; right: 8px; bottom: -1px; height: 2px; background: var(--spro-destaque); border-radius: 2px 2px 0 0; }
+  .conta { font-size: 10.5px; font-weight: 700; color: #fff; background: var(--spro-perigo); border-radius: 999px; padding: 0 5px; }
+  .lat-corpo { flex: 1; overflow: auto; padding: 10px 12px 16px; display: grid; gap: 10px; align-content: start; }
+  .lat-topo { display: flex; align-items: center; gap: 8px; }
+  .lat-topo .unid { display: inline-flex; align-items: center; gap: 5px; color: var(--spro-suave); font-weight: 600; }
+  .lat-topo .dir { margin-left: auto; display: flex; gap: 2px; }
+  .grupo-tit { display: flex; align-items: center; gap: 6px; margin: 6px 2px 0; font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
+  .grupo-tit .n { font-weight: 600; padding: 0 6px; border-radius: 999px; background: color-mix(in srgb, currentColor 14%, transparent); }
+  .cartao { background: var(--spro-fundo); border: 1px solid var(--spro-borda); border-radius: 10px; padding: 9px 11px; display: grid; gap: 4px; cursor: pointer; }
+  .cartao:hover { border-color: var(--spro-borda-forte); }
+  .cartao .l1 { display: flex; align-items: center; gap: 8px; }
+  .cartao .l1 .nome { flex: 1; font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cartao .l2 { display: flex; align-items: center; gap: 6px; padding-left: 24px; color: var(--spro-suave); font-size: 12px; }
+  .cartao .l2 .data { margin-left: auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .cartao .acoes { display: none; gap: 6px; padding: 6px 0 0 24px; }
+  .cartao.aberto .acoes { display: flex; }
+  .prj-cartao .l2 { padding-left: 0; }
+  .barra-p { height: 6px; border-radius: 3px; background: var(--spro-fundo-3); overflow: hidden; flex: 1; }
+  .barra-p i { display: block; height: 100%; border-radius: 3px; }
+  .mg-cab { display: flex; align-items: center; gap: 8px; }
+  .mg-cab h3 { margin: 0; font-size: 14px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mg { background: var(--spro-fundo); border: 1px solid var(--spro-borda); border-radius: 10px; overflow: hidden; }
+  .mg .meses { display: grid; grid-template-columns: 150px 1fr; font-size: 10.5px; color: var(--spro-fraco); border-bottom: 1px solid var(--spro-borda); }
+  .mg .meses div:last-child { display: flex; justify-content: space-between; padding: 5px 6px; position: relative; }
+  .mg .fase { padding: 6px 10px 3px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--spro-suave); background: var(--spro-fundo-2); }
+  .mg .row { display: grid; grid-template-columns: 150px 1fr; align-items: center; height: 30px; border-bottom: 1px solid color-mix(in srgb, var(--spro-borda) 55%, transparent); cursor: pointer; }
+  .mg .row:hover { background: var(--spro-destaque-suave); }
+  .mg .row .n { display: flex; align-items: center; gap: 6px; padding-left: 8px; min-width: 0; font-size: 12px; }
+  .mg .row .n span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mg .row .t { position: relative; height: 100%; }
+  .mg .row .t i { position: absolute; top: 10px; height: 10px; border-radius: 4px; }
+  .mg .row .t b { position: absolute; top: 9px; width: 10px; height: 10px; transform: rotate(45deg); border-radius: 2px; }
+  .mg .hoje { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--spro-destaque); }
+  .lat-dica { font-size: 12px; color: var(--spro-fraco); text-align: center; padding: 4px 8px; line-height: 1.45; }
+
+  /* ---- Moldura SEI ---- */
+  .sei { background: #fff; border: 1px solid #c9ced6; border-radius: 6px; box-shadow: var(--spro-sombra-2); position: relative; }
+  :root[data-tema="escuro"] .sei { background: #15171a; border-color: #2a2e33; }
+  .sei-barra { height: 32px; background: #155b9c; display: flex; align-items: center; padding: 0 14px; color: #fff; font-weight: 700; gap: 14px; border-radius: 6px 6px 0 0; }
+  .sei-barra span { font-weight: 400; opacity: .85; font-size: 12px; }
+  .sei-miolo { padding: 10px 14px 16px; position: relative; }
+  .tab-sei { width: 100%; border-collapse: collapse; font: 12px Arial, sans-serif; color: #333; }
+  :root[data-tema="escuro"] .tab-sei { color: #ccc; }
+  .tab-sei th { text-align: left; background: #e8eef5; color: #333; padding: 5px 6px; font-weight: 700; }
+  :root[data-tema="escuro"] .tab-sei th { background: #22262b; color: #ccc; }
+  .tab-sei td { padding: 6px 6px; border-bottom: 1px solid #e3e3e3; vertical-align: middle; }
+  :root[data-tema="escuro"] .tab-sei td { border-color: #2a2e33; }
+  .tab-sei td.num a { color: #155b9c; font-weight: 600; text-decoration: none; }
+  :root[data-tema="escuro"] .tab-sei td.num a { color: #79acff; }
+  .ic-sei { display: inline-flex; align-items: center; gap: 3px; vertical-align: middle; }
+  .estrela { color: var(--spro-estrela); font-size: 16px; line-height: 1; }
+  .prj-ic { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; color: var(--spro-destaque); cursor: pointer; position: relative; vertical-align: middle; }
+  .prj-ic:hover, .prj-ic.ativo { background: var(--spro-destaque-suave); }
+  .prj-ic.atraso::after { content: ""; position: absolute; top: 2px; right: 2px; width: 6px; height: 6px; border-radius: 50%; background: var(--spro-perigo); border: 1.5px solid #fff; }
+  .balao { position: absolute; z-index: 20; width: 340px; background: var(--spro-fundo); color: var(--spro-texto); border: 1px solid var(--spro-borda); border-radius: 12px; box-shadow: var(--spro-sombra-3); padding: 12px 14px; display: grid; gap: 8px; font: 13px var(--spro-fonte); }
+  .balao .cab { display: flex; align-items: center; gap: 10px; }
+  .balao .cab .ic34 { width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; color: var(--spro-destaque); background: var(--spro-destaque-suave); }
+  .balao .cab b { display: block; font-size: 13.5px; }
+  .balao .cab small { color: var(--spro-suave); }
+  .balao .cab .spro-botao-icone { margin-left: auto; }
+  .vinc { border: 1px solid var(--spro-borda); border-radius: 10px; padding: 8px 10px; display: grid; gap: 4px; }
+  .vinc .p { display: flex; align-items: center; gap: 6px; color: var(--spro-suave); font-size: 12px; }
+  .vinc .e { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+  .vinc .e .data { margin-left: auto; font-weight: 400; color: var(--spro-perigo); font-size: 12px; white-space: nowrap; }
+  .balao .rod { display: flex; gap: 8px; justify-content: flex-end; padding-top: 4px; }
+
+  /* árvore */
+  .arv { display: grid; grid-template-columns: 330px 1fr; min-height: 640px; }
+  .arv-col { border-right: 1px solid #dde2e8; padding: 8px 10px; font: 12.5px Arial, sans-serif; color: #222; }
+  :root[data-tema="escuro"] .arv-col { color: #ddd; border-color: #2a2e33; }
+  .arv-proc { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .arv-proc .num { background: #1e3a6e; color: #fff; padding: 2px 6px; border-radius: 3px; font-weight: 700; }
+  .arv-it { padding: 4px 0 4px 18px; display: flex; gap: 6px; align-items: center; }
+  .arv-it::before { content: ""; width: 12px; height: 14px; background: #4a90d9; border-radius: 2px; flex: none; }
+  .arv-it.pdf::before { background: #e04b3c; }
+  .arv-vis { padding: 16px; color: #888; font: 12px Arial; }
+  .faixa { display: flex; align-items: center; gap: 6px; margin: 8px 0 6px; padding: 5px 8px; border-radius: 6px; background: color-mix(in srgb, var(--spro-perigo) 9%, #fff); border: 1px solid color-mix(in srgb, var(--spro-perigo) 25%, transparent); font: 12px var(--spro-fonte); color: var(--spro-texto); cursor: pointer; }
+  :root[data-tema="escuro"] .faixa { background: color-mix(in srgb, var(--spro-perigo) 12%, #15171a); }
+  .faixa .spro-icone { color: var(--spro-perigo); flex: none; }
+  .faixa > span:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .faixa b { font-weight: 600; }
+  .form-add { display: grid; gap: 10px; border-top: 1px solid var(--spro-borda); padding-top: 10px; }
+  .form-add .campo { display: grid; gap: 5px; }
+  .form-add .rotulo { font-size: 12px; font-weight: 600; color: var(--spro-suave); }
+  .combo { display: flex; align-items: center; gap: 8px; min-height: 30px; padding: 0 8px 0 10px; border: 1px solid var(--spro-borda-forte); border-radius: var(--spro-raio); background: var(--spro-fundo); box-shadow: var(--spro-sombra-1); }
+  .combo > span:last-child { margin-left: auto; color: var(--spro-fraco); display: inline-flex; }
+  .linha2 { display: flex; gap: 8px; }
+  .linha2 > * { flex: 1; }
+  .nota { max-width: 1280px; margin: 0 auto 40px; padding: 0 20px; }
+  .nota div { padding: 10px 14px; background: var(--spro-fundo); border: 1px dashed var(--spro-borda-forte); border-radius: var(--spro-raio); color: var(--spro-suave); line-height: 1.6; }
+  .nota b { color: var(--spro-texto); }
+</style>
+</head>
+<body>
+<div class="explica">
+  <h1>Tela 3 de 3 &middot; Painel lateral e integra&ccedil;&atilde;o com o SEI</h1>
+  <p>No lateral (estreito) o Gantt n&atilde;o cabe bem, ent&atilde;o ele abre na <b>Agenda</b> (o que fazer agora) e, em <b>Projetos</b>, mostra um mini-Gantt por projeto. No SEI, o projeto aparece onde o processo j&aacute; aparece: na caixa e na &aacute;rvore. Clique nos cart&otilde;es do lateral, em &ldquo;Projetos&rdquo;, nos &iacute;cones azuis da caixa e na faixa da &aacute;rvore.</p>
+  <div class="linha"><div class="spro-segmentado" id="tema"><button aria-selected="true" data-t="claro">Tema claro</button><button aria-selected="false" data-t="escuro">Tema escuro</button></div></div>
+</div>
+
+<div class="grade">
+  <section class="cena">
+    <div class="rot"><b>1. Painel lateral</b><span>nova aba &ldquo;Projetos&rdquo;</span></div>
+    <div class="lateral">
+      <div class="chrome"><span data-ic="painel"></span>SEI Pro</div>
+      <div class="abas-shell">
+        <button aria-selected="false"><span data-ic="estrela"></span>Favoritos</button>
+        <button aria-selected="false"><span data-ic="historico"></span>Hist&oacute;rico</button>
+        <button aria-selected="true"><span data-ic="gantt"></span>Projetos <span class="conta" title="1 etapa atrasada">1</span></button>
+        <button aria-selected="false"><span data-ic="brilho"></span>Agente</button>
+      </div>
+      <div class="lat-corpo" id="lat"></div>
+    </div>
+  </section>
+
+  <div class="col2">
+    <section class="cena">
+      <div class="rot"><b>2. Na caixa do Controle de Processos</b><span>&iacute;cone ao lado da estrela dos Favoritos; ponto vermelho = etapa atrasada</span></div>
+      <div class="sei"><div class="sei-barra">SEI! <span>Controle de Processos &middot; Recebidos</span></div>
+        <div class="sei-miolo" id="caixa">
+          <table class="tab-sei">
+            <tr><th style="width:22px"></th><th style="width:250px">Processo</th><th>Especifica&ccedil;&atilde;o</th><th style="width:110px">Atribu&iacute;do a</th></tr>
+            <tr><td><input type="checkbox"></td><td class="num"><a href="#">50300.001234/2026-11</a> <span class="ic-sei"><span class="estrela">&#9733;</span><span class="prj-ic atraso" data-bal="1" title="Em 1 projeto"></span></span></td><td>Revis&atilde;o normativa &mdash; Resolu&ccedil;&atilde;o 5.432</td><td>carla.dias</td></tr>
+            <tr><td><input type="checkbox"></td><td class="num"><a href="#">50300.004410/2026-02</a> <span class="ic-sei"><span class="prj-ic" data-bal="2" title="Em 1 projeto"></span></span></td><td>Aquisi&ccedil;&atilde;o de notebooks &mdash; preg&atilde;o eletr&ocirc;nico</td><td>bruno.reis</td></tr>
+            <tr><td><input type="checkbox"></td><td class="num"><a href="#">50300.003317/2026-75</a></td><td>Of&iacute;cio circular &mdash; fiscaliza&ccedil;&atilde;o portu&aacute;ria</td><td></td></tr>
+            <tr><td><input type="checkbox"></td><td class="num"><a href="#">50300.003990/2026-18</a> <span class="ic-sei"><span class="estrela">&#9733;</span></span></td><td>Consulta p&uacute;blica &mdash; contribui&ccedil;&otilde;es recebidas</td><td>bruno.reis</td></tr>
+          </table>
+        </div></div>
+    </section>
+
+    <section class="cena">
+      <div class="rot"><b>3. Na tela do processo</b><span>faixa sob o n&uacute;mero quando o processo est&aacute; num projeto; &iacute;cone na barra para adicionar</span></div>
+      <div class="sei"><div class="sei-barra">SEI! <span>50300.001234/2026-11</span></div>
+        <div class="sei-miolo" id="arvore" style="padding:0">
+          <div class="arv">
+            <div class="arv-col">
+              <div class="arv-proc"><span class="num">50300.001234/2026-11</span><span class="estrela">&#9733;</span><span class="prj-ic ativo atraso" id="icArv" title="Projetos deste processo"></span></div>
+              <div class="faixa" id="faixa"><span data-ic="alerta" data-t="14"></span><span><b>Relat&oacute;rio de AIR</b> atrasada &middot; Revis&atilde;o da Resolu&ccedil;&atilde;o 5.432</span></div>
+              <div class="arv-it">Despacho de abertura (1229001)</div>
+              <div class="arv-it">Nota T&eacute;cnica 12 (1234567)</div>
+              <div class="arv-it pdf">Parecer 88 (1238890)</div>
+              <div class="arv-it">Aviso de Consulta P&uacute;blica (1239100)</div>
+              <div class="arv-it">Relat&oacute;rio de AIR 3/2026 (1240001)</div>
+            </div>
+            <div class="arv-vis">(visualiza&ccedil;&atilde;o do documento)</div>
+          </div>
+        </div></div>
+    </section>
+  </div>
+</div>
+
+<div class="nota"><div>
+  <b>Como funciona:</b><br>
+  &bull; <b>Lateral:</b> roteia pela unidade da aba do SEI (como Favoritos e Hist&oacute;rico). O contador vermelho na aba &ldquo;Projetos&rdquo; s&atilde;o as etapas atrasadas. Num projeto, &ldquo;Abrir no painel&rdquo; leva ao Gantt completo no Controle de Processos.<br>
+  &bull; <b>Caixa:</b> o &iacute;cone s&oacute; aparece em processo ligado a um projeto (como processo do projeto ou de alguma etapa); nada de &iacute;cone vazio em todas as linhas.<br>
+  &bull; <b>&Aacute;rvore:</b> a faixa s&oacute; aparece quando h&aacute; etapa atrasada ou vencendo; sen&atilde;o, s&oacute; o &iacute;cone. &ldquo;Concluir com documento&rdquo; lista os documentos da &aacute;rvore <b>que j&aacute; est&aacute; aberta</b> (n&atilde;o carrega a &aacute;rvore escondida, que marcaria o processo como recebido).<br>
+  &bull; <b>Harmonia:</b> o bot&atilde;o de menu do painel embutido passa a usar o mesmo &iacute;cone de &ldquo;ajustes&rdquo; dos Favoritos, no lugar do &ldquo;&#8943;&rdquo; da Tela 1.
+</div></div>
+
+<script>
+"use strict";
+const NS = "http://www.w3.org/2000/svg";
+const ICON = {
+  gantt: '<path d="M4 5h9M7 12h11M4 19h7"/><path d="M3 3v18"/>',
+  estrela: '<path d="M12 3.2l2.7 5.5 6 .9-4.35 4.25 1 6L12 17l-5.35 2.85 1-6L3.3 9.6l6-.9z"/>',
+  historico: '<path d="M3.5 12a8.5 8.5 0 1 0 2.5-6"/><path d="M3.5 4.5V8H7"/><path d="M12 8v4.3l3 1.7"/>',
+  brilho: '<path d="M12 3.5l1.8 5.2 5.2 1.8-5.2 1.8L12 17.5l-1.8-5.2L5 10.5l5.2-1.8z"/>',
+  painel: '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M14.5 4.5v15"/>',
+  predio: '<path d="M4 20.5V5.5a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v15"/><path d="M14 9.5h5a1 1 0 0 1 1 1v10"/><path d="M3 20.5h18M7.5 8h3M7.5 11.5h3M7.5 15h3"/>',
+  pessoa: '<circle cx="12" cy="8" r="3.6"/><path d="M5 20c.8-3.6 3.6-5.6 7-5.6s6.2 2 7 5.6"/>',
+  ajustes: '<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>',
+  mais: '<path d="M12 5v14M5 12h14"/>',
+  voltar: '<path d="m15 6-6 6 6 6"/>',
+  alerta: '<path d="M12 4 2.8 19.5h18.4z"/><path d="M12 10v4.2"/><circle cx="12" cy="17" r=".9" fill="currentColor"/>',
+  relogio: '<circle cx="12" cy="12" r="9"/><path d="M12 7.2V12l3.2 1.9"/>',
+  fechar: '<path d="M6 6l12 12M18 6 6 18"/>',
+  check: '<path d="m5 12.5 4.2 4.2L19 7"/>',
+  chevron: '<path d="m6 9 6 6 6-6"/>',
+  pasta: '<path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/>',
+  calendario: '<rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/>',
+  abrir: '<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
+  documento: '<path d="M6 3.5h8l4 4v13H6z"/><path d="M14 3.5v4h4"/>',
+};
+function ic(nome, t = 16) {
+  const s = document.createElementNS(NS, "svg");
+  s.setAttribute("viewBox", "0 0 24 24"); s.setAttribute("width", t); s.setAttribute("height", t);
+  s.setAttribute("fill", "none"); s.setAttribute("stroke", "currentColor"); s.setAttribute("stroke-width", "1.8");
+  s.setAttribute("stroke-linecap", "round"); s.setAttribute("stroke-linejoin", "round"); s.classList.add("spro-icone");
+  s.innerHTML = ICON[nome] || ""; return s;
+}
+function h(tag, attrs = {}, ...filhos) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (v == null || v === false) continue;
+    if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+    else if (k === "class") el.className = v; else if (k === "style") el.style.cssText = v; else el.setAttribute(k, v);
+  }
+  for (const f of filhos.flat()) if (f != null && f !== false) el.append(f instanceof Node ? f : document.createTextNode(String(f)));
+  return el;
+}
+const ST = {
+  ok: '<circle cx="8" cy="8" r="7" fill="var(--spro-ok)"/><path d="m4.8 8.2 2.1 2.1 4.3-4.4" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>',
+  atr: '<circle cx="8" cy="8" r="7" fill="var(--spro-perigo)"/><path d="M8 4.2v4.6" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/><circle cx="8" cy="11.4" r="1" fill="#fff"/>',
+  and: '<circle cx="8" cy="8" r="6.2" fill="none" stroke="var(--spro-destaque)" stroke-width="1.6"/><path d="M8 1.8a6.2 6.2 0 0 1 0 12.4z" fill="var(--spro-destaque)"/>',
+  fut: '<circle cx="8" cy="8" r="6.2" fill="none" stroke="var(--spro-borda-forte)" stroke-width="1.6" stroke-dasharray="2.4 2"/>',
+  marco: '<path d="M8 2 14 8 8 14 2 8z" fill="none" stroke="var(--spro-novidade)" stroke-width="1.6"/>',
+};
+function st(k) { const s = document.createElementNS(NS, "svg"); s.setAttribute("viewBox", "0 0 16 16"); s.setAttribute("width", 16); s.setAttribute("height", 16); s.innerHTML = ST[k]; const w = h("span", { class: "st" }); w.append(s); return w; }
+const AV = { CD: "#b45c0a", BR: "#12805c", AL: "#1f5fbf", PS: "#6d4fd8" };
+const av = (s) => h("span", { class: "av", style: `background:${AV[s]}` }, s);
+for (const el of document.querySelectorAll("[data-ic]")) el.append(ic(el.dataset.ic, +(el.dataset.t || 15)));
+for (const el of document.querySelectorAll(".prj-ic")) el.append(ic("gantt", 15));
+
+/* ---------- lateral ---------- */
+const lat = document.getElementById("lat");
+let modo = "agenda", aberto = null;
+const AGENDA = [
+  { g: "Atrasadas", tom: "var(--spro-perigo)", itens: [{ st: "atr", nome: "Relatório de AIR", prj: "Revisão da Resolução 5.432", data: "venceu 02/10", resp: "CD" }] },
+  { g: "Esta semana", tom: "var(--spro-aviso)", itens: [{ st: "and", nome: "Pesquisa de preços", prj: "Pregão de notebooks", data: "até sex 09/10", resp: "BR" }] },
+  { g: "Próximos 30 dias", tom: "var(--spro-suave)", itens: [
+    { st: "and", nome: "Período de contribuições", prj: "Revisão da Resolução 5.432", data: "até 15/10", resp: "BR" },
+    { st: "fut", nome: "Consolidação das contribuições", prj: "Revisão da Resolução 5.432", data: "começa 16/10", resp: "BR" },
+    { st: "marco", nome: "Publicação do edital", prj: "Pregão de notebooks", data: "marco 23/10" },
+    { st: "fut", nome: "Diagnóstico das áreas de risco", prj: "Plano de fiscalização 2027", data: "começa 26/10", resp: "PS" }] },
+];
+const PRJS = [
+  { nome: "Revisão da Resolução 5.432", esc: "predio", prog: 48, cor: "var(--spro-perigo)", info: "1 atrasada · termina 10/12", tom: "var(--spro-perigo)" },
+  { nome: "Pregão de notebooks", esc: "predio", prog: 30, cor: "var(--spro-destaque)", info: "3 de 11 · termina 29/01/2027" },
+  { nome: "Plano de fiscalização 2027", esc: "pessoa", prog: 8, cor: "var(--spro-destaque)", info: "0 de 6 · termina 18/12" },
+  { nome: "Capacitação em SEI 5", esc: "predio", prog: 100, cor: "var(--spro-ok)", info: "concluído em 30/09" },
+];
+// mini-Gantt: ago..dez (5 meses) => % do eixo
+const ini = new Date("2026-08-01"), fim = new Date("2026-12-31");
+const pct = (iso) => ((new Date(iso) - ini) / (fim - ini)) * 100;
+const ETAPAS = [
+  { fase: "Instrução" }, { st: "ok", n: "Nota técnica preliminar", a: "2026-08-03", b: "2026-08-21", c: "var(--spro-ok)" },
+  { st: "ok", n: "Análise jurídica", a: "2026-08-24", b: "2026-09-11", c: "var(--spro-ok)" },
+  { st: "atr", n: "Relatório de AIR", a: "2026-09-01", b: "2026-10-02", c: "var(--spro-perigo)" },
+  { fase: "Consulta pública" }, { st: "marco", n: "Aviso publicado", a: "2026-09-15", m: true, c: "var(--spro-ok)" },
+  { st: "and", n: "Período de contribuições", a: "2026-09-15", b: "2026-10-15", c: "var(--spro-destaque)" },
+  { st: "fut", n: "Consolidação", a: "2026-10-16", b: "2026-11-06", c: "var(--spro-borda-forte)" },
+  { fase: "Deliberação" }, { st: "fut", n: "Minuta final", a: "2026-11-09", b: "2026-11-27", c: "var(--spro-borda-forte)" },
+  { st: "marco", n: "Reunião de Diretoria", a: "2026-12-03", m: true, c: "var(--spro-novidade)" },
+  { st: "marco", n: "Publicação no DOU", a: "2026-12-10", m: true, c: "var(--spro-novidade)" },
+];
+function renderLat() {
+  lat.replaceChildren();
+  const seg = h("div", { class: "spro-segmentado" },
+    h("button", { "aria-pressed": String(modo === "agenda"), onclick: () => { modo = "agenda"; aberto = null; renderLat(); } }, "Agenda"),
+    h("button", { "aria-pressed": String(modo !== "agenda"), onclick: () => { modo = "projetos"; aberto = null; renderLat(); } }, "Projetos"));
+  lat.append(h("div", { class: "lat-topo" }, seg, h("span", { class: "unid", style: "margin-left:6px" }, ic("predio", 14), "TESTE"),
+    h("span", { class: "dir" }, h("button", { class: "spro-botao-icone pequeno", title: "Novo projeto" }, ic("mais", 16)), h("button", { class: "spro-botao-icone pequeno", title: "Mais opções" }, ic("ajustes", 16)))));
+  if (modo === "agenda") {
+    lat.append(h("div", { class: "spro-segmentado", style: "justify-self:start" }, h("button", { "aria-pressed": "true" }, "Todas"), h("button", { "aria-pressed": "false" }, "Só as minhas")));
+    for (const g of AGENDA) {
+      lat.append(h("div", { class: "grupo-tit", style: `color:${g.tom}` }, g.g, h("span", { class: "n" }, String(g.itens.length))));
+      for (const it of g.itens) {
+        const c = h("div", { class: "cartao", onclick: () => c.classList.toggle("aberto") },
+          h("div", { class: "l1" }, st(it.st), h("span", { class: "nome" }, it.nome), it.resp ? av(it.resp) : null),
+          h("div", { class: "l2" }, h("span", {}, it.prj), h("span", { class: "data", style: it.st === "atr" ? "color:var(--spro-perigo)" : "" }, it.data)),
+          h("div", { class: "acoes" }, h("button", { class: "spro-botao primario pequeno" }, ic("check", 13), it.st === "marco" ? "Cumprido" : "Concluir"), h("button", { class: "spro-botao pequeno" }, "Editar"), h("button", { class: "spro-botao fantasma pequeno" }, ic("abrir", 13), "Ver no projeto")));
+        lat.append(c);
+      }
+    }
+    lat.append(h("div", { class: "lat-dica" }, "Clique num cartão para concluir ou editar sem sair daqui."));
+    return;
+  }
+  if (aberto == null) {
+    for (const [i, p] of PRJS.entries()) {
+      lat.append(h("div", { class: "cartao prj-cartao", onclick: () => { aberto = i; renderLat(); } },
+        h("div", { class: "l1" }, h("span", { style: "color:var(--spro-suave);display:inline-flex" }, ic(p.esc, 15)), h("span", { class: "nome" }, p.nome), h("b", { style: "font-size:12px" }, p.prog + "%")),
+        h("div", { class: "l2" }, h("span", { class: "barra-p" }, h("i", { style: `width:${p.prog}%;background:${p.cor}` }))),
+        h("div", { class: "l2", style: p.tom ? `color:${p.tom}` : "" }, p.info)));
+    }
+    return;
+  }
+  const p = PRJS[aberto];
+  lat.append(h("div", { class: "mg-cab" }, h("button", { class: "spro-botao-icone pequeno", onclick: () => { aberto = null; renderLat(); }, title: "Voltar" }, ic("voltar", 16)), h("h3", {}, p.nome),
+    h("button", { class: "spro-botao pequeno", title: "Abre o Gantt completo no Controle de Processos" }, ic("abrir", 13), "Abrir no painel")));
+  const mg = h("div", { class: "mg" });
+  const eixo = h("div", { style: "height:24px" }, ...[["ago", "2026-08-01"], ["set", "2026-09-01"], ["out", "2026-10-01"], ["nov", "2026-11-01"], ["dez", "2026-12-01"]].map(([m, d]) => h("span", { style: `position:absolute;top:5px;left:calc(${pct(d)}% + 3px);border-left:1px solid var(--spro-borda);padding-left:3px` }, m)));
+  eixo.append(h("span", { class: "hoje", style: `left:${pct("2026-10-06")}%` }));
+  mg.append(h("div", { class: "meses" }, h("div", { style: "padding:5px 8px" }, "Etapa"), eixo));
+  for (const e of ETAPAS) {
+    if (e.fase) { mg.append(h("div", { class: "fase" }, e.fase)); continue; }
+    const t = h("div", { class: "t" }, h("span", { class: "hoje", style: `left:${pct("2026-10-06")}%` }));
+    if (e.m) t.append(h("b", { style: `left:calc(${pct(e.a)}% - 5px);background:${e.c}` }));
+    else t.append(h("i", { style: `left:${pct(e.a)}%;width:${pct(e.b) - pct(e.a)}%;background:color-mix(in srgb, ${e.c} 55%, var(--spro-fundo))` }));
+    mg.append(h("div", { class: "row", title: e.n }, h("div", { class: "n" }, st(e.st), h("span", {}, e.n)), t));
+  }
+  lat.append(mg, h("div", { class: "lat-dica" }, "Toque numa etapa para o mesmo balão do painel (progresso, concluir, editar)."));
+}
+renderLat();
+
+/* ---------- balões no SEI ---------- */
+function fechar() { for (const b of document.querySelectorAll(".balao")) b.remove(); }
+function balaoCaixa(ancora, n) {
+  fechar();
+  const caixa = document.getElementById("caixa");
+  const dados = n === "1"
+    ? { p: "Revisão da Resolução 5.432", papel: "processo do projeto", etapas: [["atr", "Relatório de AIR", "venceu 02/10"], ["and", "Período de contribuições", "até 15/10"]] }
+    : { p: "Pregão de notebooks", papel: "processo do projeto", etapas: [["and", "Pesquisa de preços", "até 09/10"]] };
+  const b = h("div", { class: "balao" },
+    h("div", { class: "cab" }, h("span", { class: "ic34" }, ic("gantt", 17)), h("div", {}, h("b", {}, "Em 1 projeto"), h("small", {}, ancora.closest("tr").querySelector("a").textContent)), h("button", { class: "spro-botao-icone pequeno", onclick: fechar }, ic("fechar", 14))),
+    h("div", { class: "vinc" }, h("div", { class: "p" }, ic("predio", 13), dados.p, " · ", dados.papel),
+      ...dados.etapas.map(([s, nome, data]) => h("div", { class: "e" }, st(s), nome, h("span", { class: "data", style: s === "atr" ? "" : "color:var(--spro-suave)" }, data)))),
+    h("div", { class: "rod" }, h("button", { class: "spro-botao pequeno" }, "Adicionar a outro projeto"), h("button", { class: "spro-botao primario pequeno" }, ic("abrir", 13), "Abrir no painel")));
+  caixa.append(b);
+  const base = caixa.getBoundingClientRect(), r = ancora.getBoundingClientRect();
+  b.style.left = (r.left - base.left - 10) + "px"; b.style.top = (r.bottom - base.top + 6) + "px";
+}
+for (const el of document.querySelectorAll("#caixa .prj-ic")) el.addEventListener("click", (e) => { e.stopPropagation(); balaoCaixa(el, el.dataset.bal); });
+
+function balaoArvore() {
+  fechar();
+  const arv = document.getElementById("arvore");
+  const b = h("div", { class: "balao", style: "width:360px" },
+    h("div", { class: "cab" }, h("span", { class: "ic34" }, ic("gantt", 17)), h("div", {}, h("b", {}, "Projetos deste processo"), h("small", {}, "50300.001234/2026-11")), h("button", { class: "spro-botao-icone pequeno", onclick: fechar }, ic("fechar", 14))),
+    h("div", { class: "vinc" }, h("div", { class: "p" }, ic("predio", 13), "Revisão da Resolução 5.432 · processo do projeto"),
+      h("div", { class: "e" }, st("atr"), "Relatório de AIR", h("span", { class: "data" }, "venceu 02/10")),
+      h("div", { style: "display:flex;gap:6px;padding:4px 0 0 24px" }, h("button", { class: "spro-botao primario pequeno" }, ic("documento", 13), "Concluir com documento…"), h("button", { class: "spro-botao pequeno" }, "Abrir no painel"))),
+    h("div", { class: "form-add" },
+      h("b", {}, "Adicionar a um projeto"),
+      h("div", { class: "campo" }, h("span", { class: "rotulo" }, "Projeto"), h("div", { class: "combo" }, ic("predio", 14), h("span", {}, "Pregão de notebooks"), h("span", {}, ic("chevron", 14)))),
+      h("div", { class: "campo" }, h("span", { class: "rotulo" }, "Como"), h("div", { class: "spro-segmentado" }, h("button", { "aria-pressed": "true" }, "Nova etapa"), h("button", { "aria-pressed": "false" }, "Ligar a uma etapa"), h("button", { "aria-pressed": "false" }, "Processo do projeto"))),
+      h("div", { class: "campo" }, h("span", { class: "rotulo" }, "Nome da etapa"), h("input", { class: "spro-campo", value: "Revisão normativa — Resolução 5.432" })),
+      h("div", { class: "linha2" }, h("div", { class: "campo" }, h("span", { class: "rotulo" }, "Início"), h("input", { class: "spro-campo", type: "date", value: "2026-10-06" })), h("div", { class: "campo" }, h("span", { class: "rotulo" }, "Duração"), h("div", { class: "combo" }, h("span", {}, "10 dias úteis"), h("span", {}, ic("chevron", 14))))),
+      h("div", { class: "rod" }, h("button", { class: "spro-botao primario pequeno" }, ic("mais", 13), "Adicionar"))));
+  arv.append(b);
+  b.style.left = "16px"; b.style.top = "64px";
+}
+document.getElementById("icArv").addEventListener("click", (e) => { e.stopPropagation(); balaoArvore(); });
+document.getElementById("faixa").addEventListener("click", (e) => { e.stopPropagation(); balaoArvore(); });
+document.addEventListener("click", (e) => { if (!e.target.closest(".balao")) fechar(); });
+
+for (const b of document.querySelectorAll("#tema button")) b.addEventListener("click", () => {
+  document.documentElement.setAttribute("data-tema", b.dataset.t);
+  for (const x of document.querySelectorAll("#tema button")) x.setAttribute("aria-selected", String(x === b));
+});
+document.documentElement.setAttribute("data-tema", "claro");
+// abre o balão da árvore de saída, para a tela já mostrar o fluxo
+balaoArvore();
+</script>
+</body>
+</html>

@@ -43,9 +43,23 @@ const AQUI = dirname(fileURLToPath(import.meta.url));
 
 /** Fixture capturada do SEI; a primeira linha é `<!-- url: ... -->`. */
 export function fixture(nome: string): Pagina {
-  const bruto = readFileSync(join(AQUI, "fixtures", nome), "utf8");
+  const bruto = readFileSync(join(AQUI, "fixtures", nome), "utf8").replace(/\r\n/g, "\n");
   const url = /^<!-- url: (.*?) -->/.exec(bruto)?.[1] ?? "https://sei.exemplo.gov.br/sei/controlador.php";
   const html = bruto.replace(/^<!-- url: .*? -->\n/, "");
+  let doc: Document | null = null;
+  return {
+    url,
+    status: 200,
+    html,
+    get doc() {
+      return (doc ??= parser.parseFromString(html, "text/html") as unknown as Document);
+    },
+  };
+}
+
+/** Tela montada à mão, para casos que nenhuma fixture cobre (SEI 3, linha com sinal raro). */
+export function paginaSintetica(corpo: string, url = "https://sei.exemplo.gov.br/sei/controlador.php"): Pagina {
+  const html = `<html><body>${corpo}</body></html>`;
   let doc: Document | null = null;
   return {
     url,

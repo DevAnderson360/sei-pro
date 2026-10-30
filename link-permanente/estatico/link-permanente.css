@@ -1,0 +1,181 @@
+/*
+ * Janela do Link Permanente (html/link-permanente.html). Os tokens e a lista
+ * vem de sei-comum/src/ui/base.css e lista.css; aqui entra so o que e da janela.
+ *
+ * Tema: nada aqui. O app poe html[data-tema] "claro" ou "escuro" (segue o SEI) e
+ * html[data-cor-sei] com --spro-cor-sei; base.css troca os tokens --spro-*.
+ */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  color: var(--spro-texto);
+  font: 13px / 1.45 var(--spro-fonte);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- Modal (iframe transparente sobre a tela do SEI) ---------- */
+html[data-modo="modal"],
+html[data-modo="modal"] body {
+  background: transparent;
+  height: 100%;
+  overflow: hidden;
+}
+dialog.lp-modal[open] {
+  width: min(960px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--spro-pagina);
+}
+/* O showModal() pode focar o proprio dialogo: ele e a moldura, nao um controle. */
+dialog.lp-modal:focus-visible {
+  outline: none;
+}
+dialog.lp-modal::backdrop {
+  background: var(--spro-veu);
+}
+
+/* O app em coluna: so a tabela rola, o resto fica no topo. */
+#app {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  padding: 14px 16px 16px;
+  overflow-y: auto;
+}
+#app > * {
+  flex: none;
+}
+@media (max-width: 520px) {
+  #app {
+    padding: 10px;
+  }
+}
+
+/* ---------- Entrada ---------- */
+.lp-rotulo {
+  font-weight: 600;
+  color: var(--spro-suave);
+}
+textarea.lp-entrada {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 110px;
+  resize: vertical;
+  font-family: var(--spro-mono);
+  font-size: 12.5px;
+}
+.lp-reconhecidos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  color: var(--spro-suave);
+}
+.lp-reconhecidos-titulo {
+  font-weight: 600;
+}
+.lp-reconhecidos .spro-pilula {
+  --tom: var(--spro-destaque);
+}
+.lp-dica {
+  font-weight: 400;
+  color: var(--spro-suave);
+}
+.lp-nenhum {
+  color: var(--spro-fraco);
+}
+.lp-acoes,
+.lp-resultado-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.lp-progresso {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  color: var(--spro-suave);
+}
+.lp-espaco {
+  flex: 1 1 auto;
+}
+
+/* Sessao do SEI caida: o texto diz o que fazer, a cor so reforca. */
+.lp-sessao {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 12px;
+  color: var(--spro-aviso);
+  background: color-mix(in srgb, var(--spro-aviso) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--spro-aviso) 35%, transparent);
+  border-radius: var(--spro-raio);
+}
+
+/* ---------- Resultado ---------- */
+.lp-resultado {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+.lp-tabela {
+  max-height: 46vh;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  background: var(--spro-fundo);
+  border: 1px solid var(--spro-borda);
+  border-radius: var(--spro-raio);
+}
+table.spro-resultado {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+table.spro-resultado th,
+table.spro-resultado td {
+  padding: 6px 10px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--spro-borda);
+}
+table.spro-resultado th {
+  position: sticky;
+  top: 0;
+  font-weight: 600;
+  color: var(--spro-suave);
+  background: var(--spro-fundo-2);
+}
+table.spro-resultado tbody tr:last-child td {
+  border-bottom: none;
+}
+table.spro-resultado td:first-child {
+  white-space: nowrap;
+  font-weight: 600;
+}
+table.spro-resultado td a {
+  color: var(--spro-destaque);
+  word-break: break-all;
+}
+/* Situacao: a primeira celula de cada linha, sempre com o texto (a cor so reforca). */
+tr.spro-situacao-ok td:first-child {
+  color: var(--spro-ok);
+}
+tr.spro-situacao-nao-encontrado td:first-child,
+tr.spro-situacao-sem-acesso td:first-child {
+  color: var(--spro-aviso);
+}
+tr.spro-situacao-erro td:first-child {
+  color: var(--spro-perigo);
+}
+tr.spro-situacao-pendente td:first-child {
+  color: var(--spro-fraco);
+  font-weight: 400;
+}

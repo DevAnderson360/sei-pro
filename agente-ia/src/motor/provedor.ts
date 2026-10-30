@@ -33,7 +33,7 @@ export const MODELO_PADRAO = "anthropic/claude-sonnet-5";
 
 interface Delta {
   content?: string | null;
-  tool_calls?: Array<{ index?: number; id?: string; type?: string; function?: { name?: string; arguments?: string } }>;
+  tool_calls?: Array<{ index?: number; id?: string; type?: string; function?: { name?: string; arguments?: string }; extra_content?: unknown }>;
 }
 
 interface Pedaco {
@@ -49,13 +49,44 @@ interface Pedaco {
   error?: { message?: string; code?: number | string };
 }
 
+/** O provedor parou de responder no meio do stream (ver `SILENCIO_MAXIMO`). */
+export class ErroStreamParado extends Error {
+  constructor() {
+    super("O servi\u00E7o de IA parou de responder no meio da resposta. O que chegou at\u00E9 aqui foi mantido.");
+    this.name = "ErroStreamParado";
+  }
+}
+
 /** Lê um corpo SSE e entrega cada `data:` já como objeto. Ignora comentários (`: OPENROUTER PROCESSING`). */
-export async function* lerSSE(corpo: ReadableStream<Uint8Array>): AsyncGenerator<Pedaco> {
+/**
+ * Silêncio que faz desistir do stream.
+ *
+ * O provedor pode deixar a conexão aberta sem mandar `[DONE]` nem mais nada —
+ * visto em captura de rede do OpenRouter. Sem isto, `read()` fica pendurado
+ * para sempre: o painel mostra "pensando" eternamente e a rodada nunca fecha.
+ * O relógio reinicia a cada PEDAÇO recebido, inclusive os comentários de
+ * keep-alive, para não matar modelo lento que ainda está trabalhando.
+ */
+export const SILENCIO_MAXIMO = 90_000;
+
+export async function* lerSSE(corpo: ReadableStream<Uint8Array>, silencioMaximo = SILENCIO_MAXIMO): AsyncGenerator<Pedaco> {
   const leitor = corpo.getReader();
   const dec = new TextDecoder();
   let buffer = "";
   for (;;) {
-    const { value, done } = await leitor.read();
+    let relogio: ReturnType<typeof setTimeout> | undefined;
+    const semResposta = new Promise<"silencio">((ok) => {
+      relogio = setTimeout(() => ok("silencio"), silencioMaximo);
+    });
+    const leitura = await Promise.race([leitor.read(), semResposta]);
+    clearTimeout(relogio);
+    if (leitura === "silencio") {
+      // Larga o corpo pendurado e devolve o que já chegou: o texto parcial é
+      // melhor que um painel travado, e o motor precisa poder seguir.
+      await leitor.cancel().catch(() => undefined);
+      throw new ErroStreamParado();
+    }
+    const { value, done } = leitura;
     if (done) break;
     buffer += dec.decode(value, { stream: true });
     let fim: number;
@@ -79,7 +110,7 @@ export class Acumulador {
   texto = "";
   fim = "";
   uso?: Uso;
-  private readonly chamadas: Array<{ id: string; nome: string; args: string }> = [];
+  private readonly chamadas: Array<{ id: string; nome: string; args: string; extra?: unknown }> = [];
 
   somar(p: Pedaco, aoTexto?: (t: string) => void): void {
     if (p.error) throw new Error(p.error.message ?? "Erro do provedor de IA.");
@@ -96,6 +127,9 @@ export class Acumulador {
       const i = typeof tc.index === "number" ? tc.index : tc.id && this.chamadas.length ? this.chamadas.length : Math.max(0, this.chamadas.length - 1);
       const c = (this.chamadas[i] ??= { id: "", nome: "", args: "" });
       if (tc.id) c.id = tc.id;
+      // Assinatura do Gemini 3: chega no primeiro fragmento e precisa voltar
+      // intacta na próxima rodada, senão a API recusa o histórico.
+      if (tc.extra_content !== undefined) c.extra = tc.extra_content;
       if (tc.function?.name) c.nome += tc.function.name;
       if (tc.function?.arguments) c.args += tc.function.arguments;
     }
@@ -116,7 +150,7 @@ export class Acumulador {
   resposta(): RespostaLLM {
     const chamadas: ChamadaTool[] = this.chamadas
       .filter((c) => c && c.nome)
-      .map((c, i) => ({ id: c.id || `chamada_${i}`, type: "function", function: { name: c.nome, arguments: c.args || "{}" } }));
+      .map((c, i) => ({ id: c.id || `chamada_${i}`, type: "function" as const, function: { name: c.nome, arguments: c.args || "{}" }, ...(c.extra !== undefined ? { extra_content: c.extra } : {}) }));
     return { texto: this.texto, chamadas, fim: this.fim || (chamadas.length ? "tool_calls" : "stop"), uso: this.uso };
   }
 }
@@ -198,12 +232,45 @@ export const SERVICOS: Record<Servico, ServicoInfo> = {
   },
 };
 
+/**
+ * No serviço "compatível" o campo de modelo era um `<input list=datalist>`. O
+ * datalist do navegador SÓ sugere o que casa com o texto atual: com um modelo
+ * já escolhido, a setinha não reabria a lista. Com o catálogo carregado usamos
+ * um `<select>`, que sempre mostra tudo; a opção "Outro" (`outro`) devolve o
+ * campo livre para um modelo fora da lista. Sem catálogo (servidor sem
+ * /models, ou ainda sem clicar em Atualizar) o campo livre continua.
+ */
+export function campoModeloEhSelect(servico: Servico, catalogoCarregado: boolean, outro = false): boolean {
+  return servico !== "compativel" || (catalogoCarregado && !outro);
+}
+
+/** Valor da opção "Outro" no select de modelos (n\u00E3o \u00E9 id de modelo real). */
+export const MODELO_OUTRO = "__outro__";
+
 /** Atalhos de endereço para o serviço "compatível", para não decorar URL. */
 export const COMPATIVEIS: Array<{ nome: string; url: string; ajuda: string }> = [
   { nome: "NVIDIA", url: "https://integrate.api.nvidia.com/v1", ajuda: "Chave nvapi-... de build.nvidia.com. O plano gratuito \u00E9 de avalia\u00E7\u00E3o: os termos da NVIDIA n\u00E3o cobrem uso em produ\u00E7\u00E3o." },
   { nome: "Groq", url: "https://api.groq.com/openai/v1", ajuda: "Chave gsk_... de console.groq.com." },
-  { nome: "Ollama nesta m\u00E1quina", url: "http://localhost:11434/v1", ajuda: "Modelo rodando no pr\u00F3prio computador: nada sai da m\u00E1quina. A chave pode ser qualquer texto." },
+  { nome: "Ollama nesta m\u00E1quina", url: "http://localhost:11434/v1", ajuda: "Modelo rodando no pr\u00F3prio computador: nada sai da m\u00E1quina. A chave pode ser qualquer texto. Antes, libere a extens\u00E3o no Ollama (OLLAMA_ORIGINS) e reinicie-o; sem isso a conversa falha com 403. Passo a passo na documenta\u00E7\u00E3o." },
 ];
+
+/** Valor do select de atalhos quando o usuário digita a URL à mão. */
+export const ENDERECO_OUTRO = "";
+
+/** Atalho conhecido (NVIDIA, Groq, Ollama…) para esta URL, se houver. */
+export function atalhoDeEndereco(url: string): (typeof COMPATIVEIS)[number] | undefined {
+  const n = normalizarUrl(url);
+  return COMPATIVEIS.find((c) => c.url === n);
+}
+
+/**
+ * Valor do <select> de endereço: URL do atalho, ou `ENDERECO_OUTRO` (= digitar).
+ * O datalist filtrava pelo texto atual e escondia os atalhos com o campo cheio;
+ * o select sempre lista todos, e "Outro" preserva URL livre.
+ */
+export function valorSelectEndereco(url: string): string {
+  return atalhoDeEndereco(url)?.url ?? ENDERECO_OUTRO;
+}
 
 /**
  * Controle fino do modelo (a antiga "configuração avançada" do chat de IA).
@@ -231,6 +298,8 @@ export interface OpcoesProvedor {
   ajustes?: Ajustes;
   /** Marcação de cache de prompt (padrão: ligada). */
   cache?: boolean;
+  /** Silêncio tolerado no meio do stream, em ms (ver `SILENCIO_MAXIMO`). Para testes. */
+  silencioMaximo?: number;
   /** Para testes. */
   fetch?: typeof fetch;
 }
@@ -279,6 +348,24 @@ export function exigeReasoningNoneComTools(modelo: string): boolean {
  * que cada modelo aceita — que envelhece mal —, o pedido é refeito sem o campo
  * que a mensagem citou.
  */
+/**
+ * O modelo exige que o raciocínio seja desligado para aceitar ferramentas?
+ *
+ * Caso real (relato de usuária, 06/10/2026): um modelo de raciocínio recusava
+ * toda pergunta com "Function tools with reasoning_effort are not supported
+ * for <modelo> in /v1/chat/completions. To use function tools, use
+ * /v1/responses or set reasoning to \"none\"".
+ *
+ * O ponto que confunde: o SEI Pro NÃO envia `reasoning_effort`. Ele é o padrão
+ * do próprio modelo. A saída, que a mensagem indica, é declará-lo como "none"
+ * — ou seja, ACRESCENTAR um campo, enquanto o agente só sabia remover o campo
+ * que o erro citasse.
+ */
+export function precisaDesligarRaciocinio(corpo: string): boolean {
+  const texto = corpo.toLowerCase();
+  return texto.includes("reasoning") && /tool|function/.test(texto);
+}
+
 export function parametroRecusado(corpo: string): string | null {
   const nomes = ["temperature", "top_p", "max_tokens", "frequency_penalty", "presence_penalty", "reasoning_effort", "stream_options"];
   const texto = corpo.toLowerCase();
@@ -293,7 +380,91 @@ function esperar(ms: number, sinal: AbortSignal): Promise<void> {
 }
 
 /** Mensagem de erro do provedor em linguagem de usuário. */
-export function mensagemDeErro(status: number, corpo: string, servico: Servico = "openrouter"): string {
+/**
+ * Erro do serviço de IA, com o que o diagnóstico precisa.
+ *
+ * A mensagem é para o usuário; `status` e `corpo` são para quem for ajudar a
+ * resolver — e é isso que o botão de copiar do cartão de erro leva junto.
+ */
+export class ErroProvedor extends Error {
+  constructor(
+    mensagem: string,
+    readonly status: number,
+    readonly corpo: string,
+  ) {
+    super(mensagem);
+    this.name = "ErroProvedor";
+  }
+}
+
+/** O 429 é de falta de crédito (permanente) e não de pressa (passageiro)? */
+export function semCredito(corpo: string): boolean {
+  return /insufficient_quota|exceeded your current quota|billing|sem cr\u00E9dito/i.test(corpo);
+}
+
+/**
+ * Segundos do cabeçalho `Retry-After`, que vem em segundos ou como data.
+ *
+ * Devolve `null` quando não há cabeçalho ou ele não faz sentido — aí vale a
+ * espera dobrada de sempre.
+ */
+export function segundosDoRetryAfter(valor: string | null | undefined): number | null {
+  if (!valor) return null;
+  const n = Number(valor.trim());
+  if (Number.isFinite(n) && n >= 0) return Math.round(n);
+  const quando = Date.parse(valor);
+  if (Number.isNaN(quando)) return null;
+  return Math.max(0, Math.round((quando - Date.now()) / 1000));
+}
+
+/** Teto da espera entre tentativas: além disso, é melhor devolver o erro. */
+const ESPERA_MAXIMA = 60_000;
+
+/**
+ * Quanto esperar antes de repetir o pedido.
+ *
+ * O provedor sabe melhor que nós: quando ele manda `Retry-After`, é esse o
+ * tempo. Sem ele, dobra-se a espera. Antes era sempre 1s, 2s e 4s — curto
+ * demais para um limite por MINUTO, e cada tentativa gastava mais da cota que
+ * já estava estourada.
+ */
+export function esperaDaTentativa(tentativa: number, retryAfter: string | null | undefined): number {
+  const pedido = segundosDoRetryAfter(retryAfter);
+  if (pedido !== null) return Math.min(pedido * 1000, ESPERA_MAXIMA);
+  return Math.min(1000 * 2 ** tentativa, ESPERA_MAXIMA);
+}
+
+/** Vale repetir este pedido, ou o erro é permanente? */
+export function valeRepetir(status: number, corpo: string): boolean {
+  if (status >= 500) return true;
+  if (status !== 429) return false;
+  return !semCredito(corpo);
+}
+
+/**
+ * O endereço aponta para esta máquina (ou para a rede local)? Num servidor
+ * local, 403 quase nunca é chave: o Ollama, por exemplo, não confere chave e
+ * devolve 403 quando a origem `chrome-extension://...` não está em
+ * OLLAMA_ORIGINS. O Chrome só manda `Origin` no POST (o GET de /models vai
+ * sem), por isso "Atualizar" lista os modelos e a conversa falha.
+ */
+export function enderecoLocal(url: string | undefined): boolean {
+  if (!url) return false;
+  let host: string;
+  try {
+    host = new URL(url).hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  } catch {
+    return false;
+  }
+  return (
+    host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local") || host.endsWith(".internal") ||
+    host === "::1" || host === "0.0.0.0" || /^127\./.test(host) || /^169\.254\./.test(host) ||
+    /^f[cd][0-9a-f]{2}:/.test(host) || /^fe[89ab][0-9a-f]:/.test(host) ||
+    /^10\./.test(host) || /^192\.168\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host)
+  );
+}
+
+export function mensagemDeErro(status: number, corpo: string, servico: Servico = "openrouter", retryAfter?: string | null, url?: string): string {
   let msg = corpo;
   try {
     msg = (JSON.parse(corpo) as { error?: { message?: string } }).error?.message ?? corpo;
@@ -301,10 +472,37 @@ export function mensagemDeErro(status: number, corpo: string, servico: Servico =
     /* não é JSON */
   }
   const onde = SERVICOS[servico]?.nome.replace(/ \(.*\)$/, "") ?? "servi\u00E7o de IA";
+  if (status === 403 && servico === "compativel" && enderecoLocal(url)) {
+    return (
+      `O servidor local (${url}) recusou o pedido (403). Se for o Ollama, a causa quase certa n\u00E3o \u00E9 a chave (ele n\u00E3o confere chave): ` +
+      "ele recusa extens\u00F5es do navegador at\u00E9 a origem delas ser liberada. Defina OLLAMA_ORIGINS=chrome-extension://*,moz-extension://* e reinicie o Ollama " +
+      `(passo a passo no Windows, Mac e Linux: ${DOC_CHAVES}#outro-servico-compativel). Se n\u00E3o for o Ollama, confira a chave e as regras de acesso do servidor.`
+    );
+  }
   if (status === 401 || status === 403) return `A chave do ${onde} foi recusada. Confira a chave nas configura\u00E7\u00F5es do agente.`;
   if (status === 402) return `Sem cr\u00E9dito no ${onde} para este modelo. Adicione cr\u00E9ditos ou escolha um modelo mais barato.`;
+  // O agente depende de ferramentas: é com elas que ele lê o processo e
+  // escreve no SEI. Um modelo que não as aceita não serve aqui, por melhor que
+  // seja — então a mensagem manda trocar de modelo, e não "tente de novo".
+  if (status === 400 && precisaDesligarRaciocinio(corpo)) {
+    return `O modelo escolhido n\u00E3o aceita, neste servi\u00E7o, combinar racioc\u00EDnio com as ferramentas que o agente usa para ler o processo e escrever no SEI. O agente j\u00E1 tentou desligar o racioc\u00EDnio e o ${onde} recusou. Escolha outro modelo nas configura\u00E7\u00F5es do agente \u2014 os da gera\u00E7\u00E3o anterior e as vers\u00F5es "mini" costumam aceitar.`;
+  }
   if (status === 404 && servico !== "openrouter") return `O ${onde} respondeu 404. Confira o endere\u00E7o (costuma terminar em /v1) e o nome do modelo.`;
-  if (status === 429) return "Muitas requisi\u00E7\u00F5es ao modelo agora. Aguarde alguns segundos e tente de novo.";
+  if (status === 429) {
+    // A OpenAI (e quem imita a API dela) devolve 429 para DUAS coisas opostas:
+    // conta sem crédito e pedido rápido demais. Quem está sem crédito e lê
+    // "aguarde alguns segundos" fica tentando para sempre — foi o que um
+    // usuário relatou, com a tela inteira do mesmo aviso.
+    if (semCredito(corpo)) {
+      return `A sua conta do ${onde} est\u00E1 sem cr\u00E9dito para a API (quota esgotada). Tentar de novo n\u00E3o resolve: adicione cr\u00E9ditos na conta do ${onde} ou configure outro servi\u00E7o nas configura\u00E7\u00F5es do agente.`;
+    }
+    const espera = segundosDoRetryAfter(retryAfter);
+    return (
+      `O ${onde} limitou o ritmo${espera ? `: espere ${espera} segundos` : " de uso agora"}. ` +
+      "Cada pergunta do agente leva junto o cat\u00E1logo de ferramentas do SEI (cerca de 9 mil tokens), e conta nova costuma ter limite baixo por minuto. " +
+      "Se repetir, escolha um modelo com limite maior (um \"mini\" costuma ter) ou aumente o limite da sua conta."
+    );
+  }
   // O pedido leva `data_collection: "deny"`: se todo provedor daquele modelo
   // guarda ou treina com os dados, o OpenRouter fica sem para onde rotear.
   if (/no allowed providers/i.test(msg)) {
@@ -343,6 +541,26 @@ export function comCache(mensagens: PedidoLLM["mensagens"], modelo: string, serv
   return saida;
 }
 
+/**
+ * Tira do histórico as assinaturas que pertencem a OUTRO provedor.
+ *
+ * A `thought_signature` do Gemini 3 é obrigatória para ele e desconhecida para
+ * os demais — e campo estranho no corpo costuma virar 400. Como o usuário pode
+ * trocar de modelo no meio da conversa e o histórico continua o mesmo, a
+ * limpeza acontece na hora de enviar, não na hora de guardar.
+ */
+export function limparAssinaturasDeOutro(mensagens: PedidoLLM["mensagens"], modelo: string, servico: Servico): PedidoLLM["mensagens"] {
+  if (servico === "gemini" || /gemini/i.test(modelo)) return mensagens;
+  let mexeu = false;
+  const saida = mensagens.map((m) => {
+    const chamadas = (m as { tool_calls?: ChamadaTool[] }).tool_calls;
+    if (!Array.isArray(chamadas) || !chamadas.some((c) => c?.extra_content !== undefined)) return m;
+    mexeu = true;
+    return { ...m, tool_calls: chamadas.map(({ extra_content: _assinatura, ...resto }) => resto) };
+  });
+  return mexeu ? saida : mensagens;
+}
+
 export function criarProvedor(o: OpcoesProvedor): Provedor {
   const fazer = o.fetch ?? ((...a: Parameters<typeof fetch>) => fetch(...a));
   const servico = o.servico ?? "openrouter";
@@ -363,7 +581,7 @@ export function criarProvedor(o: OpcoesProvedor): Provedor {
       const montar = () =>
         JSON.stringify({
           model: modelo,
-          messages: o.cache === false ? pedido.mensagens : comCache(pedido.mensagens, modelo, servico),
+          messages: limparAssinaturasDeOutro(o.cache === false ? pedido.mensagens : comCache(pedido.mensagens, modelo, servico), modelo, servico),
           tools: pedido.tools.length ? pedido.tools : undefined,
           stream: true,
           ...Object.fromEntries(Object.entries(parametros).filter(([k]) => !recusados.has(k))),
@@ -381,9 +599,16 @@ export function criarProvedor(o: OpcoesProvedor): Provedor {
           body: montar(),
           signal: sinal,
         });
-        if ((r.status === 429 || r.status >= 500) && tentativa < 3) {
-          await esperar(1000 * 2 ** tentativa, sinal);
-          continue;
+        if (r.status === 429 || r.status >= 500) {
+          // O corpo só pode ser lido uma vez: lê-se aqui e o texto é
+          // reaproveitado tanto para decidir quanto para a mensagem final.
+          const texto = await r.text();
+          const quando = r.headers?.get?.("retry-after") ?? null;
+          if (valeRepetir(r.status, texto) && tentativa < 3) {
+            await esperar(esperaDaTentativa(tentativa, quando), sinal);
+            continue;
+          }
+          throw new ErroProvedor(mensagemDeErro(r.status, texto, servico, quando, base(o)), r.status, texto.slice(0, 500));
         }
         if (r.status === 400) {
           const texto = await r.text();
@@ -402,17 +627,34 @@ export function criarProvedor(o: OpcoesProvedor): Provedor {
             recusados.add("max_tokens");
             continue;
           }
+          // Modelo de raciocínio que só aceita ferramentas com o raciocínio
+          // desligado: aqui se ACRESCENTA o campo, em vez de remover.
+          if (precisaDesligarRaciocinio(texto) && parametros.reasoning_effort !== "none") {
+            parametros.reasoning_effort = "none";
+            continue;
+          }
           // Ajuste fino que este modelo não aceita: tira o campo citado e repete.
           const culpado = parametroRecusado(texto);
           if (culpado && !recusados.has(culpado) && culpado in parametros) {
             recusados.add(culpado);
             continue;
           }
-          throw new Error(mensagemDeErro(400, texto, servico));
+          throw new ErroProvedor(mensagemDeErro(400, texto, servico, null, base(o)), 400, texto.slice(0, 500));
         }
-        if (!r.ok || !r.body) throw new Error(mensagemDeErro(r.status, await r.text(), servico));
+        if (!r.ok || !r.body) {
+          const texto = await r.text();
+          throw new ErroProvedor(mensagemDeErro(r.status, texto, servico, r.headers?.get?.("retry-after") ?? null, base(o)), r.status, texto.slice(0, 500));
+        }
         const acc = new Acumulador();
-        for await (const pedaco of lerSSE(r.body)) acc.somar(pedaco, aoTexto);
+        try {
+          for await (const pedaco of lerSSE(r.body, o.silencioMaximo)) acc.somar(pedaco, aoTexto);
+        } catch (e) {
+          if (!(e instanceof ErroStreamParado)) throw e;
+          // Chamada de ferramenta pela metade não se executa: os argumentos
+          // podem estar cortados no meio do JSON. Texto parcial, sim, vale.
+          const parcial = acc.resposta();
+          return { ...parcial, chamadas: [], fim: "parado", interrompida: true, ...(parcial.uso ? { registroUso: criarRegistroUsoChamada(modelo, parcial.uso) } : {}) };
+        }
         const resposta = acc.resposta();
         return resposta.uso ? { ...resposta, registroUso: criarRegistroUsoChamada(modelo, resposta.uso) } : resposta;
       }
@@ -461,7 +703,7 @@ export async function listarModelos(o: { servico?: Servico; url?: string; chave?
   const endereco = `${base({ servico, url: o.url })}/models`;
   if (servico !== "openrouter") {
     const r = await f(endereco, { headers: o.chave ? cabecalhos(servico, o.chave) : {} });
-    if (!r.ok) throw new Error(mensagemDeErro(r.status, await r.text(), servico));
+    if (!r.ok) throw new Error(mensagemDeErro(r.status, await r.text(), servico, null, endereco));
     const j = (await r.json()) as { data?: Array<{ id: string; display_name?: string }> };
     return (j.data ?? [])
       // O Gemini devolve "models/gemini-2.5-flash"; o pedido quer o id sem o prefixo.

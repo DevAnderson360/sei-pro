@@ -1,0 +1,128 @@
+import { corDoTexto, corPadrao, destaqueDaCorSei, PALETA } from "../src/modelo/cores";
+import { chaveEscopo, escoposDoContexto } from "../src/modelo/escopo";
+import { editar, filtrar, novoFavorito, ordenar, remover, restaurar } from "../src/modelo/operacoes";
+import type { ContextoAba, Etiqueta, Favorito } from "../src/modelo/tipos";
+import { checar, secao } from "./util";
+
+export const CTX: ContextoAba = {
+  host: "sei.antaq.gov.br",
+  login: "Pedro.Soares",
+  nome: "Pedro",
+  unidade: { id: "110000001", sigla: "GPF", nome: "Gerência" },
+  versao: "5.0.4",
+  temaEscuro: false,
+};
+
+export function verificarModelo(): void {
+  secao("escopo");
+  const { unidade, pessoal } = escoposDoContexto(CTX);
+  checar(
+    "chave da unidade (login minusculo)",
+    unidade !== null && chaveEscopo(unidade) === "sei.antaq.gov.br|pedro.soares|u:110000001",
+    unidade && chaveEscopo(unidade),
+  );
+  checar("chave pessoal", chaveEscopo(pessoal) === "sei.antaq.gov.br|pedro.soares|pessoal");
+  checar("sem unidade na tela, so a Pessoal (Review Focus 4)", escoposDoContexto({ ...CTX, unidade: null }).unidade === null);
+  checar(
+    "unidade sem id tambem nao vira escopo",
+    escoposDoContexto({ ...CTX, unidade: { id: "", sigla: "X", nome: "" } }).unidade === null,
+  );
+
+  secao("cores");
+  checar("cor padrao vem da paleta e e estavel", PALETA.includes(corPadrao("Urgente")) && corPadrao("Urgente") === corPadrao(" urgente "));
+  checar("texto escuro em fundo claro, claro em fundo escuro", corDoTexto("#fff9c4") === "#1f2328" && corDoTexto("#123456") === "#ffffff");
+  checar(
+    "cor do tema do SEI (rgb do getComputedStyle) vira hex",
+    destaqueDaCorSei("rgb(21, 94, 158)") === "#155e9e",
+    destaqueDaCorSei("rgb(21, 94, 158)"),
+  );
+  checar("aceita hex", destaqueDaCorSei("#1F5FBF") === "#1f5fbf");
+  checar(
+    "transparente ou cinza nao serve (fica o azul padrao)",
+    destaqueDaCorSei("rgba(0, 0, 0, 0)") === null && destaqueDaCorSei("rgb(80, 80, 80)") === null,
+  );
+  const clara = destaqueDaCorSei("rgb(120, 200, 120)");
+  checar(
+    "cor clara demais e escurecida para dar contraste com o branco",
+    !!clara && clara !== "#78c878" && corDoTexto(clara) === "#ffffff",
+    clara,
+  );
+  checar("lixo nao quebra", destaqueDaCorSei("") === null && destaqueDaCorSei("var(--x)") === null);
+
+  secao("operacoes");
+  const c = { agora: 1000, dispositivo: "D1" };
+  const sig = novoFavorito({ id: "9", protocolo: "1/2026", tipo: "T", especificacao: "segredo", sigiloso: true }, "a0", c);
+  checar("sigiloso sem especificacao", sig.sigiloso === true && sig.especificacao === undefined && sig.tipo === "T");
+  const f = novoFavorito({ id: "1", protocolo: "50300.018905/2018-67", tipo: "Fiscalização", especificacao: "Porto X" }, "a0", c);
+  checar(
+    "novo monitorado carimbado",
+    f.criadoEm === 1000 && f.atualizadoEm === 1000 && f.dispositivo === "D1" && f.etiquetas.length === 0 && !("sigiloso" in f),
+  );
+  const e = editar(f, { titulo: "Meu título", nota: undefined }, { agora: 2000, dispositivo: "D2" });
+  checar(
+    "editar carimba e tira chaves vazias",
+    e.titulo === "Meu título" && e.atualizadoEm === 2000 && e.dispositivo === "D2" && !("nota" in e),
+  );
+  checar("editar nao muda o original", f.titulo === undefined);
+  const r = remover(e, { agora: 3000, dispositivo: "D1" });
+  checar("remover vira lapide", r.removidoEm === 3000 && r.atualizadoEm === 3000);
+  const v = restaurar(r, { agora: 4000, dispositivo: "D1" });
+  checar("restaurar tira a lapide", !("removidoEm" in v) && v.atualizadoEm === 4000);
+
+  secao("filtro e busca");
+  const et: Etiqueta = { id: "e1", nome: "Urgência", cor: "#fff", atualizadoEm: 1, dispositivo: "D" };
+  const lista: Favorito[] = [
+    { ...f, id: "1", titulo: "Fiscalização do porto", etiquetas: ["e1"], pasta: "p1", ordem: "a1" },
+    {
+      ...f,
+      id: "2",
+      protocolo: "00000.000004/2025-54",
+      tipo: "Contrato",
+      especificacao: "Limpeza",
+      etiquetas: [],
+      ordem: "a0",
+      nota: "ligar para o fiscal",
+    },
+    { ...f, id: "3", protocolo: "1/2026", ordem: "a2", removidoEm: 5 },
+  ];
+  const apoio = { etiquetas: new Map([["e1", et]]), resumo: () => undefined };
+  const ids = (l: Favorito[]) => l.map((x) => x.id).join();
+  checar("busca ignora acento e caixa", ids(filtrar(lista, { busca: "fiscalizacao" }, apoio)) === "1");
+  checar("busca pelo numero do protocolo", ids(filtrar(lista, { busca: "018905" }, apoio)) === "1");
+  checar("busca pela etiqueta", ids(filtrar(lista, { busca: "urgencia" }, apoio)) === "1");
+  checar("busca com dois termos na nota", ids(filtrar(lista, { busca: "FISCAL ligar" }, apoio)) === "2");
+  checar("lapide nunca aparece", !filtrar(lista, {}, apoio).some((x) => x.id === "3"));
+  checar("filtro por pasta", ids(filtrar(lista, { pastas: ["p1"] }, apoio)) === "1");
+  checar("filtro sem pasta", ids(filtrar(lista, { pastas: ["__sem__"] }, apoio)) === "2");
+  checar("duas pastas = uma OU outra", ids(filtrar(lista, { pastas: ["p1", "__sem__"] }, apoio)) === "1,2");
+  checar("lista vazia nao filtra", ids(filtrar(lista, { pastas: [], etiquetas: [] }, apoio)) === "1,2");
+  checar("filtro por etiqueta", ids(filtrar(lista, { etiquetas: ["e1"] }, apoio)) === "1");
+  checar("etiquetas = qualquer uma delas", ids(filtrar(lista, { etiquetas: ["e9", "e1"] }, apoio)) === "1");
+  checar("campos diferentes = E", ids(filtrar(lista, { pastas: ["__sem__"], etiquetas: ["e1"] }, apoio)) === "");
+  checar("filtro sem prazo", ids(filtrar(lista, { prazos: ["semPrazo"] }, apoio)) === "1,2");
+  checar("situacao: com nota", ids(filtrar(lista, { situacoes: ["nota"] }, apoio)) === "2");
+  const orfa = [...lista.slice(0, 2), { ...f, id: "4", pasta: "apagada", ordem: "a3" }];
+  checar(
+    "pasta que nao existe mais conta como 'sem pasta' (igual a contagem e ao agrupamento)",
+    ids(filtrar(orfa, { pastas: ["__sem__"] }, { ...apoio, pastas: new Set(["p1"]) })) === "2,4",
+  );
+
+  secao("ordenacao");
+  checar("manual pela chave com <", ids(ordenar(lista, "manual", () => undefined)) === "2,1,3");
+  checar("protocolo numerico", ids(ordenar(lista.slice(0, 2), "protocolo", () => undefined)) === "2,1");
+  const resumo = (x: Favorito) => (x.id === "1" ? { situacao: "noPrazo" as const, texto: "", dica: "", ordem: 3 } : undefined);
+  checar("por prazo, sem prazo por ultimo", ids(ordenar(lista.slice(0, 2), "prazo", resumo)) === "1,2");
+  checar(
+    "inclusao mais recente primeiro",
+    ids(
+      ordenar(
+        [
+          { ...lista[0]!, criadoEm: 1 },
+          { ...lista[1]!, criadoEm: 2 },
+        ],
+        "inclusao",
+        () => undefined,
+      ),
+    ) === "2,1",
+  );
+}

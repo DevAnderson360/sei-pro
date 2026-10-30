@@ -36,7 +36,7 @@ var docsLote_docAnalysis = async (protocolo, nrTxtPadrao) => {
     dynamicFields = [];
 
     if (!$('#loaderAnalysis')[0]) { //So o loader renderiza se ja nao existir
-        $('#dialogBoxDocLote').append(`<div id='loaderAnalysis' style='height: 40px; text-align: center; display: block;'><i class="fas fa-spinner fa-spin azulColor" style="scale:3;"></i></div>`);
+        htmlPro($('#dialogBoxDocLote'), `<div id='loaderAnalysis' style='height: 40px; text-align: center; display: block;'><i class="fas fa-spinner fa-spin azulColor" style="scale:3;"></i></div>`, 'append');
         $("#btnConfirmAnalysis").prop('disabled', true).addClass('ui-button-disabled ui-state-disabled'); //Desabilita Botao OK ate o carregamento
     }
 
@@ -67,22 +67,22 @@ var docsLote_fillModelAnalysis = async (matches, selectedDoc, txtModelo = false)
     selectedModel = selectedDoc;
     dynamicFields = matches.map((field) => field.trim());
 
-    $('#dialogBoxDocLote').append(`<div id='fieldList'></div>`);
-    $('#fieldList').append(`<p class="textAnalysis"><i class='fas fa-${txtModelo ? 'keyboard' : 'file-alt'} cinzaColor'></i> ${txtModelo ? 'Texto Padr\u00E3o' : 'Documento'} : ${selectedDoc.nome}</p>`)
+    htmlPro($('#dialogBoxDocLote'), `<div id='fieldList'></div>`, 'append');
+    htmlPro($('#fieldList'), `<p class="textAnalysis"><i class='fas fa-${txtModelo ? 'keyboard' : 'file-alt'} cinzaColor'></i> ${txtModelo ? 'Texto Padr\u00E3o' : 'Documento'} : ${selectedDoc.nome}</p>`, 'append')
     if (txtModelo) {
         $("#btnConfirmAnalysis").prop('disabled', true).addClass('ui-button-disabled ui-state-disabled');
         
         const tiposDocumentos = await getTypeSEI('documentos');
         const selectTiposDocumentos = tiposDocumentos ? $.map(tiposDocumentos, function(v){ return '<option value="'+v.id+'">'+v.name+'</option>' }).join('') : false;
 
-        $('#fieldList').append(`
+        htmlPro($('#fieldList'), `
             <p class="textAnalysis">
                 <i class='fas fa-file-alt cinzaColor'></i> Tipo de Documento:
             </p>
             <p class="textAnalysis">
                 <select style="width:300px" id="tipoDocumentoSelect"><option value="">Selecione um tipo de documento</option>${selectTiposDocumentos}</select>
             </p>
-            `);
+            `, 'append');
         
         $('#tipoDocumentoSelect').chosen({
             placeholder_text_single: ' ', 
@@ -110,11 +110,11 @@ var docsLote_fillModelAnalysis = async (matches, selectedDoc, txtModelo = false)
             lista += `<li>${field.replaceAll('#', '')}</li>\n`
         })
         lista += '</ul>';
-        $('#fieldList').append(`<p class="textAnalysis dFielTitle"><i class='fas fa-hashtag cinzaColor'></i> Campos din\u00E2micos detectados:</p>`)
-        $('#fieldList').append(lista);
+        htmlPro($('#fieldList'), `<p class="textAnalysis dFielTitle"><i class='fas fa-hashtag cinzaColor'></i> Campos din\u00E2micos detectados:</p>`, 'append')
+        htmlPro($('#fieldList'), lista, 'append');
         if (!txtModelo) $("#btnConfirmAnalysis").prop('disabled', false).removeClass('ui-button-disabled ui-state-disabled');
     } else {
-        $('#fieldList').append(`<small class="noFieldsError">N\u00E3o foi identificado nenhum campo din\u00E2mico no documento modelo informado. Verifique se os mesmos foram redigidos corretamente com o padr\u00E3o ##nome do campo##.</small>`)
+        htmlPro($('#fieldList'), `<small class="noFieldsError">N\u00E3o foi identificado nenhum campo din\u00E2mico no documento modelo informado. Verifique se os mesmos foram redigidos corretamente com o padr\u00E3o ##nome do campo##.</small>`, 'append')
     }
     centralizeDialogBox(dialogBoxPro);
 
@@ -123,6 +123,7 @@ var docsLote_fillModelAnalysis = async (matches, selectedDoc, txtModelo = false)
 var docsLote_detectEncodingCSV = () => {
     $("#inputBD").on("change", function () {
         const file = $(this)[0].files[0];
+        if (!file) return; //o usuario reabriu o seletor e cancelou: readAsBinaryString(undefined) lancava TypeError
         const reader = new FileReader();
         reader.onload = function (e) {
             let csvResult = e.target.result.split(/\r|\n|\r\n/);
@@ -137,7 +138,7 @@ var docsLote_detectEncodingCSV = () => {
 var docsLote_CSVAnalysis = (file) => {
     $('#fieldListCSV').remove();
     //So renderiza se ja nno existir
-    if (!$('#loaderAnalysisCSV')[0]) $('#dialogBoxDocLote').append(`<div id='loaderAnalysisCSV' style='height: 40px; text-align: center; display: block;'><i class="fas fa-spinner fa-spin azulColor" style="scale:3;"></i></div>`);
+    if (!$('#loaderAnalysisCSV')[0]) htmlPro($('#dialogBoxDocLote'), `<div id='loaderAnalysisCSV' style='height: 40px; text-align: center; display: block;'><i class="fas fa-spinner fa-spin azulColor" style="scale:3;"></i></div>`, 'append');
 
     Papa.parse(file, {
         header: true,
@@ -158,18 +159,18 @@ var docsLote_fillCSVAnalysis = (parseData, filename) => {
     if (typeof CSVData[0] !== 'undefined' && CSVData[0] !== null) {
         CSVHeaders = Object.keys(CSVData[0]).filter(Boolean); // Rearranjo para remover cabecalhos vazios
 
-        $('#dialogBoxDocLote').append(`<div id='fieldListCSV'></div>`)
-        $('#fieldListCSV').append(`<p class="textAnalysis"><i class='fas fa-file-csv azulColor'></i> Arquivo: ${filename}</p>`)
+        htmlPro($('#dialogBoxDocLote'), `<div id='fieldListCSV'></div>`, 'append')
+        htmlPro($('#fieldListCSV'), `<p class="textAnalysis"><i class='fas fa-file-csv azulColor'></i> Arquivo: ${filename}</p>`, 'append')
         if (CSVHeaders.length) {
             let lista = `<ul class="textAnalysis" style="max-height: 250px;overflow-y: auto;">\n`;
                 CSVHeaders.forEach((field) => {
                     lista += `<li>${field}</li>\n`
                 });
                 lista += '</ul>';
-            $('#fieldListCSV').append(`
+            htmlPro($('#fieldListCSV'), `
                 <p class="textAnalysis dFielTitle"><i class='fas fa-layer-group cinzaColor'></i> Quantidade de registros: ${CSVData.length}</p>
                 <p class="textAnalysis dFielTitle"><i class='fas fa-hashtag cinzaColor'></i> Cabe\u00E7alhos detectados:</p>
-                ${lista}`);
+                ${lista}`, 'append');
             $("#btnConfirmAnalysis").prop('disabled', false).removeClass('ui-button-disabled ui-state-disabled');
         } else {
             docsLote_printFieldError();
@@ -180,7 +181,7 @@ var docsLote_fillCSVAnalysis = (parseData, filename) => {
 }
 
 var docsLote_printFieldError = () => {
-    $('#dialogBoxDocLote').append(`<p class="noFieldsError"><i class="fas fa-exclamation-triangle vermelhoColor"></i> N\u00E3o foi identificado nenhum cabe\u00E7alho no arquivo enviado. <br><br>\uD83E\uDD14 Verifique se a planilha n\u00E3o est\u00E1 vazia.</p>`);
+    htmlPro($('#dialogBoxDocLote'), `<p class="noFieldsError"><i class="fas fa-exclamation-triangle vermelhoColor"></i> N\u00E3o foi identificado nenhum cabe\u00E7alho no arquivo enviado. <br><br>\uD83E\uDD14 Verifique se a planilha n\u00E3o est\u00E1 vazia.</p>`, 'append');
     $("#btnConfirmAnalysis").prop('disabled', true).addClass('ui-button-disabled ui-state-disabled');
 }
 var docsLote_printDataCrossing = async () => {
@@ -196,7 +197,7 @@ var docsLote_printDataCrossing = async () => {
         });
 
     if (!dataCrossing[0]) {
-        $('#dialogBoxDocLote').html(`<p class="noFieldsError"><i class="fas fa-exclamation-triangle vermelhoColor"></i> N\u00E3o existe correspond\u00EAncia no arquivo CSV informado!</p>`);
+        htmlPro($('#dialogBoxDocLote'), `<p class="noFieldsError"><i class="fas fa-exclamation-triangle vermelhoColor"></i> N\u00E3o existe correspond\u00EAncia no arquivo CSV informado!</p>`);
         $("#btnConfirm").prop('disabled', true).addClass('ui-button-disabled ui-state-disabled');
     } else {
         let tbody = '';
@@ -215,7 +216,7 @@ var docsLote_printDataCrossing = async () => {
         const selectTiposProcessos = tiposProcessos ? $.map(tiposProcessos, function(v){ return '<option value="'+v.id+'">'+v.name+'</option>' }).join('') : false;
 
 
-        $('#dialogBoxDocLote').append(`
+        htmlPro($('#dialogBoxDocLote'), `
             <div id="divTableDataCrossing">
                 <div style="max-height: 300px;overflow-y: auto;">
                     <table id="tableDataCrossing" style="font-size: 9pt !important;width: 100%;" class="seiProForm tableInfo tableZebra tableFollow">
@@ -237,7 +238,7 @@ var docsLote_printDataCrossing = async () => {
                             `
                             <tr>
                                 <td colspan="2">
-                                    <p style="font-size: 1.2em;"><i class='fas fa-file-alt cinzaColor'></i> Nome do documento na \u00E1rvore de processos <a class="newLink" style="font-size: 0.8em;" onmouseout="return infraTooltipOcultar();" onmouseover="return infraTooltipMostrar(\'Alguns documentos possuem a propriedade <b>N\u00FAmero</b> que quando preenchida exibe o valor na \u00E1rvore de processos logo ap\u00F3s o tipo. Exemplo: Anexo Contrato (Anexo = tipo e Contrato = N\u00FAmero)\')"><i class="fas fa-info-circle azulColor"></i></a></p>
+                                    <p style="font-size: 1.2em;"><i class='fas fa-file-alt cinzaColor'></i> Coluna da planilha com o nome do documento na \u00E1rvore de processos <a class="newLink" style="font-size: 0.8em;" data-spro-tip="Alguns documentos possuem a propriedade <b>N\u00FAmero</b> que quando preenchida exibe o valor na \u00E1rvore de processos logo ap\u00F3s o tipo. Exemplo: Anexo Contrato (Anexo = tipo e Contrato = N\u00FAmero)"><i class="fas fa-info-circle azulColor"></i></a></p>
                                 </td>
                             </tr>
                             <tr>
@@ -263,7 +264,7 @@ var docsLote_printDataCrossing = async () => {
                             <tr>
                                 <td>
                                     <div style="margin: 10px 0;display: inline-block;">
-                                    <p style="font-size: 1.2em;">Nome do documento na \u00E1rvore de processos <a class="newLink" style="font-size: 0.8em;" onmouseout="return infraTooltipOcultar();" onmouseover="return infraTooltipMostrar(\'Somente alguns tipos de documentos suportam a propriedade <b>N\u00FAmero</b> que quando preenchida exibe o valor na \u00E1rvore de processos logo ap\u00F3s o tipo. Exemplo: Anexo Contrato (Anexo = tipo e Contrato = N\u00FAmero)\')"><i class="fas fa-info-circle colorAzul"></i></a></p>
+                                    <p style="font-size: 1.2em;">Coluna da planilha com o nome do documento na \u00E1rvore de processos <a class="newLink" style="font-size: 0.8em;" data-spro-tip="Somente alguns tipos de documentos suportam a propriedade <b>N\u00FAmero</b> que quando preenchida exibe o valor na \u00E1rvore de processos logo ap\u00F3s o tipo. Exemplo: Anexo Contrato (Anexo = tipo e Contrato = N\u00FAmero)"><i class="fas fa-info-circle colorAzul"></i></a></p>
                                 </td>
                             </tr>
                             <tr>
@@ -280,10 +281,21 @@ var docsLote_printDataCrossing = async () => {
                 <table style="font-size: 9pt !important;width: 100%;">
                     <tbody>
                         <tr>
+                            <td>
+                                <p style="font-size: 1.2em;"><i class="fas fa-align-left cinzaColor"></i> Descri\u00E7\u00E3o do documento (opcional) <a class="newLink" style="font-size: 0.8em;" data-spro-tip="Preenche o campo <b>Descri\u00E7\u00E3o</b> de cada documento gerado. Use <b>##coluna##</b> para trazer o valor da planilha, sozinho ou junto com texto. Em branco, o campo fica vazio."><i class="fas fa-info-circle azulColor"></i></a></p>
+                                <input type="text" class="infraText" id="txtDescricaoDoc" maxlength="250" style="width: 480px;padding: 0.8em;" placeholder="Ex: ##${escapeHtml(CSVHeaders[0] || 'coluna')}##">
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <hr style="all:revert;border: 1px solid #dcdcdc;margin: 10px 0;">
+                <table style="font-size: 9pt !important;width: 100%;">
+                    <tbody>
+                        <tr>
                             <td style="width: 50px;">
                                 <div style="margin: 10px 0;font-size: 9pt;display: inline-block;transform: scale(0.9);float: left;">
                                     <div class="infraAncoraSigla" style="float: left;margin-right: 1em;margin-left: 0;">
-                                        <input type="checkbox" onchange="changeNewProcs(this)" name="infraAncoraSigla" class="infraLinkOrgao" id="newProcs" data-type="setdate" tabindex="0">
+                                        <input type="checkbox" data-spro-change="changeNewProcs" name="infraAncoraSigla" class="infraLinkOrgao" id="newProcs" data-type="setdate" tabindex="0">
                                         <label class="infraAreaDados" for="newProcs"></label>
                                     </div>
                                 </div>
@@ -295,7 +307,7 @@ var docsLote_printDataCrossing = async () => {
                         <tr style="display:none" class="containerTipoProcessoSelect">
                             <td colspan="2">
                                 <p style="font-size: 1.2em;"><i class="fas fa-folder-open cinzaColor"></i> Tipo de Processo:</p>
-                                <select onchange="checkTipoProcessoSelect()" id="tipoProcessoSelect"><option value="">Selecione um tipo de documento</option>${selectTiposProcessos}</select>
+                                <select data-spro-change="checkTipoProcessoSelect" id="tipoProcessoSelect"><option value="">Selecione um tipo de documento</option>${selectTiposProcessos}</select>
                             </td>
                         </tr>
                         <tr style="display:none" class="containerTipoProcessoSelect">
@@ -351,13 +363,17 @@ var checkTipoProcessoSelect = () => {
         $("#btnConfirm").prop('disabled', true).addClass('ui-button-disabled ui-state-disabled');
     }
 }
+// Troca ##coluna## pelo valor da linha do CSV (coluna inexistente fica como esta). Serve a Especificacao do processo e a Descricao do documento.
+var docsLote_preencherCampos = (texto, dataCSV) => {
+    return String(texto || '').replace(/##(.*?)##/g, function(match, chave) {
+        return dataCSV[chave] !== undefined ? dataCSV[chave] : match;
+    });
+};
 var docsLote_getLinkNewDoc = async (param, dataCSV, linha = {}) => {
     let urlNewDoc = false;
     if (param.createNewProcs) {
 
-        const txtEspecificacaoProcesso = param.txtEspecificacaoProcesso.replace(/##(.*?)##/g, function(match, chave) {
-            return dataCSV[chave] !== undefined ? dataCSV[chave] : match;
-        });
+        const txtEspecificacaoProcesso = docsLote_preencherCampos(param.txtEspecificacaoProcesso, dataCSV);
 
         const urlProcesso = await docsLote_setNewProc(param.idTipoProcedimento, txtEspecificacaoProcesso);
         if (!urlProcesso) throw new Error('N\u00E3o foi poss\u00EDvel criar o processo');
@@ -410,7 +426,7 @@ var docsLote_execute = async (param) => {
                 const response5 = await docsLote_editDocContent(response4.urlEditor, CSVData[i]);
                 const response6 = await docsLote_saveDoc(response5);
 
-                response6.success && $('#progress').html(`<p style="text-align:center">${i + 1}/${CSVData.length}<span style="display:block;white-space: nowrap;color: #ccc;font-size: 8pt;padding:5px">\u2592\u2592\u2592\u2592\u2592\u2592</span></p>`);
+                response6.success && htmlPro($('#progress'), `<p style="text-align:center">${i + 1}/${CSVData.length}<span style="display:block;white-space: nowrap;color: #ccc;font-size: 8pt;padding:5px">\u2592\u2592\u2592\u2592\u2592\u2592</span></p>`);
 
                 if (i + 1 === CSVData.length) throw new Error("cancel");
 
@@ -423,11 +439,11 @@ var docsLote_execute = async (param) => {
                     $('#ifrArvore').contents()[0].location.reload();
                     setTimeout(() => {
                         var htmlFilterDoclote = `<div class="btn-group filterTablePro" role="group" style="margin: 10px 0;">
-                                                <button type="button" onclick="downloadTablePro(this)" data-icon="fas fa-download" style="padding: 0.1rem .5rem; font-size: 9pt;" data-value="Baixar" class="btn btn-sm btn-light">
+                                                <button type="button" data-spro-click="downloadTablePro" data-icon="fas fa-download" style="padding: 0.1rem .5rem; font-size: 9pt;" data-value="Baixar" class="btn btn-sm btn-light">
                                                     <i class="fas fa-download" style="padding-right: 3px; cursor: pointer; font-size: 10pt; color: #888;"></i>
                                                     <span class="text">Baixar</span>
                                                 </button>
-                                                <button type="button" onclick="copyTablePro(this)" data-icon="fas fa-copy" style="padding: 0.1rem .5rem; font-size: 9pt;" data-value="Copiar" class="btn btn-sm btn-light">
+                                                <button type="button" data-spro-click="copyTablePro" data-icon="fas fa-copy" style="padding: 0.1rem .5rem; font-size: 9pt;" data-value="Copiar" class="btn btn-sm btn-light">
                                                     <i class="fas fa-copy" style="padding-right: 3px; cursor: pointer; font-size: 10pt; color: #888;"></i>
                                                     <span class="text">Copiar</span>
                                                 </button>
@@ -464,11 +480,11 @@ var docsLote_execute = async (param) => {
                                 `;
                         $('#preparingProgressCircular').remove();
                         $('#cancelExecute').hide();
-                        $('#progress').html(`<h4 style="text-align:center;margin: 30px 0 10px 0; font-size: 1.5rem;"><i class="fas fa-check-circle verdeColor" style="font-size: 1em;"></i> Progresso finalizado! \uD83D\uDC4F</h4>${avisoOrfao}${tableResult}`);
+                        htmlPro($('#progress'), `<h4 style="text-align:center;margin: 30px 0 10px 0; font-size: 1.5rem;"><i class="fas fa-check-circle verdeColor" style="font-size: 1em;"></i> Progresso finalizado! \uD83D\uDC4F</h4>${avisoOrfao}${tableResult}`);
                         // setTimeout(() => { resetDialogBoxPro('dialogBoxPro') }, 2000);
                         dialogBoxPro.dialog('option', 'width', 870);
                         dialogBoxPro.dialog('option', 'height', 500);
-                        $('#tableDataResult').find('thead').prepend(htmlFilterDoclote);
+                        htmlPro($('#tableDataResult').find('thead'), htmlFilterDoclote, 'prepend');
                         // console.log(docsCriados);
                     }, 500)
                 } else {
@@ -580,9 +596,17 @@ var docsLote_formNewDoc = async (urlFormNewDoc, data, dataDialog) => {
     // Mesma regra do setNewDoc (preencherHiddenLupasFormPro, sei-functions-pro.js); o valor sai escapado no POST.
     if (typeof preencherHiddenLupasFormPro === 'function') preencherHiddenLupasFormPro(form, params);
     params.rdoNivelAcesso = '0';
+    // O loop dos selects acima copia o selHipoteseLegal que o tipo de documento do orgao traz pre-selecionado. Com o nivel
+    // forcado em Publico, o SEI recusa o POST ("Hipotese Legal nao aplicavel ao protocolo") e a linha 1 do lote para.
+    params.selHipoteseLegal = '';
     params.hdnFlagDocumentoCadastro = '2';
     params.txaObservacoes = '';
-    params.txtDescricao = '';
+    // Descricao do documento (ideia do PluriDocs, 12/2025): texto com ##coluna## preenchido pela linha do CSV. Vai em latin-1 e
+    // escapado no docsLote_confirmDocData, como o txtNomeArvore, entao os acentos ficam; o corte segue o maxlength do SEI (250).
+    const maxDescricao = parseInt(form.find('#txtDescricao').attr('maxlength'), 10) || 250;
+    params.txtDescricao = dataDialog.txtDescricaoDoc
+        ? docsLote_paraLatin1(docsLote_preencherCampos(dataDialog.txtDescricaoDoc, data)).substring(0, maxDescricao).trim()
+        : '';
     if (dataDialog.nrTxtPadrao) {
         params.selTextoPadrao = selectedModel.numero;
         params.hdnIdTextoPadrao = selectedModel.numero;
@@ -627,9 +651,9 @@ var docsLote_confirmDocData = async (urlConfirmDocData, params) => {
     for (var k in params) {
         if (postData !== '') postData = `${postData}&`;
         // Hidden das lupas levam "id(+-)texto" com separadores ISO-8859-1 (0xB1/0xA5): vao escapados como no setNewDoc,
-        // senao sairiam em UTF-8 sob charset ISO-8859-1 e o SEI nao separaria os ids. txtNumero e txtNomeArvore ja chegam
-        // convertidos para latin-1 e tambem vao escapados ('&', '+' e '%' cortavam o valor).
-        var valor = (k=='txtNomeArvore' || k=='txtNumero' || /^hdn(Interessados|Destinatarios|Assuntos|UnidadesReabertura)$/.test(k)) ? escapeComponent(params[k]) : params[k];
+        // senao sairiam em UTF-8 sob charset ISO-8859-1 e o SEI nao separaria os ids. txtNumero, txtNomeArvore e txtDescricao
+        // ja chegam convertidos para latin-1 e tambem vao escapados ('&', '+' e '%' cortavam o valor).
+        var valor = (k=='txtNomeArvore' || k=='txtNumero' || k=='txtDescricao' || /^hdn(Interessados|Destinatarios|Assuntos|UnidadesReabertura)$/.test(k)) ? escapeComponent(params[k]) : params[k];
             postData = `${postData}${k}=${valor}`;
     }
 
@@ -703,6 +727,11 @@ var docsLote_editDocContent = async (urlEditor, data) => {
         if (!urlSubmitForm) throw new Error('Link para salvar o documento n\u00E3o encontrado');
 
         const initialData = editorCK5Config.initialData || {};
+        // Mesmo contrato do cliente CK5 do SEI (editor/ck5/src/sei.js, _salvarConteudo): versao lida da config, 'N' para o SEI
+        // recusar se alguem salvou antes. Sem versao na config, o SEI compara null e recusa sempre ('Existe uma nova versao'):
+        // ai vai 'S', como o PluriDocs faz, o que e seguro porque o documento acabou de ser criado pelo proprio lote.
+        const versaoEditor = editorCK5Config.sei.versao;
+        const semVersao = (versaoEditor === null || typeof versaoEditor === 'undefined' || versaoEditor === '');
         jsonSaveDoc = {
             secoesConteudo: Object.keys(initialData).map((nome) => ({
                 nome,
@@ -710,14 +739,18 @@ var docsLote_editDocContent = async (urlEditor, data) => {
                     data[match.substring(2, match.length - 2)].replace(regex2, (match) => docsLote_specialChars[match])
                 )
             })),
-            ignorarNovaVersao: 'N',
-            versao: editorCK5Config.sei.versao
+            ignorarNovaVersao: semVersao ? 'S' : 'N',
+            versao: semVersao ? null : versaoEditor
         };
     } else {
-        urlSubmitForm = $(htmlEditor).filter((_, el) => $(el).attr('id') === 'frmEditor').attr('action');
+        // Documento inerte do DOMParser em vez de $(htmlEditor): o jQuery achata a pagina e o .filter so achava o #frmEditor
+        // quando ele era no de topo (basta um modulo embrulhar o form num div para falhar). Aqui ele e achado em qualquer nivel
+        // (mesma correcao do PluriDocs, 06/2026), e os handlers inline da pagina nao rodam.
+        const $editor = $(new DOMParser().parseFromString(htmlEditor, 'text/html'));
+        urlSubmitForm = $editor.find('#frmEditor').attr('action');
         if (!urlSubmitForm) throw new Error('Link para salvar o documento n\u00E3o encontrado'); //sem a action, o docsLote_saveDoc postaria na pagina atual
 
-        const textAreas = $(htmlEditor).find('div#divEditores textarea');
+        const textAreas = $editor.find('div#divEditores textarea');
         const allText = $.map(textAreas, function(v){ return $(v).text() }).join('');
         const arrayCamposDinamicos = uniqPro(getHashTagsPro($(allText).map(function(){ return $(this).text().replace(/\u00A0/gm, " ") }).get().join(' ')));
         const dadosProcesso = typeof dadosProcessoPro !== 'undefined' && typeof dadosProcessoPro.propProcesso !== 'undefined'
@@ -742,9 +775,10 @@ var docsLote_editDocContent = async (urlEditor, data) => {
         });
         // console.log({data:data, dataCrossing: dataCrossing, docsLote_specialChars:docsLote_specialChars, arrayCamposDinamicos:arrayCamposDinamicos, textAreasReplaced:textAreasReplaced, textAreas:textAreas, arrayCamposDinamicos:arrayCamposDinamicos, dadosProcesso:dadosProcesso});
 
-        $(htmlEditor).find('input[type=hidden').each((_, input) => {
-            if (!$(input).attr('name').toLowerCase().includes('unidade'))
-            paramsSaveDoc[$(input).attr('name')] = $(input).val().replace(regex2, (match) => docsLote_specialChars[match]);
+        $editor.find('input[type=hidden]').each((_, input) => {
+            const nome = $(input).attr('name');
+            if (nome && !nome.toLowerCase().includes('unidade'))
+            paramsSaveDoc[nome] = ($(input).val() || '').replace(regex2, (match) => docsLote_specialChars[match]);
         });
     }
 
@@ -803,7 +837,7 @@ var docsLote_abortAjax = () => {
     if (!flagError && !flagConfirmSpecialChars) {
         aborted = true;
         $('#cancelExecute').hide();
-        $('#progress').html(`<p style="text-align:center">Cancelando progresso</p>`);
+        htmlPro($('#progress'), `<p style="text-align:center">Cancelando progresso</p>`);
     } else {
         flagError = false;
         flagConfirmSpecialChars = false;
@@ -841,8 +875,7 @@ function docLoteModalSelecaoDoc() {
                     ${restrictConfigValue('documentosemlote') ? '<div style="margin: 10px 0;font-size: 8pt;color: #888;">C\u00F3digo-fonte gentilmente cedido por <a href="https://github.com/tcgontijo" target="_blank" style="color: #00c;">tcgontijo</a> | PluriDocs SEI!<div>' : ''}`;
 
         resetDialogBoxPro('dialogBoxPro');
-        dialogBoxPro = $('#dialogBoxPro')
-            .html(`<div id="dialogBoxDocLote" class="dialogBoxDiv">${htmlBox}</div>`)
+        dialogBoxPro = htmlPro($('#dialogBoxPro'), `<div id="dialogBoxDocLote" class="dialogBoxDiv">${htmlBox}</div>`)
             .dialog({
                 title: 'Documento modelo - Sele\u00E7\u00E3o (1/6)',
                     width: 600,
@@ -876,10 +909,13 @@ function docLoteModalSelecaoDoc() {
                                 $('#docLoteSelect').val('').trigger('chosen:updated');
                                 $("#btnSelecaoDoc").prop('disabled', false).removeClass('ui-button-disabled ui-state-disabled');
                             })
-                            .html('<option value="">&nbsp;</option>');
+                            .empty().append($('<option></option>').val('').text('\u00A0'));
                         txtPadrao_getList().then(listTxtPadrao => {
+                            // Textos "[_..." sao dados internos do SEI Pro (favoritos, distribuicao automatica):
+                            // nao sao modelo de documento e nao entram no seletor.
+                            listTxtPadrao = listTxtPadrao.filter(item => !/^\[_/.test(String(item.name || '').trim()));
                             listTxtPadraoDoc = listTxtPadrao;
-                            $('#textoPadraoSelect').append(listTxtPadrao.map(item => `<option value="${item.id}">${item.name}</option>`).join(''));
+                            htmlPro($('#textoPadraoSelect'), listTxtPadrao.map(item => `<option value="${item.id}">${item.name}</option>`).join(''), 'append');
                             $('#textoPadraoSelect').trigger('chosen:updated');
                         });
                     },
@@ -923,8 +959,7 @@ var docLoteModalSelecaoBaseDados = (nrDoc, csvFile, nrTxtPadrao) => {
                 </table>`;
 
     resetDialogBoxPro('dialogBoxPro');
-    dialogBoxPro = $('#dialogBoxPro')
-        .html(`<div id="dialogBoxDocLote" class="dialogBoxDiv">${htmlBox}</div>`)
+    dialogBoxPro = htmlPro($('#dialogBoxPro'), `<div id="dialogBoxDocLote" class="dialogBoxDiv">${htmlBox}</div>`)
         .dialog({
             title: 'Base de dados - Upload (3/6)',
             width: 600,
@@ -932,7 +967,12 @@ var docLoteModalSelecaoBaseDados = (nrDoc, csvFile, nrTxtPadrao) => {
                 docsLote_detectEncodingCSV();
                 $("#btnEnviaCSV").prop('disabled', true).addClass('ui-button-disabled ui-state-disabled');
                 $("#inputBD").change(() => {
-                    $("#btnEnviaCSV").prop('disabled', false).removeClass('ui-button-disabled ui-state-disabled');
+                    //Cancelar o seletor esvazia o input: sem arquivo, o Avancar lia file.name de undefined
+                    if ($("#inputBD").val()) {
+                        $("#btnEnviaCSV").prop('disabled', false).removeClass('ui-button-disabled ui-state-disabled');
+                    } else {
+                        $("#btnEnviaCSV").prop('disabled', true).addClass('ui-button-disabled ui-state-disabled');
+                    }
                 });
             },
             buttons: [{
@@ -956,11 +996,12 @@ var docLoteModalSelecaoBaseDados = (nrDoc, csvFile, nrTxtPadrao) => {
                 click: () => {
                     $('#baseDados small').remove();
                     const file = $("#inputBD")[0].files[0];
-                    
+                    if (!file) return;
+
                     if (file.name.substring(file.name.lastIndexOf("."), file.name.length).toLocaleLowerCase().trim() === ".csv") {
                         docLoteModalAnaliseCSV(nrDoc, $("#inputBD")[0].files[0], nrTxtPadrao);
                     } else {
-                        $('#inputBD').after(`<small class="noFieldsError">Arquivo inv\u00E1lido! Selecione um documento no formato "CSV".</small>`);
+                        htmlPro($('#inputBD'), `<small class="noFieldsError">Arquivo inv\u00E1lido! Selecione um documento no formato "CSV".</small>`, 'after');
                     }
                 }
             }]
@@ -976,8 +1017,7 @@ var docLoteModalLoader = (paramData) => {
                     </div>`;
 
     resetDialogBoxPro('dialogBoxPro');
-    dialogBoxPro = $('#dialogBoxPro')
-        .html(`<div id="dialogBoxDocLote" class="dialogBoxDiv">${htmlBox}</div>`)
+    dialogBoxPro = htmlPro($('#dialogBoxPro'), `<div id="dialogBoxDocLote" class="dialogBoxDiv">${htmlBox}</div>`)
         .dialog({
             title: 'Documentos em lote - Criando (6/6)',
             width: 300,
@@ -1001,7 +1041,12 @@ var docLoteModalLoader = (paramData) => {
 // Texto legivel e seguro (HTML escapado) para o modal de erro: Error, jqXHR rejeitado pelo $.ajax, ou a resposta crua
 // do SEI que o docsLote_saveDoc lanca (pode ser uma pagina inteira).
 var docsLote_textoErro = (e) => {
+    // O controlador REST do SEI 5 (salvar no CK5) recusa com HTTP != 200 e corpo {erro: '...'}: mostra a mensagem dele
+    const erroRest = (e && typeof e.status !== 'undefined')
+        ? trycatch(() => (e.responseJSON || JSON.parse(e.responseText)).erro, false)
+        : false;
     let texto = (e && e.message) ? String(e.message)
+        : erroRest ? `O SEI recusou a grava\u00E7\u00E3o (HTTP ${e.status}): ${erroRest}`
         : (e && typeof e.status !== 'undefined') ? `Falha na comunica\u00E7\u00E3o com o SEI (HTTP ${e.status}${e.statusText ? ' ' + e.statusText : ''})`
         : String(e || 'Erro desconhecido');
     if (/<[a-z!\/]/i.test(texto)) {
@@ -1037,8 +1082,7 @@ var docLoteModalErro = (textError = false) => {
                     </div>`;
 
     resetDialogBoxPro('dialogBoxPro');
-    dialogBoxPro = $('#dialogBoxPro')
-        .html(`<div id="dialogBoxDocLote" class="dialogBoxDiv">${htmlBox}</div>`)
+    dialogBoxPro = htmlPro($('#dialogBoxPro'), `<div id="dialogBoxDocLote" class="dialogBoxDiv">${htmlBox}</div>`)
         .dialog({
             title: '\uD83E\uDD26\u200D\u2642\uFE0F Ops...',
             width: 600,
@@ -1056,8 +1100,7 @@ var docLoteModalCruzamentoDados = (nrDoc, csvFile, nrTxtPadrao) => {
     var htmlBox = `<p>Segue abaixo o relacionamento entre cabe\u00E7alhos da base de dados e os campos din\u00E2micos do documento modelo:</p>`;
 
     resetDialogBoxPro('dialogBoxPro');
-    dialogBoxPro = $('#dialogBoxPro')
-        .html(`<div id="dialogBoxDocLote" class="dialogBoxDiv">${htmlBox}</div>`)
+    dialogBoxPro = htmlPro($('#dialogBoxPro'), `<div id="dialogBoxDocLote" class="dialogBoxDiv">${htmlBox}</div>`)
         .dialog({
             title: 'Cruzamento de dado (5/6)',
             width: 600,
@@ -1087,6 +1130,7 @@ var docLoteModalCruzamentoDados = (nrDoc, csvFile, nrTxtPadrao) => {
                         createNewProcs: $("#newProcs").is(":checked"),
                         idTipoProcedimento: $('#tipoProcessoSelect').val(),
                         txtEspecificacaoProcesso: $('#txtEspecificacaoProcesso').val(),
+                        txtDescricaoDoc: $('#txtDescricaoDoc').val(),
                         nrDoc: nrDoc,
                         csvFile: csvFile,
                         nrTxtPadrao: nrTxtPadrao
@@ -1101,8 +1145,7 @@ var docLoteModalAnaliseDocModelo = (nrDoc, nrTxtPadrao) => {
     var htmlBox = `<p>An\u00E1lise do documento modelo:</p>`;
 
     resetDialogBoxPro('dialogBoxPro');
-    dialogBoxPro = $('#dialogBoxPro')
-        .html(`<div id="dialogBoxDocLote" class="dialogBoxDiv">${htmlBox}</div>`)
+    dialogBoxPro = htmlPro($('#dialogBoxPro'), `<div id="dialogBoxDocLote" class="dialogBoxDiv">${htmlBox}</div>`)
         .dialog({
             title: 'Documento modelo - Campos din\u00E2micos (2/6)',
             width: 600,
@@ -1142,8 +1185,7 @@ var docLoteModalAnaliseCSV = (nrDoc, csvFile, nrTxtPadrao) => {
     var htmlBox = `<p>An\u00E1lise da base de dados:</p>`;
 
     resetDialogBoxPro('dialogBoxPro');
-    dialogBoxPro = $('#dialogBoxPro')
-        .html(`<div id="dialogBoxDocLote" class="dialogBoxDiv">${htmlBox}</div>`)
+    dialogBoxPro = htmlPro($('#dialogBoxPro'), `<div id="dialogBoxDocLote" class="dialogBoxDiv">${htmlBox}</div>`)
         .dialog({
             title: 'Base de dados - Cabe\u00E7alhos e registros (4/6)',
             width: 600,
@@ -1318,6 +1360,7 @@ const extractFormParams = (form) => {
 const prepareFormData = (param, htmlFormProc, txtEspecificacaoProcesso) => {
     // Configurações padrão
     param.rdoNivelAcesso = '0';
+    param.selHipoteseLegal = ''; // hipotese pre-selecionada do tipo conflita com o nivel Publico forcado
     param.hdnFlagProcedimentoCadastro = '2';
     param.rdoProtocolo = 'M';
     param.txaObservacoes = '';

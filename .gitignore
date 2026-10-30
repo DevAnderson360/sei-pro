@@ -66,6 +66,16 @@ package-lock.json
 yarn.lock
 
 # -----------------------------------------------------------------------------
+# Area de trabalho dos planos (ledger, briefs, rascunhos de revisao)
+# -----------------------------------------------------------------------------
+/.superpowers/
+
+# -----------------------------------------------------------------------------
+# Textos de submissao as lojas (formularios da Chrome Web Store e da AMO)
+# -----------------------------------------------------------------------------
+/docs/lojas/
+
+# -----------------------------------------------------------------------------
 # Scripts utilitarios locais
 # -----------------------------------------------------------------------------
 clean_home.js
@@ -104,3 +114,9 @@ desktop.ini
 # Cache do Python (ex.: _og/gerar_capas.py)
 __pycache__/
 *.pyc
+
+# Pagina de opcoes: pre-visualizacao local (gerada)
+opcoes-pagina/.preview/
+
+# Dependencias de modulo ligadas por symlink (o padrao com barra so pega pasta)
+/grade-controle/node_modules

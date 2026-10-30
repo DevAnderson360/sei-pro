@@ -1,0 +1,16 @@
+Fixtures SINTETICAS (escritas a mao), nao capturas do SEI.
+
+Seguem a estrutura que o legado (dist/js/sei-pro-proc-lote.js e os helpers de
+sei-pro-docs-lote.js) le, conferida com o fonte do SEI 3.1.7 e 5.0.0
+(procedimento_escolher_tipo.php, procedimento_cadastro.php). Hashes falsos.
+A primeira linha de cada .html e "<!-- url: ... -->" (URL final da resposta).
+
+  menu.html                    tela com #infraMenu (link de procedimento_escolher_tipo)
+  escolher_tipo_sei5.html      "Iniciar Processo" com #frmProcedimentoEscolherTipo (SEI 4.1.5+/5), filtro U
+  lista_completa_sei5.html     a mesma tela depois do POST com hdnFiltroTipoProcedimento=T; links "#" + onclick escolher(N)
+  escolher_tipo_sei3.html      "Iniciar Processo" com #frmIniciarProcessoEscolhaTipo (SEI 3/4.0), filtro U
+  lista_completa_sei3.html     lista completa com links assinados ...&id_tipo_procedimento=N
+  form_tipo.html               procedimento_gerar com #frmProcedimentoCadastro, lupas e o AJAX das hipoteses
+  sem_formulario.html          resposta sem #frmProcedimentoCadastro
+  hipoteses.xml                resposta do controlador_ajax (hipotese_legal_select_nome_base_legal)
+  criado.html                  procedimento_trabalhar depois do POST de criacao (numero no <title>)

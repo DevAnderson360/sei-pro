@@ -1,0 +1,1518 @@
+/*
+ * App do gestor de projetos (html/projetos.html): painel embutido abaixo da lista do Controle de
+ * Processos (tela 1, variante B), dialogos (tela 2) e impressao. Base em sei-comum/src/ui/base.css e
+ * lista.css; o Gantt em estatico/gantt.css. Medidas que alinham a lista ao Gantt: cabecalho 64 px,
+ * linha 36 px (src/gantt/escalas.ts, MEDIDAS). So ASCII e so tokens --spro-* (nenhuma cor literal: o
+ * modo noturno e a cor da barra do SEI valem em tudo); portoes no build.mjs e em verificar-estatico.ts.
+ */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  color: var(--spro-texto);
+  font: 13px/1.45 var(--spro-fonte);
+  -webkit-font-smoothing: antialiased;
+}
+/* Fundo transparente: a pagina do SEI (cinza claro, ou escuro) aparece por tras; os cartoes e grades do painel seguem com o proprio fundo. */
+html[data-modo="embutido"],
+html[data-modo="embutido"] body {
+  background: transparent;
+}
+/* Impressao: o app forca o tema claro (data-tema="claro"), entao o fundo e branco. */
+html[data-modo="impressao"] body {
+  background: var(--spro-fundo);
+}
+#app {
+  padding: 4px 2px 10px;
+}
+
+/* Dialogo do painel embutido por cima da tela inteira (@comum/painel/sobreposicao). */
+html[data-sobreposto="sim"],
+html[data-sobreposto="sim"] body {
+  background: transparent;
+}
+html[data-sobreposto="sim"] #app {
+  visibility: hidden;
+}
+html[data-sobreposto="abrindo"] dialog.spro-dialogo,
+html[data-sobreposto="abrindo"] dialog.spro-dialogo::backdrop {
+  opacity: 0;
+}
+
+/* ---------- Abas ---------- */
+.prj {
+  container-type: inline-size;
+}
+.prj-abas {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  min-width: 0;
+}
+.prj-abas-vazio {
+  justify-content: flex-end;
+}
+.prj-abas-lista {
+  flex-wrap: nowrap;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+/* As abas ficam num tablist dentro do segmentado (o "Mais N" fica fora dele: a11y). */
+.prj-abas-tabs {
+  display: flex;
+  gap: 2px;
+  min-width: 0;
+}
+.prj-abas-lista button {
+  min-height: 32px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+.prj-aba-nome {
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.prj-aba-prog {
+  padding: 1px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--spro-suave);
+  background: var(--spro-fundo-3);
+  border-radius: 999px;
+}
+.prj-abas-lista button[aria-selected="true"] .prj-aba-prog {
+  color: var(--spro-destaque);
+  background: var(--spro-destaque-suave);
+}
+.prj-aba-alerta {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--spro-perigo);
+}
+.prj-aba-mais {
+  flex-direction: row-reverse;
+}
+.prj-novo {
+  flex: none;
+}
+.prj-abas-dir {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+.prj-sinc {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-right: 4px;
+  font-size: 12px;
+  color: var(--spro-fraco);
+  white-space: nowrap;
+}
+.prj-sinc-pendente {
+  color: var(--spro-aviso);
+}
+.prj-sinc-erro {
+  color: var(--spro-perigo);
+}
+.prj-sinc-ok .spro-icone {
+  color: var(--spro-ok);
+}
+
+/* ---------- Cartao, cabecalho e controles ---------- */
+.prj-cartao {
+  overflow: hidden;
+  background: var(--spro-fundo);
+  border: 1px solid var(--spro-borda);
+  border-radius: var(--spro-raio-g);
+  box-shadow: var(--spro-sombra-1);
+}
+.prj-cab {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--spro-borda);
+}
+.prj-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--spro-suave);
+}
+.prj-meta .spro-icone {
+  color: var(--spro-suave);
+}
+.prj-vis {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.prj-processo {
+  font-weight: 600;
+  color: var(--spro-destaque);
+  text-decoration: none;
+}
+.prj-processo:hover {
+  text-decoration: underline;
+}
+.prj-sep {
+  color: var(--spro-borda-forte);
+}
+.prj-ctl {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+.prj-filtro {
+  flex: none;
+}
+.prj-filtro-ativo {
+  color: var(--spro-destaque);
+  border-color: color-mix(in srgb, var(--spro-destaque) 45%, transparent);
+}
+
+/* ---------- Vista do projeto: lista (290 px) + Gantt ---------- */
+.prj-vista {
+  position: relative;
+  display: flex;
+}
+.prj-lista {
+  flex: none;
+  width: 290px;
+  background: var(--spro-fundo);
+  border-right: 1px solid var(--spro-borda);
+}
+.prj-lista-cab {
+  display: flex;
+  align-items: flex-end;
+  box-sizing: border-box;
+  height: 64px;
+  padding: 0 12px 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--spro-fraco);
+  border-bottom: 1px solid var(--spro-borda);
+}
+.prj-lista-cab span:last-child {
+  margin-left: auto;
+}
+.prj-lin {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  height: 36px;
+  padding: 0 10px 0 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--spro-borda) 60%, transparent);
+  cursor: pointer;
+}
+.prj-lin:hover,
+.prj-lin.prj-realce {
+  background: var(--spro-destaque-suave);
+}
+.prj-lin:focus-visible {
+  outline: none;
+  box-shadow: inset var(--spro-anel);
+}
+.prj-lin-nome {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.prj-lin-fase {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--spro-suave);
+  background: var(--spro-fundo-2);
+}
+.prj-lin-seta {
+  display: inline-flex;
+  transition: transform var(--spro-dur);
+}
+.prj-lin-fase[aria-expanded="false"] .prj-lin-seta {
+  transform: rotate(-90deg);
+}
+.prj-lin-conta {
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--spro-fraco);
+}
+.prj-lin-etapa.prj-concluida .prj-lin-nome {
+  color: var(--spro-suave);
+}
+.prj-lin-escopo {
+  display: inline-flex;
+  color: var(--spro-suave);
+}
+.prj-lin-nova {
+  color: var(--spro-fraco);
+  border-bottom: 0;
+  cursor: text;
+}
+.prj-lin-nova:hover {
+  color: var(--spro-destaque);
+}
+.prj-lin-nova input {
+  all: unset;
+  flex: 1;
+  min-width: 0;
+  color: var(--spro-texto);
+}
+.prj-lin-nova input::placeholder {
+  color: var(--spro-fraco);
+}
+.prj-av-vazio {
+  flex: none;
+  width: 22px;
+  height: 22px;
+}
+.prj-gantt {
+  flex: 1;
+  min-width: 0;
+}
+.prj-sem-lista .prj-gantt {
+  width: 100%;
+}
+
+/* Icone de situacao da etapa (16 px). */
+.prj-st {
+  flex: none;
+}
+.prj-st .prj-st-cor {
+  fill: none;
+  stroke-width: 1.6;
+}
+.prj-st-concluida .prj-st-cor,
+.prj-st-atrasada .prj-st-cor {
+  stroke: none;
+}
+.prj-st-concluida .prj-st-cor {
+  fill: var(--spro-ok);
+}
+.prj-st-atrasada .prj-st-cor {
+  fill: var(--spro-perigo);
+}
+.prj-st-andamento .prj-st-cor {
+  stroke: var(--spro-destaque);
+}
+.prj-st-andamento .prj-st-meio {
+  fill: var(--spro-destaque);
+}
+.prj-st-futura .prj-st-cor {
+  stroke: var(--spro-borda-forte);
+  stroke-dasharray: 2.4 2;
+}
+/* Sinal vazado no circulo cheio: a cor do fundo (branco no claro; escuro no noturno, onde o verde e o
+   vermelho sao claros e o branco sumiria). */
+.prj-st-sinal {
+  fill: none;
+  stroke: var(--spro-fundo);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.prj-st-ponto {
+  fill: var(--spro-fundo);
+}
+.prj-st-marco.prj-st-andamento .prj-st-cor {
+  stroke: var(--spro-novidade);
+}
+.prj-st-marco.prj-st-futura .prj-st-cor {
+  stroke: var(--spro-novidade);
+  stroke-dasharray: none;
+}
+.prj-st-marco.prj-st-atrasada .prj-st-cor {
+  fill: none;
+  stroke: var(--spro-perigo);
+}
+
+/* ---------- Vista Lista ---------- */
+.prj-tabela {
+  width: 100%;
+  border-collapse: collapse;
+}
+.prj-tabela th {
+  padding: 10px 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-align: left;
+  text-transform: uppercase;
+  color: var(--spro-fraco);
+  border-bottom: 1px solid var(--spro-borda);
+}
+.prj-tabela td {
+  padding: 8px 12px;
+  white-space: nowrap;
+  border-bottom: 1px solid color-mix(in srgb, var(--spro-borda) 60%, transparent);
+}
+.prj-tab-linha {
+  cursor: pointer;
+}
+.prj-tab-linha:hover {
+  background: var(--spro-destaque-suave);
+}
+.prj-tab-grupo td {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--spro-suave);
+  background: var(--spro-fundo-2);
+}
+.prj-tab-conta {
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--spro-fraco);
+}
+.prj-tab-st {
+  width: 20px;
+}
+.prj-tab-nome {
+  font-weight: 500;
+  white-space: normal !important;
+}
+.prj-pilula-marco {
+  margin-left: 6px;
+}
+.prj-barra {
+  display: inline-block;
+  width: 90px;
+  height: 6px;
+  margin-right: 6px;
+  overflow: hidden;
+  vertical-align: middle;
+  background: var(--spro-fundo-3);
+  border-radius: 3px;
+}
+.prj-barra i {
+  display: block;
+  height: 100%;
+  background: var(--spro-destaque);
+}
+.prj-tab-prog {
+  color: var(--spro-suave);
+}
+.prj-nada {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 26px 16px;
+  color: var(--spro-suave);
+}
+.prj-nada p {
+  margin: 0;
+}
+
+/* ---------- Camada flutuante (balao e popover do filtro): dialog nao modal ---------- */
+dialog.prj-camada {
+  position: fixed;
+  z-index: 60;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  color: var(--spro-texto);
+  background: var(--spro-fundo);
+  border: 1px solid var(--spro-borda);
+  border-radius: var(--spro-raio-g);
+  box-shadow: var(--spro-sombra-3);
+  scrollbar-width: thin;
+}
+/* dialog.prj-camada zera o padding: aqui com a mesma especificidade, depois dela. */
+dialog.prj-filtro-pop {
+  padding: 12px;
+}
+.prj-filtro-pop h4 {
+  margin: 0 0 8px;
+  font-size: 12px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--spro-fraco);
+}
+.prj-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.prj-filtro-campos {
+  display: grid;
+  gap: 6px;
+}
+.prj-filtro-campos .spro-combo {
+  width: 100%;
+}
+.prj-filtro-limpar-caixa:empty {
+  display: none;
+}
+.prj-filtro-limpar {
+  margin-top: 10px;
+}
+
+/* Balao da etapa */
+.prj-balao-corpo {
+  position: relative;
+  padding: 14px 16px 12px;
+}
+.prj-balao-fechar {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+.prj-balao h3 {
+  margin: 6px 26px 2px 0;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+.prj-balao-sub {
+  margin-bottom: 10px;
+  color: var(--spro-suave);
+}
+.prj-balao-li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 7px 0;
+  line-height: 1.4;
+}
+.prj-balao-li > .spro-icone {
+  margin-top: 1px;
+  color: var(--spro-suave);
+}
+.prj-balao-li small {
+  display: block;
+  color: var(--spro-perigo);
+}
+.prj-balao-li a {
+  font-weight: 500;
+  color: var(--spro-destaque);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.prj-balao-prog {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0 4px;
+  color: var(--spro-suave);
+}
+.prj-balao-prog input {
+  flex: 1;
+  accent-color: var(--spro-destaque);
+}
+.prj-balao-prog b {
+  width: 38px;
+  text-align: right;
+  color: var(--spro-texto);
+}
+.prj-balao-nota {
+  font-size: 12px;
+  color: var(--spro-fraco);
+}
+.prj-balao-acoes {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--spro-borda);
+}
+.prj-balao-acoes > .spro-botao-icone {
+  margin-left: auto;
+}
+
+/* ---------- Primeiro uso ---------- */
+.prj-vazio {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  box-sizing: border-box;
+  padding: 30px 24px;
+  text-align: center;
+  background: var(--spro-fundo);
+  border: 1px solid var(--spro-borda);
+  border-radius: var(--spro-raio-g);
+}
+.prj-vazio h3 {
+  margin: 6px 0 0;
+  font-size: 16px;
+}
+.prj-vazio p {
+  max-width: 420px;
+  margin: 0;
+  line-height: 1.5;
+  color: var(--spro-suave);
+}
+.prj-vazio-botoes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+.prj-vazio a {
+  font-size: 12.5px;
+  color: var(--spro-destaque);
+  text-decoration: none;
+}
+.prj-vazio-ok {
+  fill: color-mix(in srgb, var(--spro-ok) 40%, var(--spro-fundo));
+}
+.prj-vazio-andamento {
+  fill: color-mix(in srgb, var(--spro-destaque) 45%, var(--spro-fundo));
+}
+.prj-vazio-futura {
+  fill: var(--spro-fundo-3);
+}
+.prj-vazio-marco {
+  fill: var(--spro-novidade);
+}
+.prj-vazio-seta {
+  stroke: var(--spro-fraco);
+  stroke-width: 1.2;
+}
+.prj-vazio-hoje {
+  stroke: var(--spro-destaque);
+  stroke-width: 1;
+}
+
+/* ---------- Formularios (tela 2) ---------- */
+.prj-form {
+  display: grid;
+  gap: 14px;
+}
+.prj-campo {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.prj-campo > .spro-campo,
+.prj-campo > .spro-combo,
+.prj-campo-largo .spro-combo {
+  box-sizing: border-box;
+  width: 100%;
+}
+.prj-rotulo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--spro-suave);
+}
+.prj-opcional {
+  font-weight: 400;
+  color: var(--spro-fraco);
+}
+.prj-dica {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--spro-fraco);
+}
+.prj-linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+}
+.prj-linha > .prj-campo {
+  flex: 1 1 130px;
+}
+.prj-linha > .prj-campo-largo {
+  flex: 2 1 220px;
+}
+.prj-uteis {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 32px;
+  padding: 0 10px;
+  white-space: nowrap;
+  color: var(--spro-suave);
+  background: var(--spro-fundo-2);
+  border-radius: var(--spro-raio);
+}
+.prj-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--spro-suave);
+}
+.prj-chips-x {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 3px 6px;
+  border: 1px solid var(--spro-borda-forte);
+  border-radius: var(--spro-raio);
+}
+.prj-chip-x {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 26px;
+  padding: 0 2px 0 10px;
+  font-size: 12.5px;
+  background: var(--spro-fundo-3);
+  border-radius: 999px;
+}
+.prj-chip-x .spro-icone {
+  color: var(--spro-fraco);
+}
+.spro-combo.spro-combo-compacto {
+  min-height: 26px;
+  border-color: transparent;
+  box-shadow: none;
+}
+.prj-opcoes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.prj-opcao {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  background: var(--spro-fundo);
+  border: 1px solid var(--spro-borda);
+  border-radius: var(--spro-raio);
+}
+.prj-opcao:hover {
+  background: var(--spro-fundo-2);
+}
+.prj-opcao input {
+  margin: 2px 0 0;
+}
+.prj-opcao b {
+  display: block;
+  margin-bottom: 2px;
+  font-weight: 600;
+}
+.prj-opcao span {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--spro-suave);
+}
+.prj-opcao:has(input:checked) {
+  background: var(--spro-destaque-suave);
+  border-color: color-mix(in srgb, var(--spro-destaque) 50%, transparent);
+}
+@container (max-width: 460px) {
+  .prj-opcoes {
+    grid-template-columns: 1fr;
+  }
+}
+.prj-previa {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  font-size: 12.5px;
+  color: var(--spro-suave);
+  background: var(--spro-fundo-2);
+  border: 1px solid var(--spro-borda);
+  border-radius: var(--spro-raio);
+}
+.prj-previa-t {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+}
+.prj-previa-t b {
+  color: var(--spro-texto);
+  white-space: nowrap;
+}
+.prj-previa-e {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--spro-texto);
+}
+.prj-previa-barra {
+  flex: none;
+  height: 6px;
+  background: color-mix(in srgb, var(--spro-destaque) 40%, var(--spro-fundo));
+  border-radius: 3px;
+}
+.prj-previa-nome {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.prj-previa-d {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  color: var(--spro-fraco);
+}
+.prj-previa-mais {
+  color: var(--spro-fraco);
+}
+
+/* Secoes recolhidas com resumo */
+.prj-secoes {
+  overflow: hidden;
+  border: 1px solid var(--spro-borda);
+  border-radius: var(--spro-raio-g);
+}
+.prj-sec {
+  border-top: 1px solid var(--spro-borda);
+}
+.prj-sec:first-child {
+  border-top: 0;
+}
+.prj-sec > button {
+  all: unset;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+.prj-sec > button:hover {
+  background: var(--spro-fundo-2);
+}
+.prj-sec > button:focus-visible {
+  box-shadow: inset var(--spro-anel);
+}
+.prj-sec > button .spro-icone {
+  color: var(--spro-suave);
+}
+.prj-sec-seta {
+  display: inline-flex;
+  transform: rotate(-90deg);
+  transition: transform var(--spro-dur);
+}
+.prj-sec-aberta .prj-sec-seta {
+  transform: none;
+}
+.prj-sec-tit {
+  font-weight: 600;
+}
+.prj-sec-res {
+  max-width: 260px;
+  margin-left: auto;
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--spro-fraco);
+}
+.prj-sec-conteudo {
+  display: none;
+  padding: 4px 12px 14px 38px;
+}
+.prj-sec-aberta .prj-sec-conteudo {
+  display: grid;
+  gap: 8px;
+}
+.prj-sec-pilha {
+  display: grid;
+  gap: 8px;
+}
+.prj-checklist {
+  display: grid;
+  gap: 4px;
+}
+.prj-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.prj-item span {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.prj-item.prj-feito span {
+  text-decoration: line-through;
+  color: var(--spro-fraco);
+}
+.prj-docok {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--spro-ok);
+}
+.prj-docok-falta {
+  color: var(--spro-aviso);
+}
+.prj-hist {
+  display: grid;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--spro-suave);
+}
+.prj-hist b {
+  font-weight: 600;
+  color: var(--spro-texto);
+}
+.prj-erros {
+  padding: 8px 10px;
+  font-size: 12.5px;
+  color: var(--spro-perigo);
+  background: color-mix(in srgb, var(--spro-perigo) 9%, transparent);
+  border-radius: var(--spro-raio);
+}
+.prj-arquivados {
+  display: grid;
+  gap: 4px;
+  min-width: 360px;
+}
+.prj-arquivado {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--spro-borda);
+}
+.prj-arquivado-nome {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.prj-arquivado-nome span {
+  font-size: 12px;
+  color: var(--spro-fraco);
+}
+
+/* ---------- Impressao ---------- */
+.prj-impressao-meta {
+  margin: 0 0 12px;
+  color: var(--spro-suave);
+}
+html[data-modo="impressao"] #app {
+  padding: 16px;
+}
+html[data-modo="impressao"] h1 {
+  margin: 0 0 4px;
+  font-size: 20px;
+}
+html[data-modo="impressao"] .prj-gantt {
+  margin-bottom: 16px;
+}
+@media print {
+  /* Sem isto o navegador tira os fundos: pilulas de situacao, barras de progresso e grupos da tabela somem. */
+  html[data-modo="impressao"] {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  html[data-modo="impressao"] #app {
+    padding: 0;
+  }
+  .spro-gantt .gantt-container {
+    height: auto !important;
+    overflow: visible !important;
+  }
+  .prj-tabela {
+    break-inside: auto;
+  }
+  .prj-tabela tr {
+    break-inside: avoid;
+  }
+}
+
+/* Mensagem do app quando nao abre (sem unidade, endereco incompleto). */
+.prj-erro {
+  margin: 8px 4px;
+  color: var(--spro-suave);
+}
+
+/* ---------- P4: faixas e consentimentos do Texto Padrao ---------- */
+.prj-faixas {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.prj-faixas:empty {
+  display: none;
+}
+.prj-faixa {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  padding: 10px 12px;
+  font-size: 12.5px;
+  background: var(--spro-destaque-suave);
+  border: 1px solid color-mix(in srgb, var(--spro-destaque) 22%, transparent);
+  border-radius: var(--spro-raio-g);
+}
+.prj-faixa > span {
+  flex: 1 1 260px;
+}
+.prj-consentimento {
+  display: grid;
+  gap: 10px;
+  max-width: 520px;
+}
+.prj-consentimento p,
+.prj-consentimento ul {
+  margin: 0;
+}
+.prj-consentimento ul {
+  display: grid;
+  gap: 4px;
+  padding-left: 18px;
+}
+
+/* ---------- P4: dialogo Sincronizacao ---------- */
+.prj-sync {
+  min-width: min(520px, 86vw);
+}
+.prj-sync-secao {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--spro-fundo);
+  border: 1px solid var(--spro-borda);
+  border-radius: var(--spro-raio-g);
+}
+.prj-sync-secao h3 {
+  margin: 0;
+  font-size: 13.5px;
+}
+.prj-sync-secao p {
+  margin: 0;
+}
+.prj-sync-corpo {
+  display: grid;
+  gap: 8px;
+}
+.prj-sync-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+/* Acao em curso: aria-disabled (o disabled tiraria o foco do teclado). */
+.prj-sync [aria-disabled="true"] {
+  cursor: progress;
+  opacity: 0.6;
+}
+.prj-sync-situacao,
+.prj-sync-aviso {
+  color: var(--spro-texto);
+}
+.prj-sync-erro {
+  color: var(--spro-perigo);
+}
+.prj-sync-extra:empty,
+.prj-sync-acoes:empty {
+  display: none;
+}
+/* Vazio, o aviso fica na arvore (role=status: o leitor de tela so anuncia mudanca em quem ja estava la) sem ocupar o gap. */
+.prj-sync-aviso:empty {
+  margin-top: -8px;
+}
+.prj-sync-substituido {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+.prj-copias {
+  display: grid;
+  gap: 2px;
+  max-height: 220px;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+.prj-copias li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 6px 5px 8px;
+  border-radius: var(--spro-raio);
+}
+.prj-copias li:hover {
+  background: var(--spro-fundo-2);
+}
+
+/* ---------- P4: Modelos de projeto e Historico de alteracoes ---------- */
+.prj-form-modelos,
+.prj-form-historico {
+  min-width: min(520px, 86vw);
+}
+.prj-modelos {
+  display: grid;
+  gap: 2px;
+}
+.prj-modelo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--spro-borda);
+}
+.prj-modelo > .spro-icone {
+  flex: none;
+  color: var(--spro-fraco);
+}
+.prj-modelo-texto {
+  display: grid;
+  flex: 1 1 200px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.prj-modelo-nome {
+  font-weight: 600;
+}
+/* A descricao de um modelo salvo pode ter 2.000 caracteres: duas linhas (o title mostra tudo). */
+.prj-modelo-texto .prj-dica {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+/* Renomear: o campo fica no lugar do nome. */
+.prj-modelo-texto .spro-campo {
+  width: 100%;
+}
+.prj-historico {
+  display: grid;
+  gap: 12px;
+  max-height: 60vh;
+  overflow: auto;
+}
+.prj-historico-dia {
+  display: grid;
+  gap: 4px;
+}
+.prj-historico-dia h3 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--spro-suave);
+}
+.prj-historico-reg {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12.5px;
+  overflow-wrap: anywhere;
+}
+.prj-historico-vis {
+  display: inline-flex;
+  flex: none;
+  align-self: center;
+  color: var(--spro-fraco);
+}
+.prj-historico-hora {
+  flex: none;
+  font-family: var(--spro-mono);
+  color: var(--spro-fraco);
+}
+
+/* ---------- P4: enviar e receber projeto por arquivo ---------- */
+.prj-form-enviar,
+.prj-form-receber {
+  min-width: min(440px, 86vw);
+}
+/* O nome do projeto recebido: em destaque na previa (o resto fica suave). */
+.prj-form-receber .prj-previa b {
+  overflow-wrap: anywhere;
+  color: var(--spro-texto);
+}
+
+/* ---------- P4: importar do servidor do Atividades ---------- */
+.prj-form-importar {
+  min-width: min(520px, 86vw);
+}
+.prj-importar-lista {
+  display: grid;
+  gap: 2px;
+  max-height: 40vh;
+  overflow: auto;
+}
+.prj-importar-item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--spro-borda);
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.prj-importar-item input {
+  flex: none;
+}
+/* O projeto que nao cabe (mais etapas que o limite): a caixa desligada, a linha mais apagada. */
+.prj-importar-item:has(input:disabled) {
+  cursor: default;
+  color: var(--spro-fraco);
+}
+.prj-importar-resumo {
+  margin: 0;
+  color: var(--spro-texto);
+}
+.prj-importar-cache {
+  margin: 0;
+  padding: 8px 10px;
+  background: var(--spro-fundo-2);
+  border-radius: var(--spro-raio);
+}
+/* Mais de 1000 projetos no servidor: o aviso de que so os primeiros aparecem. */
+.prj-importar-cortados {
+  margin: 0;
+}
+
+/* ---------- Painel lateral (P5, tela 3): Agenda, Projetos e mini-Gantt ---------- */
+html[data-modo="lateral"] body {
+  background: var(--spro-pagina);
+}
+html[data-modo="lateral"] #app {
+  padding: 10px 12px 16px;
+}
+/* No lateral mais estreito a sincronia e os botoes descem para a linha de baixo (nada fica cortado). */
+.prj-lat-topo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  margin-bottom: 10px;
+  min-width: 0;
+}
+.prj-lat-sigla {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--spro-suave);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.prj-lat-dir {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+}
+.prj-lat-dir .prj-sinc {
+  margin-right: 2px;
+}
+/* No estreito o estado calmo (neste navegador, sincronizado) fica so no icone, com a dica e o texto para o
+   leitor de tela; pendente e erro mostram a palavra (pedem atencao). */
+.prj-lat-dir .prj-sinc-local,
+.prj-lat-dir .prj-sinc-ok {
+  gap: 0;
+  font-size: 0;
+}
+.prj-lat-agenda,
+.prj-lat-projetos,
+.prj-lat-mini {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+.prj-lat-filtro {
+  justify-self: start;
+}
+.prj-lat-grupo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 2px 0;
+  color: var(--spro-suave);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.prj-lat-grupo-atrasadas {
+  color: var(--spro-perigo);
+}
+.prj-lat-grupo-semana {
+  color: var(--spro-aviso);
+}
+.prj-lat-conta {
+  padding: 0 6px;
+  font-weight: 600;
+  background: color-mix(in srgb, currentColor 14%, transparent);
+  border-radius: 999px;
+}
+.prj-lat-cartao {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 0;
+  color: var(--spro-texto);
+  font: inherit;
+  text-align: left;
+  background: var(--spro-fundo);
+  border: 1px solid var(--spro-borda);
+  border-radius: 10px;
+}
+.prj-lat-cartao:hover {
+  border-color: var(--spro-borda-forte);
+}
+.prj-lat-aberto {
+  border-color: var(--spro-destaque);
+}
+.prj-lat-alternar {
+  all: unset;
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 9px 11px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.prj-lat-alternar:focus-visible,
+.prj-lat-cartao-projeto:focus-visible {
+  outline: none;
+  box-shadow: var(--spro-anel);
+}
+.prj-lat-cartao-projeto {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 9px 11px;
+  cursor: pointer;
+}
+.prj-lat-l1 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.prj-lat-nome {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.prj-lat-l2 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding-left: 24px;
+  color: var(--spro-suave);
+  font-size: 12px;
+}
+.prj-lat-projeto {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.prj-lat-data {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.prj-lat-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 11px 9px 35px;
+}
+.prj-lat-escopo {
+  display: inline-flex;
+  color: var(--spro-suave);
+}
+.prj-lat-pct {
+  font-size: 12px;
+}
+.prj-lat-cartao-projeto .prj-barra {
+  width: 100%;
+  margin: 0;
+}
+.prj-lat-l3 {
+  color: var(--spro-suave);
+  font-size: 12px;
+}
+/* Depois de .prj-lat-l3: a mesma especificidade, e o vermelho do atraso tem de valer na linha do resumo. */
+.prj-lat-perigo {
+  color: var(--spro-perigo);
+}
+.prj-lat-nada {
+  margin: 12px 4px;
+  color: var(--spro-suave);
+  text-align: center;
+}
+.prj-lat-dica {
+  margin: 4px 8px;
+  color: var(--spro-fraco);
+  font-size: 12px;
+  line-height: 1.45;
+  text-align: center;
+}
+.prj-mg-cab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.prj-mg-cab h3 {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* O titulo recebe o foco ao abrir o projeto (para o leitor de tela), mas nao e um controle. */
+.prj-mg-cab h3:focus {
+  outline: none;
+}
+.prj-mg {
+  overflow: hidden;
+  background: var(--spro-fundo);
+  border: 1px solid var(--spro-borda);
+  border-radius: 10px;
+}
+.prj-mg-meses {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  color: var(--spro-fraco);
+  font-size: 10.5px;
+  border-bottom: 1px solid var(--spro-borda);
+}
+.prj-mg-meses > span {
+  padding: 5px 8px;
+}
+.prj-mg-eixo {
+  position: relative;
+  height: 24px;
+}
+.prj-mg-mes {
+  position: absolute;
+  top: 5px;
+  padding-left: 3px;
+  border-left: 1px solid var(--spro-borda);
+  white-space: nowrap;
+}
+.prj-mg-fase {
+  padding: 6px 10px 3px;
+  color: var(--spro-suave);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  background: var(--spro-fundo-2);
+}
+.prj-mg-linha {
+  all: unset;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  align-items: center;
+  width: 100%;
+  height: 30px;
+  border-bottom: 1px solid color-mix(in srgb, var(--spro-borda) 55%, transparent);
+  cursor: pointer;
+}
+.prj-mg-linha:hover {
+  background: var(--spro-destaque-suave);
+}
+.prj-mg-linha:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--spro-destaque);
+}
+.prj-mg-nome {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding-left: 8px;
+  font-size: 12px;
+}
+.prj-mg-nome > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.prj-mg-trilho {
+  position: relative;
+  height: 100%;
+}
+.prj-mg-barra {
+  position: absolute;
+  top: 10px;
+  min-width: 2px;
+  height: 10px;
+  background: color-mix(in srgb, var(--spro-borda-forte) 70%, var(--spro-fundo));
+  border-radius: 4px;
+}
+.prj-mg-marco {
+  position: absolute;
+  top: 9px;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  background: var(--spro-novidade);
+  border-radius: 2px;
+  transform: rotate(45deg);
+}
+.prj-mg-barra.prj-mg-concluida {
+  background: color-mix(in srgb, var(--spro-ok) 55%, var(--spro-fundo));
+}
+.prj-mg-barra.prj-mg-atrasada {
+  background: color-mix(in srgb, var(--spro-perigo) 55%, var(--spro-fundo));
+}
+.prj-mg-barra.prj-mg-andamento {
+  background: color-mix(in srgb, var(--spro-destaque) 55%, var(--spro-fundo));
+}
+.prj-mg-marco.prj-mg-concluida {
+  background: var(--spro-ok);
+}
+.prj-mg-marco.prj-mg-atrasada {
+  background: var(--spro-perigo);
+}
+.prj-mg-hoje {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--spro-destaque);
+}
+
+/* Lateral sem aba do SEI (ou sem unidade): o aviso no meio do painel. */
+.prj-lat-sem-aba {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  margin: 40px 16px;
+  color: var(--spro-suave);
+  text-align: center;
+}
+.prj-lat-sem-aba p {
+  margin: 0;
+}

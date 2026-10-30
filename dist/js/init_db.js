@@ -6,11 +6,10 @@ function getUrlExtension(url) {
         return browser.runtime.getURL(url);
     }
 }
+// Dominios de SEI com tratamento proprio (antes em config_hosts.json). A mesma lista esta em sei-functions-pro.js.
+var CONFIG_HOSTS_PRO = { matches: ['.sp.gov.br', '.antt.gov.br'] };
 function getConfigHost(callback = false, callback_else = false) {
-    var hosts = getUrlExtension("config_hosts.json");
-        fetch(hosts)
-        .then((response) => response.json()) //assuming file contains json
-        .then((json) => setConfigHost(json, callback, callback_else));
+    setConfigHost(CONFIG_HOSTS_PRO, callback, callback_else);
 }
 function setConfigHost(host, callback, callback_else){
     var set_host = false;
@@ -71,8 +70,22 @@ function setOptionsSEIPro(option_key, option_value) {
             chrome.storage.sync.set({
                 dataValues: JSON.stringify(dataValues)
             }, function() {
-                console.log('dataValues', dataValues);
-                localStorage.setItem('configBasePro', JSON.stringify(dataValues)); 
+                /* Sem esta checagem, a opcao parecia salva e nao estava (cota
+                   do item, limite de escritas por hora). */
+                if (chrome.runtime.lastError) {
+                    console.warn('SEI Pro: nao foi possivel salvar a opcao - ' + chrome.runtime.lastError.message);
+                    return;
+                }
+                /* So o que o mundo da pagina precisa: as opcoes e a base de
+                   atividades. As outras credenciais nao vao para o
+                   localStorage do SEI (o porque esta em cacheConfigPaginaPro,
+                   em init.js - mantenha os dois iguais). */
+                var paraPagina = [];
+                for (var k = 0; k < dataValues.length; k++) {
+                    if (typeof dataValues[k]['configGeral'] !== 'undefined') { paraPagina.push({configGeral: dataValues[k]['configGeral']}); }
+                    else if (dataValues[k]['baseTipo'] == 'atividades') { paraPagina.push(dataValues[k]); }
+                }
+                localStorage.setItem('configBasePro', JSON.stringify(paraPagina)); 
             });
         }
     });
@@ -99,6 +112,10 @@ function getOptionsSEIPro(data) {
             chrome.storage.sync.set({
                 dataValues: JSON.stringify(dataValues)
             }, function() {
+                if (chrome.runtime.lastError) {
+                    alert('N\u00e3o foi poss\u00edvel salvar a configura\u00e7\u00e3o da base: ' + chrome.runtime.lastError.message);
+                    return;
+                }
                 if (data.alert) { 
                     if (data.mode == 'insert') {
                         alert('Configura\u00e7\u00f5es carregadas com sucesso!'); 
@@ -294,8 +311,33 @@ function loadRepairPwdNewSei() {
         console.log('loadRepairPwdNewSei');
     }
 }
+// Listas que so o SEI conhece (hipoteses legais), lidas pelo sei-functions-pro.js (mundo da pagina, sem chrome.*) e entregues por
+// postMessage. Ficam em chrome.storage.local, por endereco do SEI, para a pagina de opcoes montar o combo. O endereco vem do proprio
+// frame (nunca da mensagem) e o conteudo e reduzido a texto.
+function ouvirListasSeiPro() {
+    window.addEventListener('message', function (ev) {
+        if (ev.source !== window || !ev.data || typeof ev.data.seiProListas !== 'object' || ev.data.seiProListas === null) return;
+        var bruta = ev.data.seiProListas.hipoteses;
+        if (!Array.isArray(bruta)) return;
+        var hipoteses = [];
+        for (var i = 0; i < bruta.length && hipoteses.length < 300; i++) {
+            var h = bruta[i];
+            if (!h || typeof h.id !== 'string' || typeof h.nome !== 'string') continue;
+            var nivel = (h.nivel === 2) ? 2 : 1;
+            hipoteses.push({ id: h.id.slice(0, 20), nome: h.nome.slice(0, 300), nivel: nivel });
+        }
+        if (!hipoteses.length) return;
+        var host = window.location.host;
+        chrome.storage.local.get({ listasSei: {} }, function (items) {
+            var listas = (items.listasSei && typeof items.listasSei === 'object') ? items.listasSei : {};
+            listas[host] = { hipoteses: hipoteses, atualizadoEm: Date.now() };
+            chrome.storage.local.set({ listasSei: listas });
+        });
+    });
+}
 function loadScriptProDB() {
     observeAcaoPro();
+    ouvirListasSeiPro();
     changeBasePro();
     // getConfigHost(appendIconEntidadeLogin);
     getPathExtensionPro();

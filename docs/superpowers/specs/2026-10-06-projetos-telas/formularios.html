@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Projetos - Tela 2: formularios</title>
+<link rel="stylesheet" href="/files/base.css">
+<style>
+  body { margin: 0; font-family: var(--spro-fonte); font-size: 13px; color: var(--spro-texto); background: var(--spro-pagina); }
+  .explica { max-width: 1240px; margin: 0 auto; padding: 22px 20px 4px; }
+  .explica h1 { font-size: 20px; margin: 0 0 6px; }
+  .explica p { margin: 4px 0; color: var(--spro-suave); line-height: 1.5; max-width: 980px; }
+  .explica .linha { display: flex; gap: 10px; align-items: center; margin-top: 10px; }
+  .grade { max-width: 1240px; margin: 0 auto; padding: 14px 20px 40px; display: grid; grid-template-columns: repeat(auto-fit, minmax(560px, 1fr)); gap: 26px 28px; align-items: start; }
+  .cena > .rot { display: flex; align-items: baseline; gap: 10px; margin: 0 0 10px; }
+  .cena > .rot b { font-size: 14.5px; }
+  .cena > .rot span { color: var(--spro-suave); }
+  .palco { background: color-mix(in srgb, var(--spro-veu) 55%, var(--spro-pagina)); border-radius: 14px; padding: 22px; display: grid; place-items: center; position: relative; }
+  dialog.spro-dialogo.inline { position: static; margin: 0; width: 100%; max-width: 560px; max-height: none; animation: none; }
+
+  .f { display: grid; gap: 14px; }
+  .campo { display: grid; gap: 6px; min-width: 0; }
+  .rotulo { font-size: 12px; font-weight: 600; color: var(--spro-suave); display: flex; gap: 6px; align-items: center; }
+  .rotulo .opc { font-weight: 400; color: var(--spro-fraco); }
+  .campo > .spro-campo, .campo > .combo { width: 100%; box-sizing: border-box; }
+  .linha { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+  .linha > .campo { flex: 1 1 130px; }
+  .dica { font-size: 12px; color: var(--spro-fraco); line-height: 1.45; }
+  .combo { display: flex; align-items: center; gap: 8px; min-height: 32px; padding: 0 8px 0 10px; border: 1px solid var(--spro-borda-forte); border-radius: var(--spro-raio); background: var(--spro-fundo); box-shadow: var(--spro-sombra-1); cursor: pointer; }
+  .combo > span:last-child { margin-left: auto; color: var(--spro-fraco); display: inline-flex; }
+  .combo .ph { color: var(--spro-fraco); }
+  .av { flex: none; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 9.5px; font-weight: 700; color: #fff; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip-x { display: inline-flex; align-items: center; gap: 6px; min-height: 26px; padding: 0 6px 0 10px; border-radius: 999px; background: var(--spro-fundo-3); font-size: 12.5px; }
+  .chip-x .spro-icone { color: var(--spro-fraco); }
+  .uteis { display: inline-flex; align-items: center; gap: 5px; height: 32px; padding: 0 10px; border-radius: var(--spro-raio); background: var(--spro-fundo-2); color: var(--spro-suave); white-space: nowrap; }
+  .check-marco { display: flex; align-items: center; gap: 8px; color: var(--spro-suave); font-size: 12.5px; }
+
+  /* cartões de opção (como os da preferência dos Favoritos) */
+  .opcoes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .opcao { display: flex; gap: 10px; padding: 10px 12px; border: 1px solid var(--spro-borda); border-radius: var(--spro-raio); cursor: pointer; background: var(--spro-fundo); align-items: flex-start; }
+  .opcao:hover { background: var(--spro-fundo-2); }
+  .opcao input { margin: 2px 0 0; }
+  .opcao b { display: block; font-weight: 600; margin-bottom: 2px; }
+  .opcao span { color: var(--spro-suave); font-size: 12px; line-height: 1.4; }
+  .opcao:has(input:checked) { background: var(--spro-destaque-suave); border-color: color-mix(in srgb, var(--spro-destaque) 50%, transparent); }
+
+  .previa { border: 1px solid var(--spro-borda); border-radius: var(--spro-raio); background: var(--spro-fundo-2); padding: 10px 12px; display: grid; gap: 6px; }
+  .previa .t { display: flex; justify-content: space-between; color: var(--spro-suave); font-size: 12px; }
+  .previa .e { display: flex; gap: 8px; align-items: center; font-size: 12.5px; }
+  .previa .e .barra { flex: none; height: 6px; border-radius: 3px; background: color-mix(in srgb, var(--spro-destaque) 40%, var(--spro-fundo)); }
+  .previa .e .d { margin-left: auto; color: var(--spro-fraco); font-variant-numeric: tabular-nums; }
+
+  /* seções recolhidas */
+  .secoes { border: 1px solid var(--spro-borda); border-radius: var(--spro-raio-g); overflow: hidden; }
+  .sec { border-top: 1px solid var(--spro-borda); }
+  .sec:first-child { border-top: 0; }
+  .sec > button { all: unset; box-sizing: border-box; width: 100%; display: flex; align-items: center; gap: 10px; padding: 10px 12px; cursor: pointer; }
+  .sec > button:hover { background: var(--spro-fundo-2); }
+  .sec > button .spro-icone { color: var(--spro-suave); }
+  .sec > button .tit { font-weight: 600; }
+  .sec > button .res { margin-left: auto; color: var(--spro-fraco); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px; }
+  .sec > button .seta { transition: transform var(--spro-dur); }
+  .sec.aberta > button .seta { transform: rotate(90deg); }
+  .sec .conteudo { display: none; padding: 4px 12px 14px 38px; }
+  .sec.aberta .conteudo { display: grid; gap: 8px; }
+  .item { display: flex; align-items: center; gap: 8px; }
+  .item.feito span { color: var(--spro-fraco); text-decoration: line-through; }
+  .hist { display: grid; gap: 6px; font-size: 12.5px; color: var(--spro-suave); }
+  .hist b { color: var(--spro-texto); font-weight: 600; }
+  .docok { display: flex; align-items: center; gap: 6px; color: var(--spro-ok); font-size: 12px; }
+
+  /* cena 3: concluir */
+  .mini { width: 100%; background: var(--spro-fundo); border: 1px solid var(--spro-borda); border-radius: var(--spro-raio-g); overflow: hidden; }
+  .mini .lin { display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px; border-bottom: 1px solid var(--spro-borda); }
+  .mini .lin .nome { flex: 1; }
+  .mini .lin.feita .nome { color: var(--spro-suave); }
+  .mini .lin .data { color: var(--spro-fraco); font-size: 12px; }
+  .toast { position: static; transform: none; animation: none; margin-top: 14px; max-width: none; }
+  .toast > span[data-ic] { flex: none; color: #8fd6b4; display: inline-flex; }
+  .vazio, .mini { box-sizing: border-box; }
+  .balao2 { width: 320px; background: var(--spro-fundo); border: 1px solid var(--spro-borda); border-radius: var(--spro-raio-g); box-shadow: var(--spro-sombra-3); padding: 14px; margin-top: 14px; display: grid; gap: 10px; }
+  .balao2 h4 { margin: 0; font-size: 13.5px; }
+  .passos { counter-reset: p; display: grid; gap: 6px; margin: 12px 0 0; padding: 0; list-style: none; color: var(--spro-suave); }
+  .passos li { display: flex; gap: 8px; }
+  .passos li::before { counter-increment: p; content: counter(p); flex: none; width: 18px; height: 18px; border-radius: 50%; background: var(--spro-fundo-3); color: var(--spro-texto); font-size: 11px; font-weight: 700; display: grid; place-items: center; }
+
+  /* cena 4: vazio */
+  .vazio { width: 100%; background: var(--spro-fundo); border: 1px solid var(--spro-borda); border-radius: var(--spro-raio-g); padding: 30px 24px; text-align: center; display: grid; justify-items: center; gap: 10px; }
+  .vazio h3 { margin: 6px 0 0; font-size: 16px; }
+  .vazio p { margin: 0; color: var(--spro-suave); max-width: 420px; line-height: 1.5; }
+  .vazio .botoes { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; justify-content: center; }
+  .vazio a { color: var(--spro-destaque); text-decoration: none; font-size: 12.5px; }
+  .nota { max-width: 1240px; margin: 0 auto 40px; padding: 0 20px; }
+  .nota div { padding: 10px 14px; background: var(--spro-fundo); border: 1px dashed var(--spro-borda-forte); border-radius: var(--spro-raio); color: var(--spro-suave); line-height: 1.6; }
+  .nota b { color: var(--spro-texto); }
+</style>
+</head>
+<body>
+<div class="explica">
+  <h1>Tela 2 de 3 &middot; Formul&aacute;rios e fluxos do dia a dia</h1>
+  <p>Regra seguida: <b>o essencial aparece, o resto fica recolhido com um resumo ao lado</b>. Quem s&oacute; quer nome e datas preenche 3 campos e salva; quem quer checklist, documento ou etiquetas abre a se&ccedil;&atilde;o. Clique nos cart&otilde;es, nas se&ccedil;&otilde;es e no &ldquo;&Eacute; um marco&rdquo;.</p>
+  <div class="linha">
+    <div class="spro-segmentado" id="tema">
+      <button aria-selected="true" data-t="claro">Tema claro</button>
+      <button aria-selected="false" data-t="escuro">Tema escuro</button>
+    </div>
+  </div>
+</div>
+
+<div class="grade">
+  <!-- 1. Novo projeto -->
+  <section class="cena">
+    <div class="rot"><b>1. Novo projeto</b><span>&ldquo;Novo projeto&rdquo; nas abas ou no estado vazio</span></div>
+    <div class="palco">
+      <dialog open class="spro-dialogo inline">
+        <header><span class="spro-dialogo-icone" data-ic="gantt"></span><h2>Novo projeto</h2><button class="spro-botao-icone" data-ic="fechar"></button></header>
+        <div class="spro-dialogo-corpo">
+          <div class="f">
+            <div class="campo"><label class="rotulo">Nome do projeto</label><input class="spro-campo" value="Revis&atilde;o da Resolu&ccedil;&atilde;o n&ordm; 5.432"></div>
+            <div class="campo"><label class="rotulo">Processo SEI <span class="opc">(opcional)</span></label>
+              <div class="combo"><span data-ic="pasta"></span><span>50300.001234/2026-11 &middot; Revis&atilde;o normativa</span><span data-ic="chevron"></span></div>
+              <div class="dica">Sugere os processos da sua caixa; aceita qualquer n&uacute;mero digitado.</div></div>
+            <div class="campo"><span class="rotulo">Quem v&ecirc;</span>
+              <div class="opcoes">
+                <label class="opcao"><input type="radio" name="vis" checked><div><b>Toda a unidade (TESTE)</b><span>Quem usa o SEI Pro na TESTE v&ecirc; e edita. Fica no Texto Padr&atilde;o da unidade.</span></div></label>
+                <label class="opcao"><input type="radio" name="vis"><div><b>S&oacute; eu</b><span>Aparece s&oacute; para voc&ecirc;, nesta unidade. D&aacute; para mudar depois.</span></div></label>
+              </div></div>
+            <div class="campo"><span class="rotulo">Come&ccedil;ar</span>
+              <div class="spro-segmentado" id="comecar"><button aria-pressed="false" data-v="branco">Em branco</button><button aria-pressed="true" data-v="modelo">De um modelo</button></div></div>
+            <div id="blocoModelo" class="f">
+              <div class="linha">
+                <div class="campo" style="flex:2 1 220px"><label class="rotulo">Modelo</label><div class="combo"><span data-ic="modelo"></span><span>Revis&atilde;o normativa (9 etapas)</span><span data-ic="chevron"></span></div></div>
+                <div class="campo"><label class="rotulo">Come&ccedil;a em</label><input class="spro-campo" type="date" value="2026-08-03"></div>
+              </div>
+              <div class="previa">
+                <div class="t"><span>9 etapas em 3 fases &middot; datas em dias &uacute;teis, pulando feriados</span><b>termina em 10/12/2026</b></div>
+                <div class="e"><span class="barra" style="width:40px"></span>Nota t&eacute;cnica preliminar<span class="d">03/08 &rarr; 21/08</span></div>
+                <div class="e"><span class="barra" style="width:40px;margin-left:40px"></span>An&aacute;lise jur&iacute;dica<span class="d">24/08 &rarr; 11/09</span></div>
+                <div class="e"><span class="barra" style="width:64px;margin-left:30px"></span>Relat&oacute;rio de AIR<span class="d">01/09 &rarr; 25/09</span></div>
+                <div class="e" style="color:var(--spro-fraco)">&hellip; e mais 6 etapas</div>
+              </div>
+            </div>
+          </div>
+          <div class="spro-dialogo-rodape"><button class="spro-botao">Cancelar</button><button class="spro-botao primario">Criar projeto</button></div>
+        </div>
+      </dialog>
+    </div>
+  </section>
+
+  <!-- 2. Etapa -->
+  <section class="cena">
+    <div class="rot"><b>2. Etapa</b><span>&ldquo;Editar&rdquo; no bal&atilde;o, ou &ldquo;+ Etapa&rdquo;</span></div>
+    <div class="palco">
+      <dialog open class="spro-dialogo inline">
+        <header><span class="spro-dialogo-icone" data-ic="calendario"></span><h2>Etapa</h2><button class="spro-botao-icone" data-ic="fechar"></button></header>
+        <div class="spro-dialogo-corpo">
+          <div class="f">
+            <div class="campo"><label class="rotulo">Nome</label><input class="spro-campo" value="Relat&oacute;rio de AIR"></div>
+            <div class="linha">
+              <div class="campo"><label class="rotulo">In&iacute;cio</label><input class="spro-campo" type="date" value="2026-09-01"></div>
+              <div class="campo" id="campoFim"><label class="rotulo">T&eacute;rmino</label><input class="spro-campo" type="date" value="2026-10-02"></div>
+              <span class="uteis" id="uteis" data-ic2="relogio">23 dias &uacute;teis</span>
+            </div>
+            <label class="check-marco"><input type="checkbox" id="marco"> &Eacute; um marco (uma data s&oacute;, como &ldquo;Publica&ccedil;&atilde;o no DOU&rdquo;)</label>
+            <div class="linha">
+              <div class="campo"><label class="rotulo">Respons&aacute;vel</label><div class="combo"><span class="av" style="background:#b45c0a">CD</span><span>Carla Dias</span><span data-ic="chevron"></span></div></div>
+              <div class="campo"><label class="rotulo">Fase</label><div class="combo"><span data-ic="camadas"></span><span>Instru&ccedil;&atilde;o</span><span data-ic="chevron"></span></div></div>
+            </div>
+            <div class="campo"><label class="rotulo">Depende de <span class="opc">(s&oacute; come&ccedil;a depois destas)</span></label>
+              <div class="combo" style="padding:4px 8px;min-height:36px"><div class="chips"><span class="chip-x">Nota t&eacute;cnica preliminar <span data-ic="fechar" data-t="13"></span></span><span class="ph" style="align-self:center">Adicionar&hellip;</span></div><span data-ic="chevron"></span></div></div>
+
+            <div class="secoes" id="secoes">
+              <div class="sec aberta"><button><span class="seta" data-ic="chevronD" data-t="14"></span><span data-ic="checklist"></span><span class="tit">Checklist</span><span class="res">3 de 5 feitos</span></button>
+                <div class="conteudo">
+                  <label class="item feito"><input type="checkbox" checked><span>Levantar dados do setor</span></label>
+                  <label class="item feito"><input type="checkbox" checked><span>Identificar alternativas regulat&oacute;rias</span></label>
+                  <label class="item feito"><input type="checkbox" checked><span>An&aacute;lise de custos</span></label>
+                  <label class="item"><input type="checkbox"><span>Matriz de impactos</span></label>
+                  <label class="item"><input type="checkbox"><span>Revis&atilde;o da chefia</span></label>
+                  <div class="item" style="color:var(--spro-fraco)"><span data-ic="mais" data-t="14"></span><span>Adicionar item (Enter)</span></div>
+                </div></div>
+              <div class="sec"><button><span class="seta" data-ic="chevronD" data-t="14"></span><span data-ic="documento"></span><span class="tit">Processo e documento</span><span class="res">50300.001234/2026-11 &middot; sem documento</span></button>
+                <div class="conteudo">
+                  <div class="campo"><label class="rotulo">Processo</label><input class="spro-campo" value="50300.001234/2026-11"><div class="dica">Por padr&atilde;o, o processo do projeto.</div></div>
+                  <div class="campo"><label class="rotulo">Documento relacionado <span class="opc">(n&uacute;mero SEI)</span></label><input class="spro-campo" value="1240001"><div class="docok"><span data-ic="check" data-t="14"></span>Relat&oacute;rio de AIR 3/2026 &mdash; abre na visualiza&ccedil;&atilde;o r&aacute;pida</div></div>
+                </div></div>
+              <div class="sec"><button><span class="seta" data-ic="chevronD" data-t="14"></span><span data-ic="etiqueta"></span><span class="tit">Etiquetas</span><span class="res">nenhuma</span></button>
+                <div class="conteudo"><div class="combo"><span class="ph">Escolher ou criar etiqueta&hellip;</span><span data-ic="chevron"></span></div></div></div>
+              <div class="sec"><button><span class="seta" data-ic="chevronD" data-t="14"></span><span data-ic="nota"></span><span class="tit">Observa&ccedil;&otilde;es</span><span class="res">&mdash;</span></button>
+                <div class="conteudo"><textarea class="spro-campo" rows="3" placeholder="Anota&ccedil;&otilde;es livres sobre a etapa"></textarea></div></div>
+              <div class="sec"><button><span class="seta" data-ic="chevronD" data-t="14"></span><span data-ic="progresso"></span><span class="tit">Como medir o progresso</span><span class="res">pelo checklist</span></button>
+                <div class="conteudo"><div class="spro-segmentado"><button aria-pressed="false">Eu informo</button><button aria-pressed="false">Pelo tempo decorrido</button><button aria-pressed="true">Pelo checklist</button></div>
+                  <div class="dica">&ldquo;Eu informo&rdquo; usa a r&eacute;gua do bal&atilde;o. &ldquo;Pelo tempo&rdquo; vai de 0% no in&iacute;cio a 100% no t&eacute;rmino (o legado chamava de autom&aacute;tico).</div></div></div>
+              <div class="sec"><button><span class="seta" data-ic="chevronD" data-t="14"></span><span data-ic="historico"></span><span class="tit">Hist&oacute;rico</span><span class="res">Carla Dias alterou o t&eacute;rmino h&aacute; 2 dias</span></button>
+                <div class="conteudo"><div class="hist">
+                  <div><b>Carla Dias</b> &middot; 04/10 &middot; t&eacute;rmino 25/09 &rarr; 02/10</div>
+                  <div><b>Carla Dias</b> &middot; 30/09 &middot; checklist 2 &rarr; 3 de 5</div>
+                  <div><b>Ana Lima</b> &middot; 28/08 &middot; criou a etapa</div></div></div></div>
+            </div>
+          </div>
+          <div class="spro-dialogo-rodape"><button class="spro-botao fantasma perigo spro-esquerda" data-ic-btn="lixeira">Excluir</button><button class="spro-botao">Cancelar</button><button class="spro-botao primario">Salvar</button></div>
+        </div>
+      </dialog>
+    </div>
+  </section>
+
+  <!-- 3. Concluir -->
+  <section class="cena">
+    <div class="rot"><b>3. Concluir uma etapa</b><span>um clique, com &ldquo;Desfazer&rdquo;</span></div>
+    <div class="palco" style="place-items:stretch">
+      <div class="mini">
+        <div class="lin feita"><span data-ic="ok16"></span><span class="nome">An&aacute;lise jur&iacute;dica</span><span class="data">11/09</span></div>
+        <div class="lin feita" style="background:var(--spro-destaque-suave)"><span data-ic="ok16"></span><span class="nome">Relat&oacute;rio de AIR</span><span class="data">conclu&iacute;da hoje</span></div>
+        <div class="lin"><span data-ic="meio16"></span><span class="nome">Per&iacute;odo de contribui&ccedil;&otilde;es</span><span class="data">at&eacute; 15/10</span></div>
+      </div>
+      <div class="spro-aviso toast"><span data-ic="check"></span><span>&ldquo;Relat&oacute;rio de AIR&rdquo; conclu&iacute;da hoje (06/10).</span><button>Informar documento</button><button>Desfazer</button></div>
+      <div class="balao2">
+        <h4>Documento que comprova a conclus&atilde;o</h4>
+        <div class="campo"><label class="rotulo">N&uacute;mero SEI</label><input class="spro-campo" value="1240001"><div class="docok"><span data-ic="check" data-t="14"></span>Relat&oacute;rio de AIR 3/2026</div></div>
+        <div class="linha"><div class="campo"><label class="rotulo">Conclu&iacute;da em</label><input class="spro-campo" type="date" value="2026-10-06"></div><button class="spro-botao primario">Salvar</button></div>
+      </div>
+      <ol class="passos">
+        <li>&ldquo;Concluir etapa&rdquo; no bal&atilde;o (ou no c&iacute;rculo da linha) conclui com a data de hoje.</li>
+        <li>O aviso oferece &ldquo;Informar documento&rdquo; e &ldquo;Desfazer&rdquo;; ningu&eacute;m &eacute; obrigado a preencher nada.</li>
+        <li>Na tela do processo, o documento pode ser escolhido da &aacute;rvore aberta (sem carregar a &aacute;rvore escondido).</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- 4. Vazio -->
+  <section class="cena">
+    <div class="rot"><b>4. Primeiro uso</b><span>painel sem nenhum projeto</span></div>
+    <div class="palco" style="place-items:stretch">
+      <div class="vazio">
+        <svg width="132" height="70" viewBox="0 0 132 70" fill="none" aria-hidden="true">
+          <rect x="4" y="6" width="48" height="10" rx="5" fill="color-mix(in srgb, var(--spro-ok) 40%, var(--spro-fundo))"/>
+          <rect x="40" y="24" width="56" height="10" rx="5" fill="color-mix(in srgb, var(--spro-destaque) 45%, var(--spro-fundo))"/>
+          <rect x="70" y="42" width="44" height="10" rx="5" fill="var(--spro-fundo-3)"/>
+          <path d="M122 47l6 6-6 6-6-6z" fill="var(--spro-novidade)"/>
+          <path d="M52 11h-6v18h-6" stroke="var(--spro-fraco)" stroke-width="1.2"/>
+          <path d="M96 29h-6v18h-6" stroke="var(--spro-fraco)" stroke-width="1.2"/>
+          <line x1="64" y1="0" x2="64" y2="70" stroke="var(--spro-destaque)" stroke-width="1"/>
+        </svg>
+        <h3>Acompanhe um trabalho do come&ccedil;o ao fim</h3>
+        <p>Divida em etapas, ponha as datas e veja tudo numa linha do tempo. Serve para uma revis&atilde;o de norma, uma contrata&ccedil;&atilde;o, um plano anual&hellip;</p>
+        <div class="botoes"><button class="spro-botao primario" data-ic-btn="mais">Criar projeto</button><button class="spro-botao" data-ic-btn="modelo">Come&ccedil;ar de um modelo</button></div>
+        <a href="#">Importar meus projetos do servidor do Atividades</a>
+        <span class="dica">(o link de importar s&oacute; aparece para quem tem servidor do Atividades configurado)</span>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="nota"><div>
+  <b>Decis&otilde;es embutidas aqui (corrija o que n&atilde;o fizer sentido):</b><br>
+  &bull; <b>&ldquo;Fase&rdquo;</b> substitui &ldquo;Macroetapa&rdquo; (mesmo papel: agrupa as etapas no Gantt). O campo &ldquo;Grupo&rdquo; do legado vira <b>etiqueta</b> na importa&ccedil;&atilde;o, para n&atilde;o haver dois agrupamentos parecidos.<br>
+  &bull; <b>&ldquo;Tipo de projeto&rdquo;</b> do legado tamb&eacute;m vira etiqueta do projeto (filtr&aacute;vel na vis&atilde;o &ldquo;Todos&rdquo;), em vez de um campo pr&oacute;prio.<br>
+  &bull; <b>&ldquo;S&oacute; eu&rdquo;</b> vale para a unidade em que o projeto foi criado, como as listas dos Favoritos; o arquivo JSON leva tudo.<br>
+  &bull; <b>Iniciar execu&ccedil;&atilde;o</b> some como passo: a etapa entra &ldquo;em andamento&rdquo; sozinha quando chega a data de in&iacute;cio (ou ao mexer no progresso). A barra de execu&ccedil;&atilde;o separada do legado vira a <b>linha de base</b>: o planejado original fica guardado e a barra mostra o real.<br>
+  &bull; Na Tela 1, o menu &ldquo;&#8943;&rdquo; ganha <b>&ldquo;Mostrar lista de etapas&rdquo;</b> (ligado por padr&atilde;o), como voc&ecirc; pediu.
+</div></div>
+
+<script>
+"use strict";
+const NS = "http://www.w3.org/2000/svg";
+const ICON = {
+  gantt: '<path d="M4 5h9M7 12h11M4 19h7"/><path d="M3 3v18"/>',
+  fechar: '<path d="M6 6l12 12M18 6 6 18"/>',
+  pasta: '<path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/>',
+  chevron: '<path d="m6 9 6 6 6-6"/>',
+  chevronD: '<path d="m9 6 6 6-6 6"/>',
+  modelo: '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9.5h16M9.5 9.5V20"/>',
+  calendario: '<rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/>',
+  relogio: '<circle cx="12" cy="12" r="9"/><path d="M12 7.2V12l3.2 1.9"/>',
+  camadas: '<path d="M12 3.5 3 8l9 4.5L21 8z"/><path d="m3 12 9 4.5 9-4.5"/><path d="m3 16 9 4.5 9-4.5"/>',
+  checklist: '<path d="m4 7 2 2 3.5-3.5M4 15l2 2 3.5-3.5M13 8h7M13 16h7"/>',
+  documento: '<path d="M6 3.5h8l4 4v13H6z"/><path d="M14 3.5v4h4"/>',
+  etiqueta: '<path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7l8.3 8.3a1 1 0 0 1 0 1.4l-7.1 7.1a1 1 0 0 1-1.4 0z"/><circle cx="8" cy="8" r="1.4" fill="currentColor"/>',
+  nota: '<path d="M6 3.5h9l3.5 3.5v13.5H6z"/><path d="M9 11h6"/><path d="M9 15h6"/>',
+  progresso: '<path d="M4 12a8 8 0 1 0 8-8"/><path d="M12 4v8l5 3"/>',
+  historico: '<path d="M3.5 12a8.5 8.5 0 1 0 2.5-6"/><path d="M3.5 4.5V8H7"/><path d="M12 8v4.3l3 1.7"/>',
+  check: '<path d="m5 12.5 4.2 4.2L19 7"/>',
+  mais: '<path d="M12 5v14M5 12h14"/>',
+  lixeira: '<path d="M4.5 6.5h15"/><path d="M9.5 6.5V4.8c0-.7.6-1.3 1.3-1.3h2.4c.7 0 1.3.6 1.3 1.3v1.7"/><path d="M6.5 6.5l.9 12.6a1.5 1.5 0 0 0 1.5 1.4h6.2a1.5 1.5 0 0 0 1.5-1.4l.9-12.6"/>',
+};
+function ic(nome, t = 16) {
+  const s = document.createElementNS(NS, "svg");
+  s.setAttribute("viewBox", "0 0 24 24"); s.setAttribute("width", t); s.setAttribute("height", t);
+  s.setAttribute("fill", "none"); s.setAttribute("stroke", "currentColor"); s.setAttribute("stroke-width", "1.8");
+  s.setAttribute("stroke-linecap", "round"); s.setAttribute("stroke-linejoin", "round"); s.classList.add("spro-icone");
+  s.innerHTML = ICON[nome] || ""; return s;
+}
+function st(tipo) {
+  const s = document.createElementNS(NS, "svg"); s.setAttribute("viewBox", "0 0 16 16"); s.setAttribute("width", 16); s.setAttribute("height", 16);
+  s.innerHTML = tipo === "ok16" ? '<circle cx="8" cy="8" r="7" fill="var(--spro-ok)"/><path d="m4.8 8.2 2.1 2.1 4.3-4.4" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>'
+    : '<circle cx="8" cy="8" r="6.2" fill="none" stroke="var(--spro-destaque)" stroke-width="1.6"/><path d="M8 1.8a6.2 6.2 0 0 1 0 12.4z" fill="var(--spro-destaque)"/>';
+  return s;
+}
+for (const el of document.querySelectorAll("[data-ic]")) {
+  const n = el.dataset.ic; const t = +(el.dataset.t || (el.classList.contains("spro-dialogo-icone") ? 18 : 16));
+  el.append(n === "ok16" || n === "meio16" ? st(n) : ic(n, t));
+}
+for (const el of document.querySelectorAll("[data-ic-btn]")) el.prepend(ic(el.dataset.icBtn, 15));
+document.getElementById("uteis").prepend(ic("relogio", 14));
+
+for (const s of document.querySelectorAll(".sec > button")) s.addEventListener("click", () => s.parentElement.classList.toggle("aberta"));
+const marco = document.getElementById("marco");
+marco.addEventListener("change", () => {
+  document.getElementById("campoFim").style.display = marco.checked ? "none" : "";
+  document.getElementById("uteis").style.display = marco.checked ? "none" : "";
+});
+for (const b of document.querySelectorAll("#comecar button")) b.addEventListener("click", () => {
+  for (const x of document.querySelectorAll("#comecar button")) x.setAttribute("aria-pressed", String(x === b));
+  document.getElementById("blocoModelo").style.display = b.dataset.v === "modelo" ? "" : "none";
+});
+for (const g of document.querySelectorAll(".spro-segmentado:not(#comecar):not(#tema)")) for (const b of g.querySelectorAll("button")) b.addEventListener("click", () => { for (const x of g.querySelectorAll("button")) x.setAttribute("aria-pressed", String(x === b)); });
+for (const b of document.querySelectorAll("#tema button")) b.addEventListener("click", () => {
+  document.documentElement.setAttribute("data-tema", b.dataset.t);
+  for (const x of document.querySelectorAll("#tema button")) x.setAttribute("aria-selected", String(x === b));
+});
+document.documentElement.setAttribute("data-tema", "claro");
+</script>
+</body>
+</html>

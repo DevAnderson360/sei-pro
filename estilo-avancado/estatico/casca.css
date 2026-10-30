@@ -1,0 +1,478 @@
+/*
+ * Casca do SEI (sub-projeto 2): a barra superior, o menu lateral, a barra de ações, os títulos, os
+ * tooltips e a árvore do processo, redesenhados no vocabulário dos painéis (Favoritos, Projetos,
+ * Demandas): superfícies em camadas, raios generosos, ícones de traço (máscaras geradas em
+ * src/icones) e estados de hover, foco e seleção bem marcados. Só var(--spro-*): nenhuma cor
+ * literal e nenhum !important aqui (o teste confere). As cores base vêm da folha base.
+ */
+
+/* ============================== Barra superior ============================== */
+/* Profundidade: um brilho sutil sobre a cor escolhida (a cor em si vem da folha base, com !important do SEI) */
+:root[data-spro-tema-ativo] #divInfraBarraSistemaPadrao,
+:root[data-spro-tema-ativo] #divInfraBarraSistema .infraCorBarraSistema {
+  background-image: linear-gradient(180deg, color-mix(in srgb, var(--spro-barra-texto) 10%, transparent), transparent 70%);
+  box-shadow: 0 1px 0 var(--spro-barra-borda), 0 6px 18px -8px color-mix(in srgb, var(--spro-barra) 70%, transparent);
+}
+:root[data-spro-tema-ativo] #divInfraBarraSistemaPadrao img.infraImg,
+:root[data-spro-tema-ativo] #divInfraBarraSistemaPadrao a > img[src*="svg/"] {
+  color: var(--spro-barra-texto);
+}
+/* Altura da barra: mais alta no topo da página, normal depois de rolar (navbar.ts liga data-spro-nav-compacta).
+   A barra de ações fixa acompanha por --spro-nav-total, com a mesma transição. */
+:root[data-spro-tema-ativo] {
+  --spro-nav-base: 65px;
+  --spro-nav-extra: 14px;
+  /* A troca de altura é lenta e suave (a barra de ações fixa acompanha quadro a quadro pelo valor medido) */
+  --spro-nav-dur: 380ms;
+  --spro-nav-curva: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --spro-nav-total: calc(var(--spro-nav-base) + var(--spro-nav-extra));
+}
+/* Compacta: some a faixa do órgão (4 + 15 px) e a barra fica só com a altura da linha principal */
+:root[data-spro-tema-ativo][data-spro-nav-compacta] {
+  --spro-nav-extra: 0px;
+  --spro-nav-total: 50px;
+}
+/* A faixa com o nome do órgão: recolhe suave ao compactar (o nome passa para junto da logo) */
+:root[data-spro-tema-ativo] #divInfraBarraSistemaLinha,
+:root[data-spro-tema-ativo] #divInfraBarraSistema > h6.d-md-block {
+  max-height: 20px;
+  overflow: hidden;
+  transition:
+    max-height var(--spro-nav-dur) var(--spro-nav-curva),
+    opacity calc(var(--spro-nav-dur) * 0.7) var(--spro-nav-curva);
+}
+:root[data-spro-tema-ativo][data-spro-nav-compacta] #divInfraBarraSistemaLinha,
+:root[data-spro-tema-ativo][data-spro-nav-compacta] #divInfraBarraSistema > h6.d-md-block {
+  max-height: 0;
+  opacity: 0;
+}
+/* O nome do órgão, ao lado da logo, só na barra compacta (navbar.ts copia o texto para data-spro-orgao) */
+:root[data-spro-tema-ativo][data-spro-nav-compacta] #divInfraBarraSistemaPadraoE > div[data-spro-orgao]::after {
+  content: attr(data-spro-orgao);
+  display: inline-block;
+  margin-left: 14px;
+  padding-left: 14px;
+  border-left: 1px solid color-mix(in srgb, var(--spro-barra-texto) 32%, transparent);
+  vertical-align: middle;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 30vw;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--spro-barra-texto) 88%, transparent);
+  animation: spro-orgao-entra var(--spro-nav-dur) var(--spro-nav-curva);
+}
+@keyframes spro-orgao-entra {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+}
+
+:root[data-spro-tema-ativo] #navInfraBarraNavegacao {
+  height: var(--spro-nav-total);
+  min-height: var(--spro-nav-total);
+  transition:
+    height var(--spro-nav-dur) var(--spro-nav-curva),
+    min-height var(--spro-nav-dur) var(--spro-nav-curva);
+}
+:root[data-spro-tema-ativo] #divInfraBarraSistemaPadrao {
+  height: calc(50px + var(--spro-nav-extra));
+  min-height: calc(50px + var(--spro-nav-extra));
+  align-items: center;
+  transition:
+    height var(--spro-nav-dur) var(--spro-nav-curva),
+    min-height var(--spro-nav-dur) var(--spro-nav-curva);
+}
+/* Ícones da barra: botões redondos de 40 px */
+:root[data-spro-tema-ativo] #divInfraBarraSistemaPadrao a.align-self-center,
+:root[data-spro-tema-ativo] #lnkInfraMenuSistema,
+:root[data-spro-tema-ativo] #lnkInfraMenuSistemaMovel {
+  /* O Bootstrap do SEI força display:block (d-md-block): o centro vem do respiro, não do flex */
+  box-sizing: border-box;
+  width: 40px;
+  height: 40px;
+  padding: 8px;
+  border-radius: 999px;
+  transition:
+    background-color var(--spro-dur) var(--spro-curva),
+    transform var(--spro-dur) var(--spro-curva);
+}
+:root[data-spro-tema-ativo] #divInfraBarraSistemaPadrao a.align-self-center:hover,
+:root[data-spro-tema-ativo] #lnkInfraMenuSistema:hover,
+:root[data-spro-tema-ativo] #lnkInfraMenuSistemaMovel:hover {
+  background-color: color-mix(in srgb, var(--spro-barra-texto) 18%, transparent);
+}
+:root[data-spro-tema-ativo] #divInfraBarraSistemaPadrao a.align-self-center:active {
+  transform: scale(0.94);
+}
+:root[data-spro-tema-ativo] #divInfraBarraSistemaPadrao a:focus-visible,
+:root[data-spro-tema-ativo] #lnkInfraMenuSistema:focus-visible {
+  outline: 2px solid var(--spro-barra-texto);
+  outline-offset: 1px;
+}
+/* O botão "Menu" tem texto: vira uma pílula com respiro, afastada da pesquisa */
+:root[data-spro-tema-ativo] #divInfraBarraSistemaPadrao a#lnkInfraMenuSistema {
+  display: flex;
+  align-items: center;
+  width: auto;
+  margin-right: 10px;
+  padding: 0 14px;
+}
+:root[data-spro-tema-ativo] #divInfraBarraSistemaPadrao a#lnkInfraMenuSistema > span {
+  padding: 0;
+  font-size: 14px;
+  letter-spacing: 0.2px;
+}
+/* Pesquisa rápida: pílula translúcida que vira superfície ao focar */
+:root[data-spro-tema-ativo] #txtPesquisaRapida {
+  height: 36px;
+  padding-left: 16px;
+  color: var(--spro-barra-texto);
+  background-color: color-mix(in srgb, var(--spro-barra-texto) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--spro-barra-texto) 22%, transparent);
+  border-radius: 999px 0 0 999px;
+  transition:
+    background-color var(--spro-dur),
+    border-color var(--spro-dur);
+}
+:root[data-spro-tema-ativo] #txtPesquisaRapida::placeholder {
+  color: color-mix(in srgb, var(--spro-barra-texto) 72%, transparent);
+}
+:root[data-spro-tema-ativo] #txtPesquisaRapida:focus {
+  color: var(--spro-texto);
+  background-color: var(--spro-fundo);
+  border-color: transparent;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--spro-barra-texto) 28%, transparent);
+}
+:root[data-spro-tema-ativo] #txtPesquisaRapida:focus::placeholder {
+  color: var(--spro-fraco);
+}
+/* O botão da lupa fecha a pílula da pesquisa; fica sobre superfície clara, então o ícone usa a cor do texto */
+:root[data-spro-tema-ativo] #divInfraBarraSistemaPadrao span.infraAcaoBarraConjugada {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 46px;
+  height: 36px;
+  min-height: 0;
+  padding: 0;
+  background-color: var(--spro-fundo);
+  border: 0;
+  border-radius: 0 999px 999px 0;
+}
+:root[data-spro-tema-ativo] #divInfraBarraSistemaPadrao .infraAcaoBarraConjugada img {
+  color: var(--spro-texto);
+}
+/* A unidade vira uma pílula */
+:root[data-spro-tema-ativo] a#lnkInfraUnidade {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--spro-barra-texto) 24%, transparent);
+  box-shadow: var(--spro-sombra-1);
+}
+
+/* ============================== Menu lateral ============================== */
+:root[data-spro-tema-ativo] .divInfraAreaTelaE,
+:root[data-spro-tema-ativo] #divInfraAreaTelaE {
+  background-color: var(--spro-fundo);
+  color: var(--spro-texto);
+  border-right: 1px solid var(--spro-borda);
+}
+:root[data-spro-tema-ativo] #divInfraPesquisarMenu {
+  background-color: var(--spro-fundo);
+  /* respiro antes e depois do campo: ele não cola na barra nem no primeiro item.
+     O SEI fixa a altura do contêiner (36px, sticky): sem altura automática o campo vaza para fora dele. */
+  box-sizing: border-box;
+  height: auto;
+  min-height: 0;
+  padding: 18px 12px 16px;
+}
+:root[data-spro-tema-ativo] #txtInfraPesquisarMenu {
+  height: 38px;
+  padding-left: 14px;
+  color: var(--spro-texto);
+  background-color: var(--spro-fundo-2);
+  border: 1px solid var(--spro-borda);
+  border-radius: 999px;
+}
+:root[data-spro-tema-ativo] #txtInfraPesquisarMenu:focus {
+  background-color: var(--spro-fundo);
+  border-color: var(--spro-destaque);
+  box-shadow: var(--spro-anel);
+}
+:root[data-spro-tema-ativo] #infraMenu {
+  padding: 4px 0 16px;
+}
+:root[data-spro-tema-ativo] #infraMenu li > a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+  margin: 2px 10px;
+  padding-right: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 12px;
+  transition:
+    background-color var(--spro-dur) var(--spro-curva),
+    color var(--spro-dur) var(--spro-curva);
+}
+:root[data-spro-tema-ativo] #infraMenu li > a > img:not(.infraImgSetaMenu),
+:root[data-spro-tema-ativo] #infraMenu li > a > svg.iconMenuPro {
+  flex: none;
+  margin-left: 6px;
+  color: var(--spro-suave);
+  transition: color var(--spro-dur) var(--spro-curva);
+}
+:root[data-spro-tema-ativo] #infraMenu li > a > span {
+  flex: 1;
+  min-width: 0;
+}
+:root[data-spro-tema-ativo] #infraMenu li > a:hover {
+  background-color: var(--spro-fundo-3);
+}
+:root[data-spro-tema-ativo] #infraMenu li > a:hover > img:not(.infraImgSetaMenu),
+:root[data-spro-tema-ativo] #infraMenu li > a:hover > svg.iconMenuPro {
+  color: var(--spro-destaque);
+}
+:root[data-spro-tema-ativo] #infraMenu li > a:focus-visible {
+  outline: none;
+  box-shadow: var(--spro-anel);
+}
+/* Item da tela atual (o SEI marca com a classe infraMenuSelecionado): faixa de destaque */
+:root[data-spro-tema-ativo] #infraMenu li > a.infraMenuSelecionado,
+:root[data-spro-tema-ativo] #infraMenu li > a.active,
+:root[data-spro-tema-ativo] #infraMenu li > a[aria-current] {
+  font-weight: 650;
+  background-color: var(--spro-destaque-suave);
+  box-shadow: inset 3px 0 0 var(--spro-destaque);
+}
+:root[data-spro-tema-ativo] #infraMenu li > a.infraMenuSelecionado > img:not(.infraImgSetaMenu) {
+  color: var(--spro-destaque);
+}
+/* Itens do SEI Pro: mesmo ritmo dos nativos (o rótulo vem sem <span>) */
+:root[data-spro-tema-ativo] #infraMenu a.newLinksMenuPro {
+  padding-left: 5px;
+  padding-right: 12px;
+}
+
+/* A seta dos submenus vira um chevron de traço */
+:root[data-spro-tema-ativo] #infraMenu img.infraImgSetaMenu {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-right: 2px;
+  content: url("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7");
+  background-color: var(--spro-fraco);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center / contain no-repeat;
+  transition: transform var(--spro-dur) var(--spro-curva);
+}
+:root[data-spro-tema-ativo] #infraMenu a[aria-expanded="true"] img.infraImgSetaMenu {
+  transform: rotate(180deg);
+}
+/* Submenus: recuados, com uma guia à esquerda */
+:root[data-spro-tema-ativo] #infraMenu ul.collapse,
+:root[data-spro-tema-ativo] #infraMenu ul.collapsing,
+:root[data-spro-tema-ativo] #infraMenu ul.show {
+  margin-left: 28px;
+  border-left: 1px solid var(--spro-borda);
+}
+
+/* ============================== Títulos ============================== */
+:root[data-spro-tema-ativo] div.infraBarraLocalizacao {
+  font-size: 24px;
+  font-weight: 750;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+  color: var(--spro-texto);
+}
+
+/* ============================== Barra de ações (processo e Controle) ============================== */
+:root[data-spro-tema-ativo] div.barraBotoesSEI {
+  padding: 6px;
+  background-color: var(--spro-fundo);
+  border: 1px solid var(--spro-borda);
+  border-radius: var(--spro-raio-g);
+  box-shadow: var(--spro-sombra-2);
+}
+:root[data-spro-tema-ativo] a.botaoSEI {
+  border-radius: 12px;
+  transition:
+    background-color var(--spro-dur) var(--spro-curva),
+    color var(--spro-dur) var(--spro-curva),
+    transform var(--spro-dur) var(--spro-curva);
+}
+:root[data-spro-tema-ativo] a.botaoSEI > img {
+  color: var(--spro-suave);
+  transition: color var(--spro-dur) var(--spro-curva);
+}
+:root[data-spro-tema-ativo] a.botaoSEI:hover {
+  background-color: var(--spro-fundo-3);
+  transform: translateY(-1px);
+}
+:root[data-spro-tema-ativo] a.botaoSEI:active {
+  transform: translateY(0) scale(0.96);
+}
+:root[data-spro-tema-ativo] a.botaoSEI:focus-visible {
+  outline: none;
+  box-shadow: var(--spro-anel);
+}
+
+/* ============================== Tooltips ============================== */
+:root[data-spro-tema-ativo] div.infraTooltip,
+:root[data-spro-tema-ativo] div#divInfraTooltip,
+:root[data-spro-tema-ativo] div[data-spro-dica-caixa] {
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--spro-fundo);
+  background-color: var(--spro-texto);
+  border: 0;
+  border-radius: var(--spro-raio);
+  box-shadow: var(--spro-sombra-3);
+}
+/* A caixa própria (botões que só tinham title): flutua sobre tudo e nunca captura o mouse */
+:root[data-spro-tema-ativo] div[data-spro-dica-caixa] {
+  position: fixed;
+  z-index: 2147483600;
+  max-width: 280px;
+  font-family: var(--spro-fonte);
+  pointer-events: none;
+  animation: spro-dica-entra var(--spro-dur) var(--spro-curva);
+}
+@keyframes spro-dica-entra {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+}
+
+/* ============================== Árvore do processo ============================== */
+:root[data-spro-tema-ativo] a.infraArvoreNo span {
+  padding: 2px 6px;
+  border-radius: var(--spro-raio-p);
+  transition: background-color var(--spro-dur) var(--spro-curva);
+}
+:root[data-spro-tema-ativo] a.infraArvoreNo:hover span {
+  background-color: var(--spro-fundo-3);
+}
+:root[data-spro-tema-ativo] a.infraArvoreNo span.infraArvoreNoSelecionado {
+  background-color: var(--spro-destaque-medio);
+  color: var(--spro-texto);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--spro-destaque) 45%, transparent);
+}
+
+/* ============================== Página do processo: divisor, selo da unidade e seções ============================== */
+/* Divisor vertical entre a árvore e o visualizador: fio fino com uma alça que acende ao passar o mouse. */
+:root[data-spro-tema-ativo] #divIframeArvore > .ui-resizable-e {
+  background: linear-gradient(var(--spro-borda), var(--spro-borda)) center / 1px 100% no-repeat var(--spro-pagina);
+  transition: background-color var(--spro-dur) var(--spro-curva);
+}
+:root[data-spro-tema-ativo] #divIframeArvore > .ui-resizable-e::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 44px;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  background-color: var(--spro-borda-forte);
+  box-shadow: 0 0 0 2px var(--spro-pagina);
+  transition:
+    background-color var(--spro-dur) var(--spro-curva),
+    height var(--spro-dur) var(--spro-curva);
+}
+:root[data-spro-tema-ativo] #divIframeArvore > .ui-resizable-e:hover {
+  background: linear-gradient(var(--spro-destaque), var(--spro-destaque)) center / 2px 100% no-repeat var(--spro-pagina);
+}
+:root[data-spro-tema-ativo] #divIframeArvore > .ui-resizable-e:hover::before {
+  height: 64px;
+  background-color: var(--spro-destaque);
+}
+
+/* Selo da unidade ao lado de cada documento. */
+:root[data-spro-tema-ativo] a.infraArvoreInformacao > span {
+  display: inline-block;
+  padding: 1px 8px;
+  border: 0;
+  border-radius: 999px;
+  background-color: var(--spro-destaque-suave);
+  color: var(--spro-destaque);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--spro-destaque) 30%, transparent);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: 0.04em;
+  transition:
+    background-color var(--spro-dur) var(--spro-curva),
+    color var(--spro-dur) var(--spro-curva);
+}
+:root[data-spro-tema-ativo] a.infraArvoreInformacao:hover > span {
+  background-color: var(--spro-destaque);
+  color: var(--spro-destaque-texto);
+}
+
+/* Divisores das seções da coluna da árvore: fio que some nas pontas, no lugar da linha cheia
+   (a linha cheia vem de estilo inline, zerada em base.css). */
+:root[data-spro-tema-ativo] #divConsultarAndamento,
+:root[data-spro-tema-ativo] .panelDadosArvore,
+:root[data-spro-tema-ativo] .panelDadosArvorePro,
+:root[data-spro-tema-ativo] .stickDadosArvore,
+:root[data-spro-tema-ativo] #divRelacionados {
+  background-image: linear-gradient(
+    90deg,
+    transparent,
+    var(--spro-borda-forte) 14%,
+    var(--spro-borda-forte) 86%,
+    transparent
+  );
+  background-position: top;
+  background-repeat: no-repeat;
+  background-size: 100% 1px;
+}
+
+/* ============================== Barra de ações fixa no topo ============================== */
+/* O legado cria uma cópia da barra (fica no fluxo, guardando o espaço) e fixa a original. A fixa gruda na barra
+   superior, sem vão e com os cantos de cima retos, como uma aba que desce dela; a cópia só segura o lugar. */
+:root[data-spro-tema-ativo]:has(#navInfraBarraNavegacao) div.barraBotoesSEI.fixed {
+  margin-top: 0;
+  border-top-color: transparent;
+  border-radius: 0 0 var(--spro-raio-g) var(--spro-raio-g);
+  box-shadow:
+    0 10px 24px -10px color-mix(in srgb, var(--spro-barra) 45%, transparent),
+    var(--spro-sombra-2);
+  animation: spro-barra-fixa var(--spro-dur) var(--spro-curva);
+}
+:root[data-spro-tema-ativo]:has(#navInfraBarraNavegacao) div.barraBotoesSEI:has(+ div.barraBotoesSEI.fixed) {
+  visibility: hidden;
+}
+@keyframes spro-barra-fixa {
+  from {
+    opacity: 0.6;
+    transform: translateY(-8px);
+  }
+}
+
+/* ============================== Página do processo: respiro e alinhamento da árvore ============================== */
+/* Respiro entre a barra superior e a linha do número do processo (a tela da árvore tem o cabeçalho de altura fixa) */
+:root[data-spro-tema-ativo] body:has(> #header.px-2) {
+  padding-top: 12px;
+}
+/* O selo da unidade ao lado de cada documento: o legado o põe em "text-top" (fica mais baixo que os ícones de copiar,
+   que estão em "super"); no mesmo alinhamento deles, os dois ficam na mesma linha horizontal. */
+:root[data-spro-tema-ativo] .infraArvore > a.infraArvoreInformacao {
+  vertical-align: super;
+}

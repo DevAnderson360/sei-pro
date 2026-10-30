@@ -32,6 +32,8 @@ Abra a [página do último release](https://github.com/SEI-Pro/sei-pro/releases/
 | Chrome e Edge | `sei-pro-<versão>.zip` |
 | Firefox | `sei-pro-<versão>-firefox.zip` |
 
+> Os pacotes `sei-pro-<versão>.zip` e `sei-pro-<versão>-firefox.zip` são o **SEI Pro Lab**, a versão de testes: ela recebe primeiro as novidades que ainda estão em teste.
+
 > **Os dois têm o mesmo código**, mas não são intercambiáveis: o que muda é o formato do manifesto, e cada navegador só aceita o seu. O pacote do Chrome, carregado no Firefox, é recusado com a mensagem `background.service_worker is currently disabled. Add background.scripts.`
 
 ### Passo 2 — Descompactar

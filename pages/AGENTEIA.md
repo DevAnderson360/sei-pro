@@ -47,7 +47,7 @@ O agente vive num **painel lateral**, ao lado do SEI: você continua vendo o pro
 2. Escolha o **modelo**;
 3. Clique em **Salvar e começar**.
 
-A chave fica guardada **só neste navegador**. O SEI Pro não tem servidor: as mensagens vão do seu navegador direto para o serviço escolhido, e o SEI Pro não as vê.
+A chave fica guardada **só neste navegador**. As mensagens vão do seu navegador direto para o serviço escolhido, sem passar por nenhum servidor do SEI Pro, e o SEI Pro não as vê. O que é enviado e as proteções aplicadas estão na [Política de Privacidade](../PRIVACY_POLICY.md#42-agente-de-ia).
 
 #### Qual serviço de IA
 
@@ -118,6 +118,64 @@ Há dois modelos para copiar em [skills-exemplo/](https://github.com/SEI-Pro/sei
 
 Para preferências curtas que valem para **toda** conversa — tratamento, estilo, o que sempre citar —, use **Instruções adicionais**, na seção Avançado.
 
+### Conectores: ferramentas de fora do SEI
+
+Skill ensina **como** a sua unidade trabalha. Conector dá ao agente **o que fazer fora do SEI**: consultar um sistema do órgão, uma base pública, um serviço que a sua equipe mantém. Tecnicamente é um **servidor MCP** — o mesmo padrão que o Claude e outros assistentes usam para se ligar a serviços.
+
+Cadastre em **Configuração → O que o agente pode → Conectores (MCP)**:
+
+| Campo | Para que serve |
+| ----- | -------------- |
+| **Nome** | Como você e o agente se referem ao conector |
+| **Endereço do servidor** | O endereço HTTP do servidor MCP. Só `https` (`http` vale apenas para `localhost`) |
+| **Autenticação** | Opcional: o nome e o valor do cabeçalho que o servidor exige (em geral `Authorization`) |
+
+Ao salvar, o SEI Pro conversa com o servidor, pede a lista de ferramentas e guarda. O navegador vai pedir a sua autorização para acessar aquele endereço — sem ela, nenhuma chamada é feita.
+
+#### A permissão é por ferramenta
+
+Em **Ferramentas**, cada uma tem três estados:
+
+| Estado | O que acontece |
+| ------ | -------------- |
+| **Sempre permitir** | O agente usa quando precisar, sem perguntar |
+| **Requer aprovação** | Aparece um cartão com o conector, a ferramenta e **exatamente o que vai ser enviado**; nada sai antes do seu clique |
+| **Bloqueado** | O agente não usa — e nem fica sabendo que a ferramenta existe |
+
+O estado padrão, inclusive para ferramenta que o servidor passar a oferecer depois, é **Requer aprovação**. Dá para desligar o conector inteiro pelo interruptor, sem perder o cadastro, e **excluir** leva embora o token guardado.
+
+#### O que sai do seu navegador
+
+O conteúdo que você mandar a um conector **sai do seu navegador para o endereço dele** — é um serviço de terceiro, fora do SEI e fora do SEI Pro. Por isso:
+
+* **dados pessoais vão mascarados**, como nas conversas: o servidor recebe `[PESSOA_1]`, não o nome;
+* na **primeira vez** que o agente usa um conector, ele pede a sua autorização explícita;
+* o endereço e o token ficam **só neste navegador**, como a chave do serviço de IA.
+
+Conector não escreve no SEI: para isso continuam valendo o cartão de aprovação e as regras da unidade.
+
+#### Conector no seu próprio computador
+
+O servidor pode rodar na sua máquina, em `http://localhost` ou `http://127.0.0.1` (é o único caso em que `http` vale). Na primeira vez, o navegador pede a sua permissão para o SEI Pro falar com esse endereço.
+
+Como é você quem liga e desliga esse servidor, a lista mostra o estado de cada conector: **conectado** ou **sem resposta**. O estado é conferido de novo toda vez que o painel abre, e o botão **Testar de novo** aparece quando o servidor não responde. Se ele estiver desligado, o agente diz isso na conversa, em vez de um erro de rede.
+
+Quando uma ferramenta do conector devolve um erro (um login que expirou, um dado recusado), o texto chega inteiro a você e ao agente, e o conector continua ligado: basta resolver o que ele pede e repetir o pedido.
+
+#### Quando o conector precisa de um arquivo
+
+Alguns conectores recebem arquivos, por exemplo para anexar um contrato num sistema. Nesse caso o agente **baixa o documento do SEI** para `Downloads/SEI Pro/<número do processo>/`, com um nome legível que ele escolhe a partir do documento (a extensão original e o número SEI são sempre mantidos), e passa ao conector o caminho do arquivo.
+
+* **Você aprova cada download.** O cartão mostra o documento e onde ele será salvo, e não existe "permitir sempre" para isso. Rotina nunca baixa sozinha.
+* **A cópia tem os dados reais.** Ela sai do SEI sem máscara e fica no seu computador até você apagar.
+* **Só documento externo** (o arquivo anexado), e só **documentos e imagens**: PDF, Word, Excel, imagem, texto. O cartão mostra o nome, o tipo e o tamanho reais do arquivo. Documento escrito no editor do SEI ainda não. Sigiloso, nunca.
+* **O caminho real do arquivo só é passado a conector do seu próprio computador.**
+* **Conector em outro computador** não lê o seu disco. Se ele aceita receber o arquivo, o SEI Pro relê o documento do SEI, confere se é o mesmo que você aprovou no download (documento, processo, tamanho e uma impressão digital do conteúdo, o SHA-256) e envia o arquivo com o nome aprovado. O agente não vê o conteúdo nem escolhe outro nome.
+* **Esse envio pede a sua aprovação toda vez**, mesmo que a ferramenta esteja em "Sempre permitir". O cartão mostra o documento, o arquivo, o tamanho e o endereço do servidor, e avisa que o documento vai com os dados reais. Se o documento mudou no SEI depois do download, nada é enviado: o agente baixa de novo.
+* **Para apagar**, vá em **Configuração → O que o agente pode → Arquivos baixados pelo agente**: a tela diz quantos arquivos existem e o botão os remove do computador. Os documentos continuam no SEI.
+
+Na primeira vez, o navegador pede a permissão de **downloads**. Ela é opcional: quem não usa essa função nunca é perguntado.
+
 ### Nada é alterado sem a sua aprovação
 
 Quando o pedido implica mexer no processo, o agente **não executa**: ele monta um cartão com o que pretende fazer, item a item, mostrando o valor de antes e o de depois. Nada acontece enquanto você não clicar em **Aprovar e executar**.
@@ -138,18 +196,94 @@ Em **Configuração → Agentes** ficam os três perfis operacionais do painel:
 
 Cada perfil mostra modelo, permissão, última execução, tokens, custo e falhas recentes. As execuções auxiliares ficam no estado local da conversa com tarefa, modelo, horário, resultado ou erro e consumo. Retomar uma conversa apenas restaura esses dados: não faz uma nova chamada à IA.
 
-O modelo auxiliar pode ser diferente do principal. Também dá para limitar quantas tarefas independentes rodam em paralelo (padrão: **3**) e quantas rodadas de ferramentas cada auxiliar pode fazer (padrão: **14**). Mesmo com limites maiores, auxiliares e rotinas continuam somente leitura, sem aprovação, assinatura ou nova delegação.
+O modelo auxiliar pode ser diferente do principal. Também dá para limitar quantas tarefas independentes rodam em paralelo (padrão: **3**) e quantas rodadas de ferramentas cada auxiliar pode fazer (padrão: **14**). Mesmo com limites maiores, auxiliares continuam somente leitura, sem aprovação, assinatura ou nova delegação. As rotinas respeitam o alcance escolhido no cadastro; rotinas antigas continuam somente leitura.
 
 ### Rotinas
 
 Há perguntas que valem toda semana e ninguém lembra de fazer: *"processos parados há mais de 30 dias"*, *"documentos sem assinatura na unidade"*. Em **Configuração → Conversas e rotinas** você cadastra a pergunta e quando ela deve rodar (todo dia, toda semana num dia, todo mês num dia, a partir de um horário).
 
-Duas coisas para entender antes de usar:
+| Campo | O que é |
+| ----- | ------- |
+| **Nome** | Como a rotina aparece na lista e na notificação |
+| **Instruções** | O pedido, escrito como você escreveria na conversa — e/ou **skills** já cadastradas, que entram junto |
+| **Quando** | Quando eu mandar, a cada hora, todo dia, dias úteis, toda semana (num dia) ou todo mês (num dia), a partir de um horário |
+| **O que ela pode fazer** | Só leitura; pode propor e esperar a sua aprovação; ou alterar sem perguntar |
+| **Avisar quando terminar** | Notificação do navegador com o resultado em uma linha |
+| **Teto por execução** | Limite de gasto só desta rotina, além dos limites gerais |
 
-* **Rotina é só leitura.** Ela nunca altera nada no SEI — o que roda sem alguém olhando não escreve;
-* **Ela roda quando você abre o agente** depois do horário marcado, não no horário exato. A extensão vive no seu navegador, com a sua sessão do SEI; não existe servidor do SEI Pro guardando esse acesso para agir de madrugada — e é bom que não exista.
+**Dias úteis** é de segunda a sexta — **feriado não é considerado**, porque a extensão não tem o calendário de cada órgão. **Quando eu mandar** não tem horário: ela roda no botão **Rodar agora**, que também existe em qualquer rotina.
 
-Quem ficou uma semana fora volta com **uma** execução pendente, não sete: o que interessa é a foto de agora. A lista mostra a próxima execução e o resultado completo da última. **Rodar agora** executa uma rotina individual; **Pausar todas** suspende apenas os disparos automáticos. Os dois caminhos continuam exigindo chave configurada, aba do SEI conectada e gasto abaixo do teto.
+#### Onde ela roda, e quando
+
+A rotina roda **no seu navegador, com a sua sessão do SEI**, e só com o agente aberto. Não existe servidor do SEI Pro guardando esse acesso para agir de madrugada — e é bom que não exista.
+
+* No **Chrome**, o navegador avisa na hora marcada mesmo com o painel fechado: aparece uma notificação de pendência, e clicar nela abre o agente e roda a rotina. Com o painel já aberto, ela roda sozinha;
+* no **Firefox**, ela roda quando a barra lateral do agente está aberta.
+
+Quem ficou uma semana fora volta com **uma** execução pendente, não sete: o que interessa é a foto de agora. As **10 últimas execuções** de cada rotina ficam registradas, com data, custo e o que foi alterado.
+
+**Pausar todas** suspende os disparos automáticos e os alarmes deste painel. **Rodar agora** continua disponível, exigindo chave configurada, aba do SEI conectada e gasto permitido. A lista também mostra o resultado completo, eventuais erros e a próxima janela de execução.
+
+#### O que uma rotina pode alterar no SEI
+
+Por padrão, nada: **só leitura**. Os outros dois alcances existem para quem precisa deles, com cercas:
+
+| Alcance | O que acontece |
+| ------- | -------------- |
+| **Só leitura** | Ela consulta e responde. Nunca altera nada |
+| **Pode propor, eu aprovo** | Ela monta o plano e **para**, esperando o seu clique no cartão de aprovação |
+| **Altera sem me perguntar** | Ela executa — apenas as ferramentas que você escolher, uma por uma |
+
+No alcance autônomo:
+
+* **exclusão, cancelamento e assinatura nunca** acontecem, mesmo que você tente autorizá-las: elas não aparecem na lista, e a trava se repete na hora de executar;
+* ferramenta fora da lista reprova o plano inteiro, e as **regras da unidade** continuam valendo;
+* cada alteração entra na conversa e no **desfazer**, como qualquer escrita;
+* o aviso por notificação é **obrigatório** — você tem de saber que algo foi escrito;
+* na **primeira falha** ao alterar o SEI a rotina se desliga sozinha, com o motivo na lista. Insistir sem ninguém olhando é pior que parar.
+
+### O que acompanha você em outro computador
+
+A configuração do agente usa a **sincronização do próprio navegador** — a mesma que já leva as opções do SEI Pro. Quem entra na conta do Chrome (ou do Firefox) no computador de casa encontra o agente configurado como no trabalho, sem cadastrar nada de novo.
+
+| Acompanha você | Fica só neste computador |
+| -------------- | ------------------------ |
+| Serviço de IA escolhido, modelo e ajustes | **A chave do serviço de IA** |
+| Suas instruções adicionais | As conversas guardadas |
+| Regras da unidade | O gasto do dia |
+| Memória da unidade | |
+| Rotinas (sem o histórico de execuções) | O histórico de execuções de cada rotina |
+| Conectores: endereço, estado e permissão de cada ferramenta | **O token do conector** e a lista de ferramentas (que se refaz com um clique em *Atualizar lista*) |
+| Skills: nome, atalho e o **endereço no GitHub** | **O texto das skills coladas à mão** |
+| Coleções de skills da equipe | |
+| Fluxos do Estúdio de Fluxo | Os processos usados como modelo |
+
+Duas consequências práticas:
+
+* **skill colada à mão não viaja.** O texto de uma skill pode passar de 20 mil caracteres, e o navegador reserva pouco espaço para sincronizar — então viaja o endereço, não o conteúdo. Se você quer que uma skill acompanhe a sua conta, **mantenha o arquivo `.md` num repositório** e cadastre o endereço: o outro computador baixa sozinho;
+* **segredo não sincroniza.** A chave do serviço de IA e os tokens dos conectores não vão pela sincronização do navegador: em cada computador você os digita uma vez — a não ser que você os inclua de propósito no [backup em arquivo](#backup-em-arquivo-o-agente-inteiro-em-outro-computador).
+
+Se a configuração passar do espaço que o navegador reserva, o agente avisa na conversa e para de sincronizar o excedente — o que já estava sincronizado continua valendo, e nada se perde neste computador.
+
+### Backup em arquivo: o agente inteiro em outro computador
+
+O que a sincronização do navegador não leva — **as conversas guardadas, o texto das skills coladas à mão, o histórico das rotinas** — pode ir num arquivo `.json` que você guarda numa pasta do **OneDrive** ou do **Google Drive**, como já fazem os Monitorados, os Projetos e as Demandas. Em **Configuração → Backup em arquivo**:
+
+* **Criar arquivo** (ou **Usar arquivo existente**, no segundo computador): a partir daí o agente grava sozinho alguns segundos depois de cada mudança e lê o arquivo ao abrir o painel. Uma conversa feita no trabalho aparece em casa.
+* **Sincronizar agora**, **Exportar (.json)** e **Importar arquivo** para controle manual. No Firefox, que não grava direto num arquivo, só Exportar e Importar existem.
+* Ler o arquivo **sempre mescla** com o que já está aqui; nunca apaga nada deste computador. Conversa apagada num computador não volta na leitura seguinte.
+* **A chave do serviço de IA e os tokens dos conectores só entram no arquivo se você marcar** *Incluir a chave de API e os tokens dos conectores* — desmarcado de fábrica, e a escolha vale só para este computador. Quem tiver acesso à pasta do arquivo poderá usar a chave.
+* O arquivo mora numa pasta que outra pessoa pode editar, então o agente o trata com desconfiança: **rotina autônoma chega desligada**, e **conector novo chega desligado, sem consentimento e com as ferramentas restritas**. O arquivo pode desligar ou restringir um conector, nunca ligar nem liberar.
+* Se a opção de guardar conversas estiver desligada, as conversas também não vão para o arquivo.
+
+### Anexar PDF na conversa
+
+O botão de anexar aceita **PDF**, além de texto, CSV e JSON. O PDF **é lido neste computador** e só o texto vai ao serviço de IA — o arquivo nunca é enviado.
+
+* A leitura é **página por página**: página com texto usa o texto; página digitalizada passa pelo **reconhecimento de texto (OCR)**, também feito aqui. O andamento aparece (*OCR: página 7 de 32*) e dá para cancelar.
+* Antes de começar, o agente conta as páginas digitalizadas e avisa quando o OCR pode deixar o computador lento por alguns minutos.
+* O envio da mensagem espera a leitura terminar. O anexo mostra o nome e o número de páginas, e avisa quais páginas não puderam ser lidas.
+* O texto vindo de OCR é marcado como tal para o modelo, porque pode ter erros de reconhecimento. E, como todo anexo, é tratado como **conteúdo**, nunca como instrução.
 
 ### Memória da unidade
 
@@ -199,6 +333,43 @@ Toda alteração feita pelo agente aparece na conversa como uma linha — e, qua
 
 Onde não há volta, a linha diz *sem desfazer* e, ao passar o mouse, explica por quê. Nada é escondido: o agente continua pedindo aprovação **antes** de cada alteração — o desfazer é a segunda rede, não a primeira.
 
+### Instruções escondidas dentro de documentos
+
+Em outubro de 2026 o STF multou um advogado que escondeu, no cabeçalho de uma petição, um comando dirigido à inteligência artificial que lê os autos — texto que não aparece na tela, mas aparece para quem extrai o conteúdo. O mesmo truque cabe em qualquer processo do SEI, e quem lê o documento aqui é o agente.
+
+O SEI Pro trata isso em quatro frentes, sem que você precise configurar nada.
+
+#### 1. Documento é dado, nunca ordem
+
+Para o agente, só três coisas são instrução: as regras do próprio agente, as **regras da unidade** que você cadastrou e **o seu pedido** na conversa. Tudo o que vem de documento, anexo, metadado, cabeçalho, rodapé ou campo oculto é **conteúdo** — mesmo escrito em forma de ordem.
+
+#### 2. O que está escondido da tela é apontado
+
+Na hora de ler o documento, o SEI Pro examina o HTML antes de virar texto e identifica o que existe no arquivo mas **não aparece para quem assina**: letra branca sobre fundo branco, fonte de tamanho zero, `display:none`, caixa fora da tela. Esse trecho não é apagado — documento é prova —, mas é apontado.
+
+#### 3. O conteúdo vai delimitado
+
+O texto do documento chega ao modelo dentro de uma marcação com um **código sorteado a cada conversa**. Como o documento foi escrito antes, não há como ele "fechar" a marcação e continuar escrevendo como se fosse instrução. Trechos suspeitos chegam marcados: ⟦instrução ignorada: …⟧.
+
+Também são removidos os **caracteres invisíveis** — aqueles que não aparecem em lugar nenhum e servem só para partir palavras e escapar da verificação.
+
+#### 4. Você fica sabendo
+
+Quando algo é encontrado, aparece na conversa uma **verificação de integridade**: em que documento está, o que é e o que foi feito. E se o agente propuser qualquer alteração no SEI depois disso, o **cartão de aprovação** traz o aviso de que um documento lido naquela conversa trazia conteúdo dirigido a IA — porque aprovar sabendo disso é diferente de aprovar sem saber.
+
+> O que isso **não** faz: não impede que um documento contenha instruções, e sim que elas sejam obedecidas em silêncio. A trava que impede qualquer alteração no SEI continua sendo a sua aprovação. E comando escondido dentro de uma imagem só aparece se o reconhecimento de texto estiver ligado.
+
+### Quando dá erro
+
+Todo erro na conversa traz dois botões no canto, só com ícone:
+
+* **copiar** leva a mensagem **e um diagnóstico técnico** juntos, prontos para colar num chamado, num e-mail ou numa conversa com quem mantém a extensão;
+* **a seta** abre esse diagnóstico aqui mesmo, se você quiser conferir antes o que está mandando.
+
+O diagnóstico traz o que ajuda a resolver — versão da extensão, navegador, serviço de IA e modelo, o código da resposta, o que o provedor respondeu, o tamanho da conversa, as últimas ferramentas usadas e se o navegador autorizou o acesso ao endereço do serviço.
+
+E traz só isso. **Não vão junto** a chave do serviço de IA, os tokens dos conectores, o conteúdo dos documentos, o texto da conversa, o número do processo nem a sigla da sua unidade. Pode colar sem medo.
+
 ### O que o agente não faz
 
 * **Processo sigiloso:** o agente não carrega. Estando você num processo sigiloso, ele se recusa a responder qualquer coisa;
@@ -222,7 +393,7 @@ Fica guardada **só a transcrição** — o que apareceu na tela. O histórico e
 
 ### Quanto custa
 
-O SEI Pro é gratuito e não cobra nada pelo agente. O custo é o do serviço de IA que você escolher, cobrado diretamente por ele. O painel mostra, no topo, quanto a conversa em curso consumiu — **em reais**, convertidos pela cotação do dia do dólar (PTAX do Banco Central; passando o mouse, aparece o valor original e a cotação usada). Nas configurações dá para desligar a conversão e ver em dólares. Quando o serviço não informa custo, o painel mostra tokens.
+O SEI Pro é gratuito e não cobra nada pelo agente. O custo é o do serviço de IA que você escolher, cobrado diretamente por ele. O painel mostra, no topo, quanto a conversa em curso consumiu — **em reais**, convertidos pela cotação do dia do dólar (PTAX do Banco Central, com a AwesomeAPI como reserva; passando o mouse, aparece o valor original e a cotação usada). Nas configurações dá para desligar a conversão e ver em dólares. Quando o serviço não informa custo, o painel mostra tokens.
 
 Uma consulta simples costuma custar centavos de dólar. Ler documentos longos custa mais, porque o texto inteiro vai para o modelo.
 

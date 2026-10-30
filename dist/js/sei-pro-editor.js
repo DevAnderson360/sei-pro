@@ -222,7 +222,7 @@ function htmlButton(status) {
         ? htmlButtonPro(
             'getLinkSeiLoteButtom',
             'linkseilote_pro',
-            'Converter os n\u00FAmeros SEI do texto em links',
+            'Converter os n\u00FAmeros de documentos e processos do texto em links',
             'fab fa-magic azulColor'
           )
         : '';
@@ -1332,7 +1332,6 @@ function activeIconsSelectedText() {
 //// INSERE LINK DE NORMAS
 // sendLegisSEI() -> js/modules/editor/ (extraido para modulo)
 // insertLegisSEI() -> js/modules/editor/ (extraido para modulo)
-// uniqLinkLegisSEI() -> js/modules/editor/ (extraido para modulo)
 // getLegisSEI() -> js/modules/editor/ (extraido para modulo)
 // getSearchLegisMore() -> js/modules/editor/ (extraido para modulo)
 // getSearchLegis() -> js/modules/editor/ (extraido para modulo)

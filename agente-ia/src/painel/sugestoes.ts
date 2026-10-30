@@ -11,6 +11,8 @@
  */
 
 import type { TelaAtual } from "../motor/motor";
+import { historicoInstalado } from "../tools/historico";
+import { projetosDisponiveis } from "../tools/projetos";
 
 export interface Sugestao {
   rotulo: string;
@@ -126,6 +128,28 @@ export const SUGESTOES: Sugestao[] = [
   },
 
   // --------------------------------------------------------- caixa da unidade
+  {
+    rotulo: "O que mudou nos meus monitorados",
+    descricao: "novidades e lembretes de hoje",
+    cabe: naCaixa,
+    prompt: () =>
+      "O que mudou nos meus monitorados? Liste os que t\u00EAm novidade ou lembrete para hoje e, de cada um, diga o que mudou e o que parece pedir a\u00E7\u00E3o.",
+  },
+  {
+    rotulo: "Processos que vi esta semana",
+    descricao: "do hist\u00F3rico do SEI Pro",
+    cabe: (t) => naCaixa(t) && historicoInstalado(),
+    prompt: () =>
+      "Liste os processos que visitei nos \u00FAltimos 7 dias, do mais recente ao mais antigo, com tipo e especifica\u00E7\u00E3o, e diga quais parecem pedir a\u00E7\u00E3o minha.",
+  },
+  {
+    rotulo: "O que vence nos projetos",
+    descricao: "etapas atrasadas e desta semana",
+    // Só com o módulo no manifest e a opção ligada (a última lida pelo painel): desligada, a ferramenta não cumpriria.
+    cabe: (t) => naCaixa(t) && projetosDisponiveis(),
+    prompt: () =>
+      "Nos projetos da minha unidade, quais etapas estão atrasadas e quais vencem nesta semana? Agrupe por projeto, com o responsável e o término, e diga o que parece pedir ação primeiro.",
+  },
   {
     rotulo: "Panorama da caixa",
     descricao: "quantos, de que tipo, o que chegou",

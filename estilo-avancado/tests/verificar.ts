@@ -1,0 +1,24 @@
+import { resumo } from "./util";
+import { verificarAplicar } from "./verificar-aplicar";
+import { verificarBaseCss, verificarCascaCss } from "./verificar-base-css";
+import { verificarDicas } from "./verificar-dicas";
+import { verificarDocumentos } from "./verificar-documentos";
+import { verificarIcones } from "./verificar-icones";
+import { verificarLargura } from "./verificar-largura";
+import { verificarNavbar } from "./verificar-navbar";
+import { verificarNovoControle } from "./verificar-novo-controle";
+import { verificarRespiro } from "./verificar-respiro";
+import { verificarSecao } from "./verificar-secao";
+
+verificarAplicar();
+verificarBaseCss();
+verificarCascaCss();
+verificarIcones();
+verificarDicas();
+verificarRespiro();
+verificarNavbar();
+verificarLargura();
+verificarNovoControle();
+await verificarDocumentos();
+await verificarSecao();
+resumo();

@@ -1,0 +1,22 @@
+import { resumo } from "./util";
+import { verificarApp, verificarConfirmarSemCancelar } from "./verificar-app";
+import { verificarLinhas } from "./verificar-linhas";
+import { verificarModelos } from "./verificar-modelos";
+import { verificarPagina } from "./verificar-pagina";
+import { verificarPosAcao } from "./verificar-pos-acao";
+import { verificarPosAcaoApp } from "./verificar-pos-acao-app";
+import { verificarPrevia } from "./verificar-previa";
+import { verificarRepositorio } from "./verificar-repositorio";
+import { verificarSei } from "./verificar-sei";
+
+verificarLinhas();
+verificarPrevia();
+await verificarRepositorio();
+await verificarModelos();
+await verificarSei();
+await verificarPagina();
+await verificarPosAcao();
+await verificarApp();
+await verificarConfirmarSemCancelar();
+await verificarPosAcaoApp();
+resumo();

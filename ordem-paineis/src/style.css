@@ -1,0 +1,35 @@
+/*
+ * Ordem dos painéis do Controle de Processos: só o que mexe na página do SEI (o contêiner em coluna, os
+ * painéis ocultos e o botão da barra de título). O modal tem o próprio CSS (modal.css), que vai dentro
+ * do Shadow DOM junto com o base.css do sei-comum.
+ */
+
+/* ---- A página: contêiner em coluna (só quando há personalização) e painéis ocultos ---- */
+#panelHomePro.spro-paineis-ativo {
+  display: flex !important;
+  flex-direction: column;
+}
+#panelHomePro > [data-spro-oculto] {
+  display: none !important;
+}
+
+/* ---- O botão na barra do Controle de Processos ---- */
+.spro-pnl-botao {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+  padding: 2px;
+  line-height: 0;
+  color: inherit;
+  cursor: pointer;
+  background: none;
+  border: 0;
+  border-radius: 6px;
+}
+.spro-pnl-botao:hover {
+  background: color-mix(in srgb, currentColor 14%, transparent);
+}
+.spro-pnl-botao:focus-visible {
+  outline: 2px solid #1f5fbf;
+  outline-offset: 1px;
+}

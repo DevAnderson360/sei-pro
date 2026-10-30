@@ -16,6 +16,7 @@
  */
 
 import type { Pseudonimos } from "@nucleo/privacidade/anonimizar";
+import { nonceDaConversa } from "../seguranca/envelope";
 import { validar } from "./esquema";
 import type { ContextoTool, DefTool, EstadoConversa, RegistroTools } from "./tools";
 import type {
@@ -40,7 +41,7 @@ export interface OpcoesMotor {
   /** Operação na aba do SEI (a ponte). */
   sei: (op: string, args: Record<string, unknown>, sinal: AbortSignal) => Promise<unknown>;
   /** Monta o prompt de sistema (recebe o resumo da tela atual). */
-  sistema: (tela: TelaAtual | null) => string;
+  sistema: (tela: TelaAtual | null, nonce: string) => string;
   /**
    * Regras da unidade, avaliadas antes de escrever (ver painel/regras.ts).
    * Bloqueio nem chega ao cartão de aprovação: o que a unidade proíbe não se
@@ -83,11 +84,22 @@ export class ErroMotor extends Error {}
 
 export class Motor {
   private historico: Mensagem[] = [];
+  /**
+   * Envelope desta conversa: todo conteúdo de documento entregue ao modelo vai
+   * delimitado por ele (ver `seguranca/envelope.ts`). Sorteado aqui porque é
+   * por conversa, e porque documento algum pode conhecê-lo de antemão.
+   */
+  private nonce = nonceDaConversa();
   private controlador: AbortController | null = null;
   private usoTotal: Uso = usoVazio();
   readonly estado: EstadoConversa = { consentimentoRestrito: null, anexos: [] };
 
   constructor(private readonly o: OpcoesMotor) {}
+
+  /** O delimitador desta conversa, para quem monta conteúdo fora do motor. */
+  get envelope(): string {
+    return this.nonce;
+  }
 
   get ocupado(): boolean {
     return this.controlador !== null;
@@ -114,7 +126,8 @@ export class Motor {
     this.historico.push({ role: "user", content: `[sistema] ${texto}` });
   }
 
-  restaurar(historico: Mensagem[], uso?: Uso): void {
+  restaurar(historico: Mensagem[], uso?: Uso, envelope?: string): void {
+    if (envelope && /^[a-f0-9]{8}$/.test(envelope)) this.nonce = envelope;
     this.historico = historico;
     if (uso) this.usoTotal = normalizarUso(uso);
   }
@@ -141,7 +154,7 @@ export class Motor {
       const limite = this.o.limitePassos ?? 40;
       for (let passo = 0; passo < limite; passo += 1) {
         const resposta = await this.o.provedor.conversar(
-          { mensagens: [{ role: "system", content: this.o.sistema(tela) }, ...this.compactado()], tools: this.o.tools.paraProvedor() },
+          { mensagens: [{ role: "system", content: this.o.sistema(tela, this.nonce) }, ...this.compactado()], tools: this.o.tools.paraProvedor() },
           sinal,
           (d) => this.o.ui.texto(d),
         );
@@ -153,6 +166,9 @@ export class Motor {
         this.historico.push({ role: "assistant", content: resposta.texto || null, ...(resposta.chamadas.length ? { tool_calls: resposta.chamadas } : {}) });
         if (!resposta.chamadas.length) {
           if (resposta.fim === "length") this.o.ui.aviso("A resposta foi cortada pelo limite do modelo.");
+          if (resposta.interrompida) {
+            this.o.ui.aviso("O servi\u00E7o de IA parou de responder no meio da resposta. O que chegou at\u00E9 aqui est\u00E1 acima; pergunte de novo se faltou algo.");
+          }
           return;
         }
         const resultados = await this.executarChamadas(resposta.chamadas, sinal);
@@ -168,12 +184,20 @@ export class Motor {
     }
   }
 
-  /** Resultado de tool → texto seguro para o modelo. */
-  private paraModelo(valor: unknown): string {
+  /**
+   * Resultado de tool → texto seguro para o modelo. `finais`: as passadas que a tool pediu (`ContextoTool.aoModelo`),
+   * sobre o texto exato que vai ao modelo (depois da anonimização e do corte); se uma falhar, nada do resultado vai.
+   */
+  private paraModelo(valor: unknown, finais: ReadonlyArray<(texto: string) => string> = []): string {
     let t = typeof valor === "string" ? valor : JSON.stringify(valor);
     t = this.o.privacidade.anonimizar(t ?? "");
     const limite = this.o.limiteResultado ?? 12_000;
     if (t.length > limite) t = `${t.slice(0, limite)}\n[... resultado cortado: ${t.length - limite} caracteres omitidos. Pe\u00E7a um trecho menor ou use os par\u00E2metros de pagina\u00E7\u00E3o da ferramenta.]`;
+    try {
+      for (const f of finais) t = f(t);
+    } catch {
+      return JSON.stringify({ erro: "N\u00E3o foi poss\u00EDvel conferir o resultado desta ferramenta antes de envi\u00E1-lo: nada dele foi enviado." });
+    }
     return t;
   }
 
@@ -186,6 +210,10 @@ export class Motor {
         if (this.estado.consentimentoRestrito === null) this.estado.consentimentoRestrito = await this.o.ui.consentir("restrito", detalhe);
         return this.estado.consentimentoRestrito;
       },
+      consentirConector: (detalhe) => this.o.ui.consentir("conector", detalhe),
+      nonce: this.nonce,
+      registrarAchados: (documento, achados) => this.o.ui.integridade?.(documento, achados),
+      anonimizar: (texto) => this.o.privacidade.anonimizar(texto),
       pessoasVistas: (nomes) => this.o.privacidade.registrarPessoas(nomes),
       ui: this.o.ui,
       ...(this.o.delegar ? { delegar: this.o.delegar } : {}),
@@ -197,6 +225,7 @@ export class Motor {
   private async executarChamadas(chamadas: ChamadaTool[], sinal: AbortSignal): Promise<Map<string, string>> {
     const saida = new Map<string, string>();
     const leituras: Array<{ c: ChamadaTool; t: DefTool; args: Record<string, unknown> }> = [];
+    const externas: Array<{ c: ChamadaTool; t: DefTool; args: Record<string, unknown> }> = [];
     const escritas: Array<{ c: ChamadaTool; passos: PassoPlano[]; objetivo?: string }> = [];
 
     for (const c of chamadas) {
@@ -224,6 +253,8 @@ export class Motor {
         else escritas.push({ c, passos: r.passos, objetivo: String(args.objetivo ?? "") });
       } else if (t.efeito === "leitura" || t.efeito === "interna") {
         leituras.push({ c, t, args });
+      } else if (t.efeito === "externo") {
+        externas.push({ c, t, args });
       } else {
         escritas.push({ c, passos: [{ tool: t.nome, rotulo: t.rotulo(args), efeito: t.efeito, args, previa: [], dependente: false }] });
       }
@@ -233,24 +264,45 @@ export class Motor {
     await Promise.all(
       leituras.map(async ({ c, t, args }) => {
         this.o.ui.toolIniciada(c.id, t.nome, t.rotulo(args));
+        const finais: Array<(texto: string) => string> = [];
         try {
-          const r = await t.executar(args, this.contexto(sinal));
-          saida.set(c.id, this.paraModelo(r));
+          const r = await t.executar(args, this.contexto(sinal, { aoModelo: (f) => void finais.push(f) }));
+          saida.set(c.id, this.paraModelo(r, finais));
           this.o.ui.toolTerminada(c.id, true, "");
         } catch (e) {
-          saida.set(c.id, this.paraModelo(erroParaModelo(e)));
+          saida.set(c.id, this.paraModelo(erroParaModelo(e), finais));
           this.o.ui.toolTerminada(c.id, false, erroParaModelo(e).erro);
         }
       }),
     );
 
+    // Externas em sequência: cada uma pode pedir autorização ao usuário, e
+    // duas perguntas ao mesmo tempo no painel não têm como ser respondidas.
+    for (const { c, t, args } of externas) {
+      this.o.ui.toolIniciada(c.id, t.nome, t.rotulo(args));
+      const finais: Array<(texto: string) => string> = [];
+      try {
+        const r = await t.executar(args, this.contexto(sinal, { aoModelo: (f) => void finais.push(f) }));
+        saida.set(c.id, this.paraModelo(r, finais));
+        this.o.ui.toolTerminada(c.id, true, "");
+      } catch (e) {
+        saida.set(c.id, this.paraModelo(erroParaModelo(e), finais));
+        this.o.ui.toolTerminada(c.id, false, erroParaModelo(e).erro);
+      }
+    }
+
     if (escritas.length) {
-      const resultados = await this.executarPlano(escritas.flatMap((e) => e.passos), escritas.map((e) => e.objetivo).filter(Boolean).join("; "), sinal);
+      const passos = escritas.flatMap((e) => e.passos);
+      // As passadas de cada passo, à parte: valem só para a mensagem da chamada que o trouxe (a do plano_propor é um
+      // texto só, com os passos dele), nunca para o resultado de outra chamada.
+      const finais: Array<Array<(texto: string) => string>> = passos.map(() => []);
+      const resultados = await this.executarPlano(passos, escritas.map((e) => e.objetivo).filter(Boolean).join("; "), sinal, finais);
       let i = 0;
       for (const e of escritas) {
         const meus = resultados.slice(i, i + e.passos.length);
+        const minhas = finais.slice(i, i + e.passos.length).flat();
         i += e.passos.length;
-        saida.set(e.c.id, this.paraModelo(e.passos.length === 1 && e.c.function.name !== "plano_propor" ? meus[0] : { passos: meus }));
+        saida.set(e.c.id, this.paraModelo(e.passos.length === 1 && e.c.function.name !== "plano_propor" ? meus[0] : { passos: meus }, minhas));
       }
     }
     return saida;
@@ -264,7 +316,9 @@ export class Motor {
     lista.forEach((p, i) => {
       const t = this.o.tools.obter(p.tool);
       if (!t) return erros.push(`passo ${i + 1}: ferramenta "${p.tool}" n\u00E3o existe`);
-      if (t.efeito === "leitura" || t.efeito === "interna") return erros.push(`passo ${i + 1}: "${p.tool}" n\u00E3o \u00E9 escrita; chame-a diretamente`);
+      if (t.efeito === "leitura" || t.efeito === "interna" || t.efeito === "externo") {
+        return erros.push(`passo ${i + 1}: "${p.tool}" n\u00E3o escreve no SEI; chame-a diretamente`);
+      }
       const dependente = JSON.stringify(p.args ?? {}).includes("$");
       const { valor, erros: e } = dependente ? { valor: p.args, erros: [] } : validar(t.parametros, p.args ?? {});
       if (e.length) return erros.push(...e.map((x) => `passo ${i + 1}: ${x}`));
@@ -274,7 +328,8 @@ export class Motor {
     return erros.length ? { erro: "Plano inv\u00E1lido.", detalhes: erros } : { passos };
   }
 
-  private async executarPlano(passos: PassoPlano[], objetivo: string, sinal: AbortSignal): Promise<unknown[]> {
+  /** `finais[i]`: onde ficam as passadas finais (`ContextoTool.aoModelo`) que o passo `i` pedir. */
+  private async executarPlano(passos: PassoPlano[], objetivo: string, sinal: AbortSignal, finais: Array<Array<(texto: string) => string>> = []): Promise<unknown[]> {
     // Prévia de cada passo independente (em paralelo; é leitura).
     await Promise.all(
       passos.map(async (p) => {
@@ -330,7 +385,9 @@ export class Motor {
           const { erros } = validar(t.parametros, args);
           if (erros.length) throw new Error(`Refer\u00EAncias n\u00E3o resolvidas: ${erros.join("; ")}`);
         }
-        const r = await t.executar(args, this.contexto(sinal, p.efeito === "assinatura" ? { assinatura: decisao.assinatura } : {}));
+        const doPasso = (finais[i] ??= []);
+        const aoModelo = (f: (texto: string) => string) => void doPasso.push(f);
+        const r = await t.executar(args, this.contexto(sinal, p.efeito === "assinatura" ? { assinatura: decisao.assinatura, aoModelo, previa: p.previa } : { aoModelo, previa: p.previa }));
         resultados.push(r);
         // Antes de `toolTerminada`: é ela que redesenha o item, e o painel
         // precisa já saber que aquela ação pode ser desfeita.

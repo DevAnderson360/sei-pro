@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        modulo: [sei-nucleo, ferramentas-pdf, agente-ia]
+        modulo: [sei-comum, sei-nucleo, ferramentas-pdf, agente-ia, acoes-lote, anotacoes-controle, blocos-assinatura, demandas, documentos-lote, estilo-avancado, favoritos, grade-controle, historico, link-permanente, menu-suspenso, opcoes-pagina, ordem-paineis, pesquisa-rapida, prazos, processos-lote, projetos]
 
     steps:
       - uses: actions/checkout@v4
@@ -26,6 +26,10 @@ jobs:
           node-version: 22
 
       # O agente importa codigo-fonte compartilhado das ferramentas de PDF.
+      - name: Instalar dependencias comuns
+        working-directory: sei-comum
+        run: npm install --no-audit --no-fund
+
       - name: Instalar dependencia compartilhada do agente
         if: matrix.modulo == 'agente-ia'
         working-directory: ferramentas-pdf
@@ -44,6 +48,7 @@ jobs:
         run: npm run verificar
 
       - name: Gerar distribuicao
+        if: matrix.modulo != 'sei-comum'
         working-directory: ${{ matrix.modulo }}
         run: npm run build
 

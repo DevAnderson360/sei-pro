@@ -1,0 +1,71 @@
+<!-- url: https://sei.exemplo.gov.br/sei/controlador.php?acao=procedimento_controlar&acao_origem=principal&acao_retorno=principal&inicializando=1&infra_sistema=100000100&infra_unidade_atual=110000001&infra_hash=1111111111111111111111111111111111111111111111111111111111111111 -->
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<title>SEI - Controle de Processos</title>
+<!-- Fixture SINTETICA no formato do SEI 5.0.4 (ids, numeros e hashes falsos). -->
+<script type="text/javascript">
+  var objLupaBlocoPesquisa = null;
+
+  function inicializar(){
+    objLupaBlocoPesquisa = new infraLupaText('txtBloco','hdnIdBloco','controlador.php?acao=bloco_selecionar_processo&amp;tipo_selecao=1&amp;id_object=objLupaBlocoPesquisa&amp;infra_sistema=100000100&amp;infra_unidade_atual=110000001&amp;infra_hash=2222222222222222222222222222222222222222222222222222222222222222');
+    objLupaBlocoPesquisa.finalizarSelecao = function(){
+      document.getElementById('frmProcedimentoControlar').action = 'controlador.php?acao=rel_bloco_protocolo_cadastrar&amp;acao_origem=procedimento_controlar&amp;acao_retorno=procedimento_controlar&amp;infra_sistema=100000100&amp;infra_unidade_atual=110000001&amp;infra_hash=3333333333333333333333333333333333333333333333333333333333333333';
+      document.getElementById('frmProcedimentoControlar').submit();
+    };
+  }
+
+  function acaoBlocoProcessar(){
+    if (acaoPendenciaMultipla(true) && !bloquearSigilosoSelecionado()){
+      document.getElementById('txtBloco').value = '';
+      document.getElementById('hdnIdBloco').value = '';
+      objLupaBlocoPesquisa.selecionar(700,500,true);
+    }
+  }
+</script>
+</head>
+<body onload="inicializar();">
+<div id="divInfraSidebarMenu"><ul id="infraMenu">
+<li><a href="controlador.php?acao=procedimento_controlar&amp;acao_origem=principal&amp;acao_retorno=principal&amp;infra_sistema=100000100&amp;infra_unidade_atual=110000001&amp;infra_hash=4444444444444444444444444444444444444444444444444444444444444444">Controle de Processos</a></li>
+<li><a href="controlador.php?acao=bloco_interno_listar&amp;acao_origem=principal&amp;infra_sistema=100000100&amp;infra_unidade_atual=110000001&amp;infra_hash=5555555555555555555555555555555555555555555555555555555555555555">Internos</a></li>
+</ul></div>
+<form id="frmProtocoloPesquisaRapida" method="post" action="controlador.php?acao=protocolo_pesquisa_rapida&amp;infra_sistema=100000100&amp;infra_unidade_atual=110000001&amp;infra_hash=6666666666666666666666666666666666666666666666666666666666666666">
+<input type="text" id="txtPesquisaRapida" name="txtPesquisaRapida" value="">
+</form>
+<form id="frmProcedimentoControlar" method="post" action="controlador.php?acao=procedimento_controlar&amp;acao_origem=procedimento_controlar&amp;tipo_filtro=&amp;infra_sistema=100000100&amp;infra_unidade_atual=110000001&amp;infra_hash=7777777777777777777777777777777777777777777777777777777777777777">
+<div id="divComandos">
+<a href="#" onclick="acaoBlocoProcessar();" tabindex="451"><img src="svg/bloco_incluir_protocolo.svg" alt="Incluir em Bloco" title="Incluir em Bloco"></a>
+<button type="submit" name="sbmPesquisar" value="Pesquisar">Pesquisar</button>
+</div>
+<table id="tblProcessosRecebidos" class="infraTable tabelaControle" summary="Tabela de Processos Recebidos.">
+<caption class="infraCaption">2 registros:</caption>
+<tr><th class="infraTh" width="5%"><img src="svg/check.svg" title="Selecionar Tudo"></th><th class="infraTh">Recebidos</th></tr>
+<tr id="P700001" class="infraTrClara"><td><input class="infraCheckboxInput" id="chkRecebidosItem0" name="chkRecebidosItem0" title="00000.000001/2026-01" type="checkbox" value="700001" onclick="infraSelecionarItens(this,'Recebidos');"></td><td><a href="controlador.php?acao=procedimento_trabalhar&amp;id_procedimento=700001&amp;infra_hash=8888888888888888888888888888888888888888888888888888888888888888" class="processoVisualizado">00000.000001/2026-01</a></td></tr>
+<tr id="P700002" class="infraTrClara"><td><input class="infraCheckboxInput" id="chkRecebidosItem1" name="chkRecebidosItem1" title="00000.000002/2026-02" type="checkbox" value="700002" onclick="infraSelecionarItens(this,'Recebidos');"></td><td><a href="controlador.php?acao=procedimento_trabalhar&amp;id_procedimento=700002&amp;infra_hash=8888888888888888888888888888888888888888888888888888888888888888" class="processoVisualizado">00000.000002/2026-02</a></td></tr>
+</table>
+<table id="tblProcessosGerados" class="infraTable tabelaControle" summary="Tabela de Processos Gerados.">
+<caption class="infraCaption">3 registros:</caption>
+<tr><th class="infraTh" width="5%"><img src="svg/check.svg" title="Selecionar Tudo"></th><th class="infraTh">Gerados</th></tr>
+<tr id="P700003" class="infraTrClara"><td><input class="infraCheckboxInput" id="chkGeradosItem0" name="chkGeradosItem0" title="00000.000003/2026-03" type="checkbox" value="700003" onclick="infraSelecionarItens(this,'Gerados');"></td><td><a href="controlador.php?acao=procedimento_trabalhar&amp;id_procedimento=700003&amp;infra_hash=8888888888888888888888888888888888888888888888888888888888888888" class="processoVisualizado">00000.000003/2026-03</a></td></tr>
+<tr id="P700004" class="infraTrClara"><td><input class="infraCheckboxInput" id="chkGeradosItem1" name="chkGeradosItem1" title="00000.000004/2026-04" type="checkbox" value="700004" onclick="infraSelecionarItens(this,'Gerados');"></td><td><a href="controlador.php?acao=procedimento_trabalhar&amp;id_procedimento=700004&amp;infra_hash=8888888888888888888888888888888888888888888888888888888888888888" class="processoVisualizado">00000.000004/2026-04</a></td></tr>
+<tr id="P700005" class="infraTrClara"><td><input class="infraCheckboxInput" id="chkGeradosItem2" name="chkGeradosItem2" title="00000.000005/2026-05" type="checkbox" value="700005" onclick="infraSelecionarItens(this,'Gerados');"></td><td><a href="controlador.php?acao=procedimento_trabalhar&amp;id_procedimento=700005&amp;infra_hash=8888888888888888888888888888888888888888888888888888888888888888" class="processoVisualizado">00000.000005/2026-05</a></td></tr>
+</table>
+<input type="hidden" id="hdnRecebidosNroItens" name="hdnRecebidosNroItens" value="2">
+<input type="hidden" id="hdnRecebidosItemId" name="hdnRecebidosItemId" value="">
+<input type="hidden" id="hdnRecebidosItens" name="hdnRecebidosItens" value="700001,700002">
+<input type="hidden" id="hdnRecebidosItensHash" name="hdnRecebidosItensHash" value="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa">
+<input type="hidden" id="hdnRecebidosItensSelecionados" name="hdnRecebidosItensSelecionados" value="">
+<input type="hidden" id="hdnGeradosNroItens" name="hdnGeradosNroItens" value="3">
+<input type="hidden" id="hdnGeradosItemId" name="hdnGeradosItemId" value="">
+<input type="hidden" id="hdnGeradosItens" name="hdnGeradosItens" value="700003,700004,700005">
+<input type="hidden" id="hdnGeradosItensHash" name="hdnGeradosItensHash" value="bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb">
+<input type="hidden" id="hdnGeradosItensSelecionados" name="hdnGeradosItensSelecionados" value="">
+<input type="hidden" id="hdnInfraSelecoes" name="hdnInfraSelecoes" value="Recebidos,Gerados">
+<input type="hidden" id="hdnTipoVisualizacao" name="hdnTipoVisualizacao" value="R">
+<input type="hidden" id="hdnIdBloco" name="hdnIdBloco" value="">
+<input type="hidden" id="hdnIdSigilosos" value="700002">
+<input type="text" id="txtBloco" name="txtBloco" value="" style="display:none">
+</form>
+</body>
+</html>

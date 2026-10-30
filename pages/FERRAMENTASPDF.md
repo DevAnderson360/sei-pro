@@ -4,7 +4,9 @@
 
 Nove ferramentas para trabalhar arquivos PDF antes de anexá-los ao processo: tarjar dados sensíveis, juntar, dividir, comprimir, organizar páginas, converter imagens, numerar, aplicar OCR e conferir PDF/A.
 
-> ![Tela Ferramentas de PDF](../img/tela-ferramentaspdf.gif)
+> ![Tela Ferramentas de PDF](../img/ferramentaspdf-inicio.gif)
+
+A página tem o mesmo visual das [configurações do SEI Pro](../pages/DESATIVARFUNCOES.md): a tela inicial mostra as nove ferramentas em cartões, e o cabeçalho tem duas linhas, com o nome da página em cima e, embaixo, a barra de ações (**Todas as ferramentas** para voltar, e o destino no SEI quando há processo aberto). A barra fica fixa no alto enquanto você rola. A página acompanha o **tema claro ou escuro** do seu computador.
 
 ### Tudo acontece no seu computador
 
@@ -62,9 +64,9 @@ As amostras exibidas na tela vêm sempre mascaradas: uma captura de tela da pró
 
 ##### Passo a passo
 
-> ![Tela Tarjar PDF](../img/tela-ferramentaspdf2.gif)
+> ![Tela Tarjar PDF](../img/ferramentaspdf-tarjar.gif)
 
-1. **Carregue o PDF.** Assim que ele abre, a ferramenta já varre o texto e marca sozinha o que reconhece como dado pessoal. As marcações aparecem em vermelho sobre o documento, e a lista do lado direito mostra o que foi encontrado, agrupado por tipo (CPF, e-mail, telefone...);
+1. **Carregue o PDF.** Assim que ele abre, a ferramenta já varre o texto e marca sozinha o que reconhece como dado pessoal. As marcações aparecem como tarjas pretas sobre o documento, e a lista do lado direito mostra o que foi encontrado, agrupado por tipo (CPF, e-mail, telefone...);
 
 2. **Revise.** Use as caixas de seleção da lista para **desmarcar** o que não deve ser tarjado. Clicar em uma ocorrência leva direto à página onde ela está;
 
@@ -72,9 +74,9 @@ As amostras exibidas na tela vêm sempre mascaradas: uma captura de tela da pró
    - **selecionando o texto** com o mouse, como se fosse copiar;
    - clicando em **Desenhar tarja** e arrastando sobre a área — útil em documento digitalizado, onde não há texto para selecionar;
 
-4. **Clique em `Aplicar N tarjas`**, no alto da tela. Uma janela resume o que vai acontecer e pede confirmação;
+4. **Clique em `Aplicar N tarjas`**, no alto da tela. Uma janela resume o que vai acontecer e pede confirmação (**Aplicar tarjas**);
 
-5. **Baixe ou envie ao processo.** O resultado aparece logo abaixo da barra de botões, com um relatório do que foi feito.
+5. **Baixe ou envie ao processo.** O quadro **Documento pronto** aparece logo abaixo da barra de botões, com os botões **Baixar** e **Enviar ao processo** e um relatório do que foi feito.
 
 > **Documento digitalizado, sem OCR?** A detecção automática não alcança páginas que são só imagem — não há texto para procurar. A ferramenta avisa quando isso acontece. Nesses casos, use **Desenhar tarja**, ou passe o documento antes pelo **OCR**.
 

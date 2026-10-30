@@ -130,6 +130,7 @@ export function motivoSemDesfazer(tool: string): string {
   if (tool === "processo_enviar") return "o processo já está na outra unidade";
   if (tool === "documento_assinar") return "assinatura não se apaga, só se cancela com justificativa";
   if (tool === "documento_excluir" || tool === "documento_cancelar") return "a exclusão e o cancelamento são definitivos no SEI";
+  if (tool === "documento_baixar") return "o arquivo ficou na pasta Downloads; apague pela configuração do agente, em Privacidade";
   if (tool === "processo_andamento") return "o histórico do processo não se apaga";
   if (tool === "documento_editar" || tool === "editor_escrever") return "o conteúdo anterior está na versão do documento no SEI";
   if (tool === "processo_acompanhamento") return "o agente ainda não sabe retirar do acompanhamento especial";

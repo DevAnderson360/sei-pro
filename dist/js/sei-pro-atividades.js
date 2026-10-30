@@ -414,7 +414,7 @@ function getServerAtividades(param, mode) {
                                         )
                                     ? 'update' 
                                     : 'insert';
-                                initProjetos(mode_update, arrayConfigAtividades.projetos, ativData.id_projeto);
+                                if (typeof initProjetos === 'function') initProjetos(mode_update, arrayConfigAtividades.projetos, ativData.id_projeto);
                                 loadingButtonConfirm(false);
                                 resetDialogBoxPro('dialogBoxPro');
                                 alertaBoxPro('Sucess', 'check-circle', txtAlert+' com sucesso!');
@@ -647,7 +647,7 @@ function getServerAtividades(param, mode) {
                                 }
                             }
                             if (verifyConfigValue('gerenciarprojetos') && checkCapacidade('view_projetos') && isInitOffset) {
-                                initProjetos($('#projetosGanttDiv').is(':visible') ? 'refresh' : 'insert');
+                                if (typeof initProjetos === 'function') initProjetos($('#projetosGanttDiv').is(':visible') ? 'refresh' : 'insert');
                             }
                                                     
                         } else if (mode == 'pause_atividade_lista') {
@@ -13651,13 +13651,8 @@ function configPessoal() {
 
         textBox +=  '<table style="font-size: 10pt; float: left; margin-top: 30px;" class="seiProForm">'+
                     '   <tr style="height: 40px;">'+
-                    '       <td style="width: 460px;vertical-align: bottom;"><i class="iconPopup far fa-hand-rock cinzaColor"></i> Ordenar pain\u00E9is de gest\u00E3o arrastando e soltando</td>'+
-                    '       <td colspan="2" style="vertical-align: top;">'+
-                    '           <div class="infraAncoraSigla" style="float: left;">'+
-                    '               <input type="checkbox" onchange="changePanelSortPro(this);saveConfigPersonalUser(this);" name="infraAncoraSigla" class="infraLinkOrgao" id="panelSortPro" tabindex="0" '+statePanelSortPro+'>'+
-                    '               <label class="infraAreaDados" for="panelSortPro"></label>'+
-                    '           </div>'+
-                    '       </td>'+
+                    '       <td style="width: 460px;vertical-align: bottom;"><i class="iconPopup fas fa-sort cinzaColor"></i> Ordem e visibilidade dos pain\u00E9is</td>'+
+                    '       <td colspan="2" style="vertical-align: top;"><span class="info">Use o bot\u00E3o &quot;Ordenar e ocultar pain\u00E9is&quot; na barra do Controle de Processos.</span></td>'+
                     '   </tr>'+
                     '   <tr style="height: 40px;">'+
                     '       <td style="vertical-align: bottom;"><i class="iconPopup fas fa-arrows-alt-h cinzaColor"></i> Ordenar colunas do painel de '+__.demandas+' arrastando e soltando</td>'+
@@ -26470,51 +26465,49 @@ function initPerfilLoginAtiv(TimeOut = 9000) {
     }
 }
 
+// Orgaos com servidor proprio do modulo de atividades. A lista era consultada em seipro.io/servers
+// a cada carga de pagina; agora fica no codigo e nenhuma requisicao sai para descobrir o servidor.
+var serversAtivPro = [
+    { domain: 'sei.antt.gov.br', remote_host: 'https://anttpro.srvs.antt.gov.br/', login_default: 'key', enabled: true }
+];
 // Verifica dominios permitidos
 function getServersPro() {
-    $.ajax({
-        url: 'https://seipro.io/servers/',
-        type: 'GET',
-        dataType: 'json',
-        success: function(result) {
-            var host = jmespath.search(result, "[?domain=='"+window.location.host+"'] | [0]");
-                host = (host !== null && host.enabled) ? host : false;
-            if (host) {
-                if (host.login_default == 'key') {
-                    urlServerAtiv = host.remote_host;
-                    arrayConfigAtividades = false;
-                    arrayConfigAtivUnidade = false;
-                    removeLocalDataAtiv();
-                    removeOptionsPro('perfilAtividadesSelected');
-                    removeOptionsPro('panelAtividadesView');
-                    removeOptionsPro('panelAfastamentosView');
-                    initEmptyAtividades();
-                    $('.panelHome').find('.iconAtividade_update i').removeClass('fa-spin');
-                    $('.atividadesBtnPanel button[data-value="Tabela"]').trigger('click');
-                    $('#tabelaAtivPanel').attr('class','').css('text-align','center').html('<a class="newLink" onclick="getResendKey(this)" style="transform: scale(1.4);margin: 10px 0;"><i class="fas fa-key laranjaColor"></i> Solicitar chave de acesso</a>');
-                } 
-                /* else {
-                    var hostConfig = url_host.replace('controlador.php','');
-                    var urlConfigAtiv = (host) 
-                        ? hostConfig+'?#&acao_pro=set_database&mode=insert&base=atividades&token=&client_id='+encodeURIComponent(host.client_id)+'&url='+encodeURIComponent(host.remote_host)
-                        : hostConfig+'?#&acao_pro=set_option&option_key=gerenciaratividades&option_value=false';
-                    if ( $('#frmCheckerProcessoPro').length == 0 ) { getCheckerProcessoPro(); }
-                    $('#frmCheckerProcessoPro').attr('src', urlConfigAtiv).unbind().on('load', function(){
-                        if (host) {
-                            perfilLoginAtiv = {URL_API: host.remote_host, KEY_USER: '', CLIENT_ID: host.client_id};
-                            urlServerAtiv = perfilLoginAtiv.URL_API;
-                            userHashAtiv = perfilLoginAtiv.KEY_USER;
-                            localStorageStorePro('configBasePro_atividades', perfilLoginAtiv);
-                            initAtividades();
-                            // console.log('INITI');
-                        } else {
-                            // cleanAtivParams(true, true);
-                        }
-                    });
-                } */
-            }
+    var host = jmespath.search(serversAtivPro, "[?domain=='"+window.location.host+"'] | [0]");
+        host = (host !== null && host.enabled) ? host : false;
+    if (host) {
+        if (host.login_default == 'key') {
+            urlServerAtiv = host.remote_host;
+            arrayConfigAtividades = false;
+            arrayConfigAtivUnidade = false;
+            removeLocalDataAtiv();
+            removeOptionsPro('perfilAtividadesSelected');
+            removeOptionsPro('panelAtividadesView');
+            removeOptionsPro('panelAfastamentosView');
+            initEmptyAtividades();
+            $('.panelHome').find('.iconAtividade_update i').removeClass('fa-spin');
+            $('.atividadesBtnPanel button[data-value="Tabela"]').trigger('click');
+            $('#tabelaAtivPanel').attr('class','').css('text-align','center').html('<a class="newLink" onclick="getResendKey(this)" style="transform: scale(1.4);margin: 10px 0;"><i class="fas fa-key laranjaColor"></i> Solicitar chave de acesso</a>');
         }
-    });
+        /* else {
+            var hostConfig = url_host.replace('controlador.php','');
+            var urlConfigAtiv = (host) 
+                ? hostConfig+'?#&acao_pro=set_database&mode=insert&base=atividades&token=&client_id='+encodeURIComponent(host.client_id)+'&url='+encodeURIComponent(host.remote_host)
+                : hostConfig+'?#&acao_pro=set_option&option_key=gerenciaratividades&option_value=false';
+            if ( $('#frmCheckerProcessoPro').length == 0 ) { getCheckerProcessoPro(); }
+            $('#frmCheckerProcessoPro').attr('src', urlConfigAtiv).unbind().on('load', function(){
+                if (host) {
+                    perfilLoginAtiv = {URL_API: host.remote_host, KEY_USER: '', CLIENT_ID: host.client_id};
+                    urlServerAtiv = perfilLoginAtiv.URL_API;
+                    userHashAtiv = perfilLoginAtiv.KEY_USER;
+                    localStorageStorePro('configBasePro_atividades', perfilLoginAtiv);
+                    initAtividades();
+                    // console.log('INITI');
+                } else {
+                    // cleanAtivParams(true, true);
+                }
+            });
+        } */
+    }
 }
 /* 
 function getTokenGoogle(response = false) {

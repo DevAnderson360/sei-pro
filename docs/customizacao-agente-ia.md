@@ -1,6 +1,15 @@
 # Customizacao do agente de IA
 
-## Estado do projeto encontrado
+## Estado atual
+
+A extensao foi integrada a base oficial **3.8** (`af497cbf`) e identificada como
+**3.8.0.1**. As customizacoes de uso, retomada de conversas, copia de respostas,
+janela separada, agentes auxiliares e pausa de rotinas foram preservadas.
+Veja [a integracao e os testes manuais](atualizacao-v3.8.md).
+
+As secoes abaixo registram o levantamento e as validacoes das etapas anteriores.
+
+## Estado encontrado na auditoria inicial (base 2.2)
 
 A auditoria inicial mostrou que o repositorio ja estava alem da extensao antiga
 descrita no levantamento original. A distribuicao atual e a **SEI Pro Lab

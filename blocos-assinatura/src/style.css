@@ -1,0 +1,3 @@
+/* Só o botão na tela de inclusão (o modal tem o CSS próprio, em modal.css, dentro do Shadow DOM). */
+.spro-blocos-retornar { margin: 4px 0 4px 8px; }
+.spro-blocos-retornar:focus-visible { outline: 2px solid #005ea8; outline-offset: 3px; }

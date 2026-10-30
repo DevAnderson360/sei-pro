@@ -1,0 +1,23 @@
+import { resumo } from "./util";
+import { verificarAppConfiguracao } from "./verificar-app-configuracao";
+import { verificarAppExecucao } from "./verificar-app-execucao";
+import { verificarAppPrevia } from "./verificar-app-previa";
+import { verificarAppSelecao } from "./verificar-app-selecao";
+import { verificarAppTeclado } from "./verificar-app-teclado";
+import { verificarDocumentos } from "./verificar-documentos";
+import { verificarExecutor } from "./verificar-executor";
+import { verificarFila } from "./verificar-fila";
+import { verificarPagina } from "./verificar-pagina";
+import { verificarRepositorio } from "./verificar-repositorio";
+
+await verificarPagina();
+verificarDocumentos();
+verificarFila();
+await verificarRepositorio();
+await verificarExecutor();
+await verificarAppSelecao();
+await verificarAppConfiguracao();
+await verificarAppPrevia();
+await verificarAppExecucao();
+await verificarAppTeclado();
+resumo();

@@ -1,0 +1,88 @@
+/**
+ * Botão "Favoritos" na barra do Controle de Processos e no topo da árvore.
+ *
+ * Na barra, o ícone é um SVG com COR PRÓPRIA, como os do agente e das
+ * Ferramentas de PDF no legado (sei-pro.js): os botões vizinhos usam um <i>
+ * com `color: #fff` inline, que some na barra branca do SEI 4.1+/5.
+ *
+ * O painel lateral só abre a partir do service worker (sidePanel.open exige o
+ * gesto do usuário, que o clique leva junto na mensagem). Sem service worker
+ * (Firefox, pacotes sem background), o painel abre numa janela comum.
+ */
+
+import type { DataISO } from "@comum/datas/dias";
+import { h, icone } from "@comum/ui/dom";
+import { lembreteVencido } from "../modelo/lembrete";
+import { compararInstantaneos } from "../modelo/novidades";
+import type { RepositorioFavoritos } from "../repositorio";
+
+export interface AcoesBotao {
+  abrirLateral(): void;
+  rolarAtePainel(): void;
+}
+
+export function instalarBotaoCaixa(
+  doc: Document,
+  o: { url: (c: string) => string; destino: () => "lateral" | "abaixo" } & AcoesBotao,
+): HTMLElement | null {
+  const barra = doc.querySelector("#divBotoesControleProcessos, #divComandos");
+  if (!barra || barra.querySelector(".spro-fav-botao")) return null;
+  const b = h(
+    "a",
+    {
+      href: "#",
+      role: "button",
+      class: "botaoSEI spro-fav-botao",
+      title: "Monitorados",
+      "aria-label": "Monitorados",
+      tabindex: "452",
+      style: "cursor: pointer;",
+    },
+    h("img", { class: "infraCorBarraSistema", src: o.url("icons/menu/favoritos.svg"), alt: "Monitorados", title: "Monitorados" }),
+  );
+  b.addEventListener("click", (ev) => {
+    ev.preventDefault();
+    if (o.destino() === "lateral") o.abrirLateral();
+    else o.rolarAtePainel();
+  });
+  barra.append(b);
+  return b;
+}
+
+export function instalarBotaoArvore(doc: Document, o: { url: (c: string) => string; abrirLateral(): void }): HTMLElement | null {
+  const estrela = doc.querySelector("#topmenu .spro-fav-estrela");
+  if (!estrela || estrela.parentElement?.querySelector(".spro-fav-abrir")) return null;
+  const rotulo = "Abrir a lista de monitorados no painel lateral";
+  // Classe própria: `.spro-fav-estrela` seria capturada pela delegação das estrelas e alternaria o favorito.
+  const b = h("button", { type: "button", class: "spro-fav-abrir", title: rotulo, "aria-label": rotulo }, icone("painel", 16));
+  b.addEventListener("click", (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    o.abrirLateral();
+  });
+  estrela.after(b);
+  return b;
+}
+
+export function pedirPainelLateral(enviar: (m: unknown) => Promise<unknown>, abrirJanela: (url: string) => void, url: string): void {
+  void enviar({ tipo: "abrirPainel", aba: "favoritos" }).catch(() => abrirJanela(url));
+}
+
+/** Favoritos que pedem atenção (lembrete vencido ou novidade), somando as listas. */
+export async function contarPendencias(repos: RepositorioFavoritos[], hoje: DataISO): Promise<number> {
+  let n = 0;
+  for (const r of repos) {
+    const [ativos, atuais, vistos] = await Promise.all([r.ativos(), r.atuais(), r.vistos()]);
+    n += ativos.filter(
+      (f) => lembreteVencido(f, hoje) || compararInstantaneos(vistos.get(f.id) ?? f.visto, atuais.get(f.id)).length > 0,
+    ).length;
+  }
+  return n;
+}
+
+export function pintarContador(botao: HTMLElement, n: number): void {
+  botao.querySelector(".spro-fav-contador")?.remove();
+  botao.title = n ? `Monitorados: ${n} ${n === 1 ? "monitorado pede" : "monitorados pedem"} atenção (lembrete ou novidade)` : "Monitorados";
+  if (!n) return;
+  botao.append(h("span", { class: "spro-fav-contador", "aria-hidden": "true" }, String(n)));
+}

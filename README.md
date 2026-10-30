@@ -2,12 +2,15 @@
 
 [![Validar customização](https://github.com/DevAnderson360/sei-pro/actions/workflows/validar-customizacao.yml/badge.svg?branch=homolog)](https://github.com/DevAnderson360/sei-pro/actions/workflows/validar-customizacao.yml)
 
-Este fork mantém uma versão personalizada do **SEI Pro 2.2**, identificada como
-**2.2.0.1**, com estas customizações no Agente de IA:
+Este fork mantém uma versão personalizada do **SEI Pro 3.8**, identificada como
+**3.8.0.1**, com estas customizações no Agente de IA:
 
 - registros detalhados de uso e compatibilidade de `reasoning`;
 - retomada de conversas arquivadas sem nova chamada automática à IA;
-- cópia de respostas em texto limpo, inclusive no histórico.
+- cópia de respostas em texto limpo, inclusive no histórico;
+- gerenciamento de agentes auxiliares, limites e consumo por execução;
+- pausa das rotinas automáticas e identificação das conversas pelo processo;
+- opção de abrir o agente em janela separada, vinculada à aba do SEI.
 
 Consulte o [inventário detalhado das customizações](./docs/customizacao-agente-ia.md)
 e o [guia de manutenção do fork](./docs/manutencao-fork.md).
@@ -45,8 +48,13 @@ Loja de extensões bloqueada no computador de trabalho? Veja [como instalar pelo
 
 ### Tela Controle de Processos
 
-- ![Gerenciar processos favoritos](/img/icon-favoritos.png) [Gerenciar processos favoritos](./pages/FAVORITOS.md)
+- ![Novo Controle de Processos](/img/icon-agruparlista.png) [Novo Controle de Processos](./pages/GRADECONTROLE.md)
+- ![Gerenciar processos monitorados](/img/icon-favoritos.png) [Gerenciar processos monitorados](./pages/FAVORITOS.md)
+- ![Pesquisa rápida](/img/icon-pesquisa.png) [Filtrar e destacar pela pesquisa rápida](./pages/PESQUISARAPIDA.md)
+- ![Anotações no Controle de Processos](/img/icon-notaarvore.png) [Anotações no Controle de Processos](./pages/ANOTACAOCONTROLE.md)
 - ![Controle de Prazos](/img/icon-controleprazo.png) [Controle de Prazos](./pages/PRAZOS.md)
+- ![Demandas](/img/icon-projetos.png) [Demandas](./pages/DEMANDAS.md)
+- ![Ordem e visibilidade dos painéis](/img/icon-notaarvore.png) [Ordem e visibilidade dos painéis](./pages/ORDEMPAINEIS.md)
 - ![Reabertura programada de processos](/img/icon-reabrirprocessos.png) [Reabertura programada de processos](./pages/REABRIRPROCESSOS.md)
 - ![Agrupar, filtrar e ver os processos em quadro (Kanban)](/img/icon-agruparlista.png) [Agrupar, filtrar e ver os processos em quadro (Kanban)](./pages/AGRUPAR.md)
 - ![Novos botões na barra de ações: abrir em nova aba, trocar tipo e enviar documentos em vários processos](/img/icon-barraacoes.png) [Novos botões na barra de ações: abrir em nova aba, trocar tipo e enviar documentos em vários processos](./pages/BARRAACOES.md)
@@ -94,6 +102,7 @@ Loja de extensões bloqueada no computador de trabalho? Veja [como instalar pelo
 
 ### Ferramentas do processo
 
+- ![Retornar bloco de assinatura disponibilizado na tela de inclusão](/img/icon-acoeslote.png) [Retornar bloco de assinatura disponibilizado na tela de inclusão](./pages/RETORNARBLOCO.md)
 - ![Ações em Lote: assinar, dar ciência, excluir e alterar sigilo de vários documentos](/img/icon-acoeslote.png) [Ações em Lote: assinar, dar ciência, excluir e alterar sigilo de vários documentos](./pages/ACOESEMLOTE.md)
 - ![Documentos em Lote: criar vários documentos a partir de um modelo e uma planilha](/img/icon-acoeslote.png) [Documentos em Lote: criar vários documentos a partir de um modelo e uma planilha](./pages/DOCUMENTOSEMLOTE.md)
 - ![Comparador de Documentos](/img/icon-comparardocumentos.png) [Comparador de Documentos](./pages/COMPARARDOCUMENTOS.md)
@@ -164,7 +173,7 @@ Loja de extensões bloqueada no computador de trabalho? Veja [como instalar pelo
 - ![Desativar consultas adicionais](/img/icon-desativaconsultas.png) [Desativar consultas adicionais](./pages/DESATIVACONSULTAS.md)
 - ![Ativar debug (diagnóstico de problemas)](/img/icon-debugpage.png) [Ativar debug (diagnóstico de problemas)](./pages/DEBUGPAGE.md)
 - ![Gerenciar Prescrições Processuais (institucional)](/img/icon-prescricoes.png) [Gerenciar Prescrições Processuais (institucional)](./pages/PRESCRICOES.md)
-- ![Gerenciar projetos (descontinuada)](/img/icon-projetos.png) [Gerenciar projetos (descontinuada)](./pages/PROJETOS.md)
+- ![Gerenciar projetos](/img/icon-projetos.png) [Gerenciar projetos](./pages/PROJETOS.md)
 
 Você ainda pode [ligar e desligar as funções da extensão](./pages/DESATIVARFUNCOES.md) nas configurações do SEI Pro.
 
@@ -193,7 +202,7 @@ Participe do laboratorio de ideias sobre inovações para o SEI, automações e 
 
 Receba em primeira mão sobre novidades e atualizações do SEI Pro. 
 
-Inscreva-se na nossa Lista de e-mail: [http://eepurl.com/hjHh45](http://eepurl.com/hjHh45)
+Inscreva-se na lista de e-mail: [novidades.seipro.app](https://novidades.seipro.app). Um aviso a cada versão, com dicas de uso das funções novas.
 
 ## Histórico de versões
 
@@ -205,5 +214,5 @@ AGPL-3.0
 
 ## Política de Privacidade
 
-Confira nossa Declaração de Não Coleta de Dadosm em confomidade com a Lei nº 13.709/2018 (LGPD) e com as melhores práticas de segurança da informação: [Política de Privacidade](./PRIVACY_POLICY.md)
+O SEI Pro não coleta dados para o desenvolvedor. A [Política de Privacidade](./PRIVACY_POLICY.md), em conformidade com a Lei nº 13.709/2018 (LGPD), explica o que fica guardado no navegador e o que cada função opcional envia, para quem e em que condições.
 

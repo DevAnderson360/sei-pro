@@ -1,0 +1,23 @@
+Fixtures SINTETICAS (escritas a mao), nao capturas do SEI.
+
+Seguem a estrutura que o legado (dist/js/sei-pro-docs-lote.js: docsLote_docAnalysis,
+docsLote_formNewDoc, docsLote_editDocContent; txtPadrao_getList em sei-pro.js) e o
+sei-nucleo (dominio/documento.ts, dominio/editor.ts) leem. Hashes falsos.
+A primeira linha de cada .html e "<!-- url: ... -->" (URL final da resposta).
+
+  menu.html                    tela base com #infraMenu (texto_padrao_interno_listar) e a pesquisa rapida
+  escolher_tipo.html           "Gerar Documento" com #frmDocumentoEscolherTipo ja na lista completa (hdnFiltroSerie T),
+                               links "#" + onclick escolher(N); -1 = Externo
+  cadastro.html                documento_cadastrar com #frmDocumentoCadastro: texto inicial (D/T/N), selTextoPadrao,
+                               lblNumero/lblNomeArvore opcionais, lupa de interessados, nivel e hipotese
+  documento_alterar.html       "Alterar Documento" do modelo (id 700) com hdnIdSerie 12
+  modelo_visualizar.html       documento_visualizar do modelo: duas secoes com ##campos## (e um no <title>, fora do corpo)
+  texto_padrao_listar.html     lista de textos padrao da unidade (inclui um "[_...]" interno do SEI Pro)
+  texto_padrao_consultar.html  consulta do texto padrao 5 (conteudo HTML escapado no txaConteudo)
+
+O editor (CK4 e CK5) NAO e fixture fixa: o teste o monta a partir do estado das secoes
+(verificar-sei.ts, editorCk4/editorCk5), para a releitura depois de gravar ver o que foi gravado.
+
+A arvore do processo de destino (verificar-verificar.ts) NAO e fixture fixa: o teste a monta no formato que
+lerArvore le (infraArvoreNo/infraArvoreAcao), com ou sem o link "Incluir Documento" e com nivel de acesso
+publico/restrito/sigiloso; a tela de tipos reaproveita escolher_tipo.html e a pesquisa rapida usa menu.html.

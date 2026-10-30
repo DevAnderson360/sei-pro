@@ -8,19 +8,20 @@ O menu lateral do SEI ocupa uma faixa fixa da tela, mesmo quando você não est�
 
 ### Como usar
 
-1. Clique no ícone de menu (☰), ao lado do logotipo do SEI, para abrir o menu;
+1. Clique no ícone de menu (☰), ao lado do logotipo do SEI, para abrir o menu — ele aparece por cima da tela, sem empurrar o conteúdo;
 2. Escolha a opção desejada;
-3. Clique de novo no ícone, ou fora do menu, para escondê-lo.
+3. Para fechar, clique de novo no ícone, **fora do menu**, ou aperte **Esc**.
 
-O SEI Pro lembra se você deixou o menu aberto ou fechado e mantém a escolha nas próximas telas.
+A tela sempre abre com o menu fechado, e o SEI Pro não guarda se você o deixou aberto: ao trocar de tela, ele volta a ficar escondido.
 
 ### Como ativar
 
-A função vem **desligada** de fábrica. Para ligar, abra as [Configurações do SEI Pro](../pages/DESATIVARFUNCOES.md), aba **Geral**, seção **Controle de Processos**, e marque **Menu Suspenso**. Clique em **Salvar** e recarregue o SEI.
+A função vem **desligada** de fábrica. Para ligar, abra as [Configurações do SEI Pro](../pages/DESATIVARFUNCOES.md), aba **Geral**, seção **Controle de Processos**, e marque **Menu Suspenso**. Clique em **Salvar**. Vale também para as telas já abertas, sem recarregar o SEI.
 
 ### Bom saber
 
-* No SEI 4 e 5, que já permitem recolher o menu, a função reaproveita o botão do próprio SEI e esconde o ícone nativo de exibir/ocultar menu, para não haver dois botões fazendo a mesma coisa.
+* No SEI 4 e 5, o ícone nativo de exibir/ocultar menu é trocado pelo ☰, para não haver dois botões fazendo a mesma coisa.
+* Em janelas estreitas (menos de 768 px), o SEI usa o menu de celular dele e o Menu Suspenso não interfere.
 * Veja também [Ordenar itens do menu](../pages/ORDERNARMENU.md), para deixar as opções que você mais usa no topo.
 
 ## Próximo item

@@ -1,7 +1,7 @@
 /**
  * Tipos das APIs de extensão que este projeto usa.
  *
- * Declarados à mão em vez de trazer `@types/chrome`: são quatro membros, e o
+ * Declarados à mão em vez de trazer `@types/chrome`: são poucos membros, e o
  * pacote completo custaria dezenas de milhares de linhas de definição para
  * cobrir APIs que a extensão nem pede permissão para usar. Se um dia o uso
  * crescer, trocar por ele é direto.
@@ -23,6 +23,8 @@ declare namespace chrome {
 
     function connect(info?: { name?: string }): Port;
     function getURL(caminho: string): string;
+    /** So os campos que esta pagina le (nome e icones do produto). */
+    function getManifest(): { name?: string; short_name?: string; icons?: Record<string, string> };
 
     const onConnect: {
       addListener(ouvinte: (porta: Port) => void): void;

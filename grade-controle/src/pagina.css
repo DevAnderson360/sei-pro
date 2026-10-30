@@ -1,0 +1,13 @@
+/* Na página do SEI (fora do Shadow DOM): o botão alternador e o espaço da grade. */
+/* Mesmo tamanho, margem e cor dos botoes vizinhos da barra de titulo (seta de recolher e ordenar os paineis). */
+.spro-grade-botao { display: inline-flex; flex: none; align-items: center; justify-content: center; margin-left: 4px; padding: 2px; line-height: 0; color: inherit; vertical-align: middle; position: relative; top: -3px; cursor: pointer; background: none; border: 0; border-radius: 6px; }
+.spro-grade-botao:hover { background: color-mix(in srgb, currentColor 14%, transparent); }
+.spro-grade-botao[aria-pressed="true"] { background: color-mix(in srgb, currentColor 9%, transparent); }
+.spro-grade-botao:focus-visible { outline: 2px solid #1f5fbf; outline-offset: 1px; }
+/* Com a grade ativa a barra de acoes sobe um pouco e ganha respiro antes da barra de ferramentas da grade. */
+html[data-spro-grade] #collapseControle { margin-top: -6px; margin-bottom: 22px; }
+#spro-grade { display: block; width: 100%; flex: 0 0 100%; }
+#spro-grade[hidden], #spro-grade[data-spro-recolhido] { display: none !important; }
+
+/* A seta de recolher (do legado) e os outros botoes da barra de titulo ficam na mesma linha de centro. */
+#divInfraBarraLocalizacao:has(.spro-grade-botao) .spro-fav-recolher { vertical-align: middle; position: relative; top: -3px; }

@@ -8,7 +8,7 @@
     "build": "npm run verificar && node build.mjs",
     "build:rapido": "node build.mjs",
     "tipos": "tsc --noEmit",
-    "verificar": "npm run verificar:juntar && npm run verificar:operacoes && npm run verificar:tarjar && npm run verificar:ponte && npm run verificar:envio && npm run verificar:icones && npm run verificar:classes && npm run verificar:carregando && npm run verificar:texto && npm run verificar:ambiente",
+    "verificar": "npm run verificar:juntar && npm run verificar:operacoes && npm run verificar:tarjar && npm run verificar:ponte && npm run verificar:envio && npm run verificar:icones && npm run verificar:classes && npm run verificar:carregando && npm run verificar:texto && npm run verificar:ambiente && npm run verificar:tokens && npm run verificar:identidade",
     "verificar:juntar": "tsx tests/verificar-juntar.ts",
     "verificar:operacoes": "tsx tests/verificar-operacoes.ts",
     "verificar:tarjar": "tsx tests/verificar-tarjar.ts",
@@ -18,7 +18,9 @@
     "verificar:classes": "tsx tests/verificar-classes.ts",
     "verificar:carregando": "tsx tests/verificar-carregando.ts",
     "verificar:texto": "tsx tests/verificar-texto.ts",
-    "verificar:ambiente": "tsx tests/verificar-ambiente.ts"
+    "verificar:ambiente": "tsx tests/verificar-ambiente.ts",
+    "verificar:tokens": "tsx tests/verificar-tokens.ts",
+    "verificar:identidade": "tsx tests/verificar-identidade.ts"
   },
   "dependencies": {
     "@cantoo/pdf-lib": "2.9.1",

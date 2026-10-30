@@ -11,7 +11,7 @@
  * mexe na tela que o usuário tem aberta).
  */
 
-import { acaoNaArvore } from "./arvore";
+import { acaoNaArvore, type Arvore } from "./arvore";
 import { Formulario } from "../formulario/formulario";
 import { linkDaAcao } from "../links/links";
 import { textoDe } from "../sessao/dom";
@@ -23,6 +23,8 @@ export interface Andamento {
   /** "dd/mm/aaaa hh:mm" como o SEI exibe. */
   data: string;
   unidade: string;
+  /** Nome (descri\u00E7\u00E3o) da unidade, do `title` do link da sigla. A sigla do hist\u00F3rico pode diferir da do cabe\u00E7alho; o nome n\u00E3o. */
+  unidadeNome?: string;
   usuario: string;
   descricao: string;
 }
@@ -37,9 +39,15 @@ function lerAndamentos(p: Pagina): { itens: Andamento[]; total: number } {
     .filter((tr) => tr.querySelector("td"))
     .map((tr) => {
       const td = [...tr.querySelectorAll("td")];
-      return { data: textoDe(td[0]), unidade: textoDe(td[1]), usuario: textoDe(td[2]), descricao: textoDe(td[3]) };
+      const nome = td[1]?.querySelector("a")?.getAttribute("title") ?? "";
+      return { data: textoDe(td[0]), unidade: textoDe(td[1]), ...(nome ? { unidadeNome: nome } : {}), usuario: textoDe(td[2]), descricao: textoDe(td[3]) };
     });
   return { itens, total };
+}
+
+/** Andamentos da tela de histórico JÁ obtida (do mais recente para o mais antigo), sem requisição. */
+export function lerHistorico(p: Pagina): Andamento[] {
+  return lerAndamentos(p).itens;
 }
 
 /** Andamentos do processo, do mais recente para o mais antigo. */
@@ -49,10 +57,29 @@ export async function andamentos(
   o: { tipo?: TipoHistorico; limite?: number; sinal?: AbortSignal } = {},
 ): Promise<{ protocolo: string; total: number; andamentos: Andamento[] }> {
   const arv = await sei.arvore(referencia, { sinal: o.sinal });
+  return andamentosDaArvore(sei, arv, o);
+}
+
+/** Como `andamentos`, para quem j\u00E1 tem a \u00E1rvore (ex.: abriu pelo link assinado da linha do Controle de Processos). */
+export async function andamentosDaArvore(
+  sei: Sei,
+  arv: Arvore,
+  o: { tipo?: TipoHistorico; limite?: number; sinal?: AbortSignal } = {},
+): Promise<{ protocolo: string; total: number; andamentos: Andamento[] }> {
   if (arv.nivel === "sigiloso") throw new ErroSei("SEI_SIGILOSO", "Processo sigiloso: o agente n\u00E3o atua nele.");
   const link = acaoNaArvore(arv, "procedimento_consultar_historico") ?? linkDaAcao(arv.pagina.html, "procedimento_consultar_historico");
   if (!link) throw new ErroSei("SEI_ACAO_INDISPONIVEL", "O hist\u00F3rico deste processo n\u00E3o est\u00E1 dispon\u00EDvel.");
 
+  const r = await andamentosDoLink(sei, link, o);
+  return { protocolo: arv.protocolo, ...r };
+}
+
+/** Percorre o hist\u00F3rico a partir do link assinado de `procedimento_consultar_historico` (sem abrir a \u00E1rvore). */
+export async function andamentosDoLink(
+  sei: Sei,
+  link: string,
+  o: { tipo?: TipoHistorico; limite?: number; sinal?: AbortSignal } = {},
+): Promise<{ total: number; andamentos: Andamento[] }> {
   const limite = o.limite ?? 500;
   let pagina = await sei.http.obter(link, { sinal: o.sinal });
   const tipo = CODIGO[o.tipo ?? "resumido"];
@@ -70,5 +97,5 @@ export async function andamentos(
     ({ itens } = lerAndamentos(pagina));
     todos.push(...itens);
   }
-  return { protocolo: arv.protocolo, total: total || todos.length, andamentos: todos.slice(0, limite) };
+  return { total: total || todos.length, andamentos: todos.slice(0, limite) };
 }

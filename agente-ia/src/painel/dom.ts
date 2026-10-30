@@ -46,11 +46,20 @@ function emLinha(texto: string): Node[] {
 }
 
 /** Markdown enxuto (parágrafos, títulos, listas, tabelas) para nós do DOM. */
+/** Cabeçalho de tabela seguido da linha separadora — só isso é tabela. */
+function ehTabela(linhas: string[], i: number): boolean {
+  return /^\s*\|.*\|\s*$/.test(linhas[i] ?? "") && /^\s*\|[\s:|-]+\|\s*$/.test(linhas[i + 1] ?? "");
+}
+
 export function markdown(texto: string): DocumentFragment {
   const frag = document.createDocumentFragment();
   const linhas = texto.replace(/\r/g, "").split("\n");
   let i = 0;
   while (i < linhas.length) {
+    // Rede de segurança: o texto vem do modelo, chega em pedaços e é
+    // redesenhado a cada fragmento. Se algum ramo deixar de consumir a linha,
+    // é melhor perder a formatação dela do que travar a thread do painel.
+    const indiceAntes = i;
     const l = linhas[i];
     if (!l.trim()) {
       i += 1;
@@ -62,7 +71,7 @@ export function markdown(texto: string): DocumentFragment {
       i += 1;
       continue;
     }
-    if (/^\s*\|.*\|\s*$/.test(l) && /^\s*\|[\s:|-]+\|\s*$/.test(linhas[i + 1] ?? "")) {
+    if (ehTabela(linhas, i)) {
       const cel = (x: string) => x.trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
       const tabela = h("table", {}, h("tr", {}, ...cel(l).map((c) => h("th", {}, ...emLinha(c)))));
       i += 2;
@@ -86,7 +95,12 @@ export function markdown(texto: string): DocumentFragment {
       continue;
     }
     const par: string[] = [];
-    while (i < linhas.length && linhas[i].trim() && !/^#{1,6}\s|^\s*(?:[-*\u2022]|\d+[.)])\s|^\s*\|/.test(linhas[i])) {
+    // Para em título, item de lista ou tabela DE VERDADE. Antes parava em
+    // qualquer linha começando com "|", e uma linha assim que não fosse tabela
+    // válida não era consumida por ninguém: o índice ficava parado e o laço
+    // rodava para sempre, congelando o painel inteiro. Acontecia toda vez que
+    // uma tabela chegava pela metade no streaming.
+    while (i < linhas.length && linhas[i].trim() && !/^#{1,6}\s|^\s*(?:[-*\u2022]|\d+[.)])\s/.test(linhas[i]) && !ehTabela(linhas, i)) {
       par.push(linhas[i]);
       i += 1;
     }
@@ -96,6 +110,7 @@ export function markdown(texto: string): DocumentFragment {
       p.append(...emLinha(x));
     });
     frag.append(p);
+    if (i === indiceAntes) i += 1;
   }
   return frag;
 }
@@ -246,6 +261,7 @@ const ICONES: Record<string, Forma[]> = {
   clipe: [["path", { d: "M20.5 11.5l-8.4 8.4a5.3 5.3 0 0 1-7.5-7.5l7.8-7.8a3.5 3.5 0 0 1 5 5l-7.8 7.8a1.8 1.8 0 0 1-2.5-2.5l7.4-7.4" }]],
   setaCima: [["path", { d: "M12 19V6" }], ["path", { d: "M6 12l6-6 6 6" }]],
   setaBaixo: [["path", { d: "M12 5v13" }], ["path", { d: "M18 12l-6 6-6-6" }]],
+  setaEsquerda: [["path", { d: "M19 12H5" }], ["path", { d: "M12 19l-7-7 7-7" }]],
   // Placa de rua com duas setas, uma para cada lado: o rito tem bifurcação.
   // Mesmo desenho do ícone do botão na barra do SEI (icons/menu/fluxos.svg).
   fluxo: [
@@ -258,7 +274,6 @@ const ICONES: Record<string, Forma[]> = {
   lampada: [["path", { d: "M9.5 18h5" }], ["path", { d: "M10.5 21h3" }], ["path", { d: "M12 3a6 6 0 0 0-3.6 10.8c.6.5.9 1.2.9 2V16h5.4v-.2c0-.8.3-1.5.9-2A6 6 0 0 0 12 3z" }]],
   alerta: [["path", { d: "M10.3 4.4 2.8 17.6a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3L13.7 4.4a2 2 0 0 0-3.4 0z" }], ["path", { d: "M12 9.5v4" }], ["circle", { cx: "12", cy: "16.8", r: "1", fill: "currentColor", stroke: "none" }]],
   voltar: [["path", { d: "M9 14 4 9l5-5" }], ["path", { d: "M4 9h9a7 7 0 0 1 7 7v4" }]],
-  copiar: [["rect", { x: "8", y: "8", width: "11", height: "11", rx: "2" }], ["path", { d: "M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" }]],
   lapis: [["path", { d: "M17.5 3.5a2.1 2.1 0 0 1 3 3L9 18l-4.5 1.5L6 15z" }], ["path", { d: "M15 6l3 3" }]],
   olho: [["path", { d: "M2.5 12S6 5.8 12 5.8 21.5 12 21.5 12 18 18.2 12 18.2 2.5 12 2.5 12z" }], ["circle", { cx: "12", cy: "12", r: "2.8" }]],
   olhoCorte: [["path", { d: "M4 4l16 16" }], ["path", { d: "M9.6 6.3A9.6 9.6 0 0 1 12 6c6 0 9.5 6 9.5 6a17 17 0 0 1-2.8 3.5" }], ["path", { d: "M6.4 8.1A16.6 16.6 0 0 0 2.5 12S6 18 12 18c1 0 1.9-.2 2.7-.4" }], ["path", { d: "M9.6 10.3a3 3 0 0 0 4.2 4.2" }]],
@@ -266,6 +281,12 @@ const ICONES: Record<string, Forma[]> = {
   relogio: [["circle", { cx: "12", cy: "12", r: "9" }], ["path", { d: "M12 7.2V12l3.2 1.9" }]],
   baixar: [["path", { d: "M12 3.5v11" }], ["path", { d: "M7.5 10.2 12 14.7l4.5-4.5" }], ["path", { d: "M4.5 19.5h15" }]],
   lixeira: [["path", { d: "M4.5 6.5h15" }], ["path", { d: "M9.5 6.5V4.8c0-.7.6-1.3 1.3-1.3h2.4c.7 0 1.3.6 1.3 1.3v1.7" }], ["path", { d: "M6.8 6.5 7.6 19c0 .8.7 1.5 1.5 1.5h5.8c.8 0 1.5-.7 1.5-1.5l.8-12.5" }]],
+  // Lucide (ISC), como os demais: "copy" e "chevron-down".
+  copiar: [
+    ["rect", { x: "9", y: "9", width: "12", height: "12", rx: "2" }],
+    ["path", { d: "M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" }],
+  ],
+  seta: [["path", { d: "m6 9 6 6 6-6" }]],
   balao: [["path", { d: "M20.5 11.8c0 4-3.8 7.2-8.5 7.2-1 0-1.9-.1-2.8-.4L4 20.5l1.4-4.1A6.8 6.8 0 0 1 3.5 11.8C3.5 7.9 7.3 4.7 12 4.7s8.5 3.2 8.5 7.1z" }]],
 };
 
