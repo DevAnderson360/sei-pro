@@ -3,9 +3,10 @@
 ## Estado atual
 
 A extensao foi integrada a base oficial **3.8** (`af497cbf`) e identificada como
-**3.8.0.1**. As customizacoes de uso, retomada de conversas, copia de respostas,
+**3.8.0.2**. As customizacoes de uso, retomada de conversas, copia de respostas,
 janela separada, agentes auxiliares e pausa de rotinas foram preservadas.
 Veja [a integracao e os testes manuais](atualizacao-v3.8.md).
+O ajuste de abertura no portal esta em [compatibilidade com F5](compatibilidade-f5.md).
 
 As secoes abaixo registram o levantamento e as validacoes das etapas anteriores.
 

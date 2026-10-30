@@ -3,7 +3,7 @@
 [![Validar customização](https://github.com/DevAnderson360/sei-pro/actions/workflows/validar-customizacao.yml/badge.svg?branch=homolog)](https://github.com/DevAnderson360/sei-pro/actions/workflows/validar-customizacao.yml)
 
 Este fork mantém uma versão personalizada do **SEI Pro 3.8**, identificada como
-**3.8.0.1**, com estas customizações no Agente de IA:
+**3.8.0.2**, com estas customizações no Agente de IA:
 
 - registros detalhados de uso e compatibilidade de `reasoning`;
 - retomada de conversas arquivadas sem nova chamada automática à IA;
@@ -11,6 +11,8 @@ Este fork mantém uma versão personalizada do **SEI Pro 3.8**, identificada com
 - gerenciamento de agentes auxiliares, limites e consumo por execução;
 - pausa das rotinas automáticas e identificação das conversas pelo processo;
 - opção de abrir o agente em janela separada, vinculada à aba do SEI.
+- abertura direta pelo content script e suporte à tela principal em frames do
+  portal F5 (ver [compatibilidade e teste](./docs/compatibilidade-f5.md)).
 
 Consulte o [inventário detalhado das customizações](./docs/customizacao-agente-ia.md)
 e o [guia de manutenção do fork](./docs/manutencao-fork.md).

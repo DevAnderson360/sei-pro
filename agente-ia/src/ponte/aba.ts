@@ -7,8 +7,8 @@
  * sessão. Resultado: a sessão, os dados e a conversa ficam invisíveis para os
  * scripts do SEI (e para qualquer script de terceiro que a página carregue).
  *
- * Só a janela de topo participa: frames internos (árvore, visualização) não
- * abrem porta.
+ * A tela principal participa, inclusive dentro do portal F5. Frames internos
+ * (arvore, visualizacao) nao abrem porta.
  */
 
 import { comoErroSei, ErroSei } from "@nucleo/sessao/erros";
@@ -19,6 +19,7 @@ import { abrirNoVisualizador, marcarAvisoDeFluxo, mostrarCartaoNaCapa, mostrarFa
 import { cartaoDaCapa } from "../fluxos/cartao";
 import { CHAVE_FLUXOS, CHAVE_IGNORADOS, comIgnorada, type Fluxo, type Ignorados } from "../fluxos/modelo";
 import { abridorDe, CANAL, CHAVE_ABERTURA, ehDoCanal, precisaConectar, type Apresentacao, type MensagemPainel, type Resposta } from "./protocolo";
+import { CABECALHO_SEI, capturarAberturaAgente, podeAtenderNoFrame, temSeiAncestral } from "./abertura";
 
 declare global {
   interface Window {
@@ -200,8 +201,12 @@ function escutarPedidoDeAbertura(): void {
 }
 
 function iniciar(): void {
-  if (window.top !== window || window.__seiProAgente) return;
+  if (window.__seiProAgente) return;
+  // Delegacao tambem nos frames da barra: preserva o gesto real do clique e
+  // evita window.top.postMessage/onclick reescritos pelo F5.
   acompanharModoJanela();
+  capturarAberturaAgente(document, abrirPainel);
+  if (!podeAtenderNoFrame(location.href, window.top === window, temSeiAncestral(window))) return;
   if (/[?&]acao=editor_montar\b/.test(location.search)) {
     window.__seiProAgente = true;
     escutarPedidoDeAbertura();
@@ -209,7 +214,7 @@ function iniciar(): void {
     return;
   }
   // Só telas do SEI com sessão (tem o cabeçalho com a unidade).
-  if (!document.querySelector("#lnkInfraUnidade, #frmProtocoloPesquisaRapida")) return;
+  if (!document.querySelector(CABECALHO_SEI)) return;
   window.__seiProAgente = true;
   escutarPedidoDeAbertura();
 

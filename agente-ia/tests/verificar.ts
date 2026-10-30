@@ -29,6 +29,7 @@ import { verificarEstudio, verificarHistoricoDoModelo, verificarMetadadosDoModel
 import { verificarCartaoDaCapa, verificarCartaoDeFluxo } from "./verificar-cartao";
 import { verificarDom } from "./verificar-dom";
 import { verificarPonte } from "./verificar-ponte";
+import { verificarAbertura } from "./verificar-abertura";
 import { verificarOpFluxoAvaliar } from "./verificar-op-fluxo";
 import { verificarDepoisDaEscrita } from "./verificar-depois-escrita";
 import { verificarEstilosDoEditor } from "./verificar-estilos";
@@ -102,6 +103,7 @@ verificarCartaoDeFluxo();
 verificarCartaoDaCapa();
 await verificarDom();
 verificarPonte();
+verificarAbertura();
 await verificarOpFluxoAvaliar();
 verificarDepoisDaEscrita();
 verificarEstilosDoEditor();
