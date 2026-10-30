@@ -143,7 +143,21 @@ Commit original: `eccc518`
 - `agente-ia/estatico/agente.css`: apresentacao do rodape.
 - `agente-ia/tests/verificar-dom.ts`: conversao e fallbacks.
 
-## Politica de manutencao
+## Alteracoes locais consolidadas antes da atualizacao para 3.8
+
+- Gerenciamento dos perfis principal, auxiliares e rotinas, com limites de
+  paralelismo e rodadas, progresso e consumo por execucao.
+- Pausa de rotinas automaticas, execucao manual e exibicao de resultado, erro
+  e proxima janela de execucao.
+- Nome da conversa associado ao numero retornado pela leitura do processo,
+  mantendo titulos antigos e o identificador da conversa na restauracao.
+- Validacao de dados pessoais e numeros de processos tambem na memoria manual.
+- Selecao de modelos pelo catalogo do servico.
+
+Validacao anterior ao merge: tipos do agente aprovados e 573 verificacoes
+aprovadas, sem falhas. Os bundles foram regenerados a partir dos fontes.
+
+## Politica de manutencao do fork
 
 - `master` e um espelho sem customizacoes de `upstream/master`.
 - `homolog` contem a versao personalizada e recebe merges revisados da

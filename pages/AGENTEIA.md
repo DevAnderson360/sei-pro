@@ -128,16 +128,28 @@ Quando o pedido implica mexer no processo, o agente **não executa**: ele monta 
 * **Assinar** pede o cargo e a sua senha do SEI no próprio cartão. A senha vai do painel direto para o SEI: ela **não** é enviada ao modelo de IA nem guardada;
 * **Recusar** pede, opcionalmente, o que ajustar — e o agente tenta de novo com a sua correção.
 
+### Gerenciar os agentes
+
+Em **Configuração → Agentes** ficam os três perfis operacionais do painel:
+
+* **Agente principal** — conversa com você, lê o SEI e só escreve depois da aprovação;
+* **Agentes auxiliares** — recebem leituras grandes, trabalham com contexto próprio e devolvem um resumo ao principal;
+* **Rotinas automáticas** — fazem perguntas agendadas quando o painel está aberto e conectado ao SEI.
+
+Cada perfil mostra modelo, permissão, última execução, tokens, custo e falhas recentes. As execuções auxiliares ficam no estado local da conversa com tarefa, modelo, horário, resultado ou erro e consumo. Retomar uma conversa apenas restaura esses dados: não faz uma nova chamada à IA.
+
+O modelo auxiliar pode ser diferente do principal. Também dá para limitar quantas tarefas independentes rodam em paralelo (padrão: **3**) e quantas rodadas de ferramentas cada auxiliar pode fazer (padrão: **14**). Mesmo com limites maiores, auxiliares e rotinas continuam somente leitura, sem aprovação, assinatura ou nova delegação.
+
 ### Rotinas
 
-Há perguntas que valem toda semana e ninguém lembra de fazer: *"processos parados há mais de 30 dias"*, *"documentos sem assinatura na unidade"*. Em **Configuração → Rotinas** você cadastra a pergunta e quando ela deve rodar (todo dia, toda semana num dia, todo mês num dia, a partir de um horário).
+Há perguntas que valem toda semana e ninguém lembra de fazer: *"processos parados há mais de 30 dias"*, *"documentos sem assinatura na unidade"*. Em **Configuração → Conversas e rotinas** você cadastra a pergunta e quando ela deve rodar (todo dia, toda semana num dia, todo mês num dia, a partir de um horário).
 
 Duas coisas para entender antes de usar:
 
 * **Rotina é só leitura.** Ela nunca altera nada no SEI — o que roda sem alguém olhando não escreve;
 * **Ela roda quando você abre o agente** depois do horário marcado, não no horário exato. A extensão vive no seu navegador, com a sua sessão do SEI; não existe servidor do SEI Pro guardando esse acesso para agir de madrugada — e é bom que não exista.
 
-Quem ficou uma semana fora volta com **uma** execução pendente, não sete: o que interessa é a foto de agora. O resultado aparece na conversa assim que você abre o painel, e o gasto respeita o teto que você definiu.
+Quem ficou uma semana fora volta com **uma** execução pendente, não sete: o que interessa é a foto de agora. A lista mostra a próxima execução e o resultado completo da última. **Rodar agora** executa uma rotina individual; **Pausar todas** suspende apenas os disparos automáticos. Os dois caminhos continuam exigindo chave configurada, aba do SEI conectada e gasto abaixo do teto.
 
 ### Memória da unidade
 
@@ -155,7 +167,7 @@ Isso existe por dois motivos práticos: a conversa principal não fica entupida 
 
 O auxiliar tem limites rígidos: **só ferramentas de leitura** (ele não escreve no SEI, não pede aprovação e não assina), não vê a conversa, não pode delegar de novo e trabalha por poucos passos. O gasto dele entra no mesmo contador, no topo do painel.
 
-Como a tarefa dele é mecânica — abrir, extrair, resumir —, dá para rodá-la num **modelo mais barato**: em **Configuração → Modelo** há o campo *Modelo das tarefas auxiliares*, que por padrão usa o mesmo da conversa. Escolhendo um modelo econômico (mini, flash, haiku), essa parte costuma custar uma fração. Só precisa ser um modelo que saiba usar ferramentas.
+Como a tarefa dele é mecânica — abrir, extrair, resumir —, dá para rodá-la num **modelo mais barato**: em **Configuração → Agentes** há o campo *Modelo das tarefas auxiliares*, que por padrão usa o mesmo da conversa. Escolhendo um modelo econômico (mini, flash, haiku), essa parte costuma custar uma fração. Só precisa ser um modelo que saiba usar ferramentas.
 
 ### Regras da unidade
 

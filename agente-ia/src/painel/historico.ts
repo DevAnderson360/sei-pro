@@ -1,3 +1,4 @@
+import type { NomeSessao } from "./nome-sessao";
 /**
  * Histórico de conversas, no IndexedDB da própria página do painel.
  *
@@ -15,21 +16,26 @@
  */
 
 import type { Pseudonimos } from "@nucleo/privacidade/anonimizar";
-import type { Mensagem, RegistroUsoChamada, Tarefa, Uso } from "../motor/tipos";
+import type { ExecucaoAgenteAuxiliar, Mensagem, RegistroUsoChamada, Tarefa, Uso } from "../motor/tipos";
 
 export const VERSAO_ESTADO_CONVERSA = 1 as const;
 
 export interface EstadoConversa {
+  nomeSessao?: NomeSessao;
+  idConversa?: string;
   versao: typeof VERSAO_ESTADO_CONVERSA;
   historico: Mensagem[];
   transcricao: unknown[];
   uso: Uso;
   registrosUso: RegistroUsoChamada[];
+  /** Opcional para manter retomada de conversas gravadas antes do gerenciamento de agentes. */
+  execucoesAuxiliares?: ExecucaoAgenteAuxiliar[];
   pseudonimos: ReturnType<Pseudonimos["exportar"]>;
   tarefas: Tarefa[];
 }
 
 export interface ResumoConversa {
+  nomeSessao?: NomeSessao;
   id: string;
   titulo: string;
   /** Última atualização, em ms. */

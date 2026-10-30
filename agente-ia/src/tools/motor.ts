@@ -7,7 +7,7 @@
 
 import { s } from "../motor/esquema";
 import { definirTool, type DefTool } from "../motor/tools";
-import type { Tarefa } from "../motor/tipos";
+import type { LimitesAgenteAuxiliar, Tarefa } from "../motor/tipos";
 import { SKILLS } from "../skills";
 
 /** Skill escrita pelo usuário nas configurações (ver painel/skills.ts). */
@@ -18,7 +18,18 @@ export interface SkillExtra {
   texto: string;
 }
 
-export function toolsMotor(extras: SkillExtra[] = []): DefTool[] {
+export const LIMITES_AUXILIARES_PADRAO: LimitesAgenteAuxiliar = { maxParalelo: 3, maxPassos: 14 };
+
+export function normalizarLimitesAuxiliares(limites: Partial<LimitesAgenteAuxiliar> = {}): LimitesAgenteAuxiliar {
+  const inteiro = (valor: number | undefined, padrao: number, max: number) => Math.min(max, Math.max(1, Math.floor(Number(valor) || padrao)));
+  return {
+    maxParalelo: inteiro(limites.maxParalelo, LIMITES_AUXILIARES_PADRAO.maxParalelo, 8),
+    maxPassos: inteiro(limites.maxPassos, LIMITES_AUXILIARES_PADRAO.maxPassos, 30),
+  };
+}
+
+export function toolsMotor(extras: SkillExtra[] = [], limitesRecebidos: Partial<LimitesAgenteAuxiliar> = {}): DefTool[] {
+  const limites = normalizarLimitesAuxiliares(limitesRecebidos);
   const disponiveis: Array<[string, string, string]> = [
     ...Object.entries(SKILLS).map(([k, v]) => [k, v.descricao, v.texto] as [string, string, string]),
     ...extras.map((e) => [e.slug, `${e.nome}: ${e.descricao}`.trim(), e.texto] as [string, string, string]),
@@ -79,9 +90,9 @@ export function toolsMotor(extras: SkillExtra[] = []): DefTool[] {
   definirTool({
     nome: "delegar",
     descricao:
-      "Entrega uma tarefa de LEITURA a um agente auxiliar, que trabalha com contexto pr\u00F3prio e devolve s\u00F3 o resultado. Use quando a tarefa exigir ler MUITO (dezenas de documentos, v\u00E1rios processos da caixa) e s\u00F3 o resumo importar para a conversa. O auxiliar N\u00C3O escreve no SEI, n\u00E3o v\u00EA esta conversa e n\u00E3o pode delegar de novo: escreva a tarefa inteira em uma frase, com os n\u00FAmeros e o que exatamente devolver. At\u00E9 3 tarefas por vez.",
+      `Entrega uma tarefa de LEITURA a um agente auxiliar, que trabalha com contexto pr\u00F3prio e devolve s\u00F3 o resultado. Use quando a tarefa exigir ler MUITO (dezenas de documentos, v\u00E1rios processos da caixa) e s\u00F3 o resumo importar para a conversa. O auxiliar N\u00C3O escreve no SEI, n\u00E3o v\u00EA esta conversa e n\u00E3o pode delegar de novo: escreva a tarefa inteira em uma frase, com os n\u00FAmeros e o que exatamente devolver. At\u00E9 ${limites.maxParalelo} tarefas por vez.`,
     parametros: s.objeto({
-      tarefas: s.lista(s.texto({ descricao: "Tarefa completa e independente, com os n\u00FAmeros e o formato do que devolver." }), { min: 1, max: 3 }),
+      tarefas: s.lista(s.texto({ descricao: "Tarefa completa e independente, com os n\u00FAmeros e o formato do que devolver." }), { min: 1, max: limites.maxParalelo }),
     }),
     efeito: "interna",
     rotulo: (a) => {
@@ -90,7 +101,7 @@ export function toolsMotor(extras: SkillExtra[] = []): DefTool[] {
     },
     executar: async (a, ctx) => {
       if (!ctx.delegar) return { erro: "Este painel n\u00E3o tem agente auxiliar dispon\u00EDvel." };
-      const tarefas = (a.tarefas as string[]).slice(0, 3);
+      const tarefas = (a.tarefas as string[]).slice(0, limites.maxParalelo);
       const respostas = await Promise.all(
         tarefas.map(async (t) => {
           try {

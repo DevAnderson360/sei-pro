@@ -43,6 +43,46 @@ export interface RegistroUsoChamada extends Uso {
   processoId?: string;
 }
 
+export interface LimitesAgenteAuxiliar {
+  maxParalelo: number;
+  maxPassos: number;
+}
+
+export interface ExecucaoAgenteAuxiliar {
+  id: string;
+  /** Ausente em registros iniciais; equivale a delegacao da conversa. */
+  origem?: "delegacao" | "rotina";
+  tarefa: string;
+  modelo: string;
+  inicioEm: number;
+  fimEm?: number;
+  estado: "rodando" | "sucesso" | "erro";
+  uso: Uso;
+  resumo?: string;
+  erro?: string;
+}
+
+export interface PerfilAgente {
+  id: "principal" | "auxiliar" | "rotinas";
+  nome: string;
+  modelo: string;
+  permissao: "leitura e escrita mediante aprovação" | "somente leitura";
+  ativo: boolean;
+  ultimaExecucao?: number;
+  uso: Uso;
+  falhasRecentes: number;
+}
+
+export interface StatusRotina {
+  rotinaId: string;
+  estado: "nunca" | "sucesso" | "erro";
+  ultimaEm?: number;
+  proximaEm?: number;
+  conversaId?: string;
+  resultado?: string;
+  erro?: string;
+}
+
 export interface RespostaLLM {
   texto: string;
   chamadas: ChamadaTool[];

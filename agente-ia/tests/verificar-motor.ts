@@ -10,7 +10,8 @@ import { Motor, resolverReferencias } from "../src/motor/motor";
 import { Acumulador } from "../src/motor/provedor";
 import { RegistroTools } from "../src/motor/tools";
 import type { DecisaoPlano, InterfaceMotor, Mensagem, PlanoPrevisto, Provedor, RegistroUsoChamada, RespostaLLM, Uso } from "../src/motor/tipos";
-import { TOOLS_MOTOR } from "../src/tools/motor";
+import { acumularUsoAuxiliar, usoVazio } from "../src/motor/uso";
+import { TOOLS_MOTOR, toolsMotor } from "../src/tools/motor";
 import { TOOLS_SEI } from "../src/tools/sei";
 import { checar, secao } from "./util";
 
@@ -298,8 +299,11 @@ export async function verificarMotor(): Promise<void> {
   const r1 = (await delegarTool.executar({ tarefas: ["ler A", "ler B"] }, ctxComAuxiliar)) as { respostas: Array<{ tarefa: string; resultado?: string; erro?: string }> };
   checar("uma resposta por tarefa", r1.respostas.length === 2 && r1.respostas[1].resultado === "resposta de ler B", r1);
   checar("as tarefas vao como escritas", pedidas.join("|") === "ler A|ler B");
-  const r2 = (await delegarTool.executar({ tarefas: ["a", "b", "c", "d", "e"] }, ctxComAuxiliar)) as { respostas: unknown[] };
-  checar("no maximo 3 por vez", r2.respostas.length === 3);
+  const delegarLimitado = toolsMotor([], { maxParalelo: 2, maxPassos: 5 }).find((t) => t.nome === "delegar")!;
+  const r2 = (await delegarLimitado.executar({ tarefas: ["a", "b", "c", "d", "e"] }, ctxComAuxiliar)) as { respostas: unknown[] };
+  checar("respeita o maximo configurado", r2.respostas.length === 2);
+  const maxDoEsquema = (delegarLimitado.parametros as { properties?: { tarefas?: { maxItems?: number } } }).properties?.tarefas?.maxItems;
+  checar("informa o limite configurado ao modelo", maxDoEsquema === 2, maxDoEsquema);
   const semAuxiliar = (await delegarTool.executar({ tarefas: ["x"] }, { sinal: new AbortController().signal } as never)) as { erro?: string };
   checar("sem auxiliar disponivel, avisa em vez de quebrar", Boolean(semAuxiliar.erro));
   const comFalha = (await delegarTool.executar({ tarefas: ["x"] }, {
@@ -309,6 +313,10 @@ export async function verificarMotor(): Promise<void> {
     },
   } as never)) as { respostas: Array<{ erro?: string }> };
   checar("falha do auxiliar volta como erro daquela tarefa", comFalha.respostas[0].erro === "o auxiliar caiu");
+  const toolsDoAuxiliar = [...TOOLS_SEI, ...toolsMotor()].filter((t) => t.efeito === "leitura" || t.nome === "skill_ler");
+  checar("auxiliar so recebe leitura e nao pode delegar", toolsDoAuxiliar.every((t) => t.efeito === "leitura" || t.nome === "skill_ler") && !toolsDoAuxiliar.some((t) => t.nome === "delegar"));
+  const usoAuxiliar = acumularUsoAuxiliar(usoVazio(), usoVazio(), { entrada: 8, saida: 2, total: 10, custo: 0.01 });
+  checar("usage do auxiliar soma tambem na conversa", usoAuxiliar.execucao.total === 10 && usoAuxiliar.conversa.total === 10 && usoAuxiliar.conversa.custo === 0.01, usoAuxiliar);
 
   secao("tools: contrato");
   checar("toda escrita tem previa", tools.todas().every((t) => t.efeito === "leitura" || t.efeito === "interna" || typeof t.previsualizar === "function"));

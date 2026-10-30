@@ -50,9 +50,10 @@ export function verificarCusto(): void {
   checar("longo demais nao entra", !anotar(vazia, "a".repeat(MAX_TEXTO + 1), "agente").ok);
   const comPessoa = anotar(vazia, "O interessado [PESSOA_1] prefere ser avisado por e-mail.", "agente");
   checar("dado pessoal nao entra", !comPessoa.ok && /pessoas/i.test((comPessoa as { motivo: string }).motivo));
+  checar("cpf digitado pelo usuario nao entra", !anotar(vazia, "Avisar o CPF 529.982.247-25 por telefone.", "usuario").ok);
   const comNumero = anotar(vazia, "O processo 12345.678901/2026-11 está aguardando parecer.", "agente");
   checar("caso especifico nao entra", !comNumero.ok && /caso/i.test((comNumero as { motivo: string }).motivo));
-  checar("o usuario pode escrever o que quiser", anotar(vazia, "Ver processo 12345.678901/2026-11 toda segunda.", "usuario").ok);
+  checar("nem o usuario pode guardar dado de processo", !anotar(vazia, "Ver processo 12345.678901/2026-11 toda segunda.", "usuario").ok);
   const uma = [(anotar(vazia, "A unidade usa o marcador Prioritário para urgente.", "agente") as { lembranca: Lembranca }).lembranca];
   checar("nao repete o que ja sabe", !anotar(uma, "a unidade usa o marcador prioritário para urgente", "agente").ok);
   checar("bloco do prompt lista as lembrancas", blocoDeMemoria(uma).includes("marcador Prioritário"));

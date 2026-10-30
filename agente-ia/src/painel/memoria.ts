@@ -53,6 +53,8 @@ const normalizar = (t: string) =>
 const RE_PSEUDONIMO = /\[(PESSOA|CPF|CNPJ|EMAIL|TELEFONE|ENDERECO|CONTA|CID)_\d+\]/i;
 /** Número de processo ou de documento do SEI. */
 const RE_NUMERO = /\d{5,}[./-]|\b\d{6,}\b/;
+/** Identificadores pessoais digitados diretamente pelo usuário. */
+const RE_DADO_PESSOAL = /\b\d{3}\.\d{3}\.\d{3}-\d{2}\b|\b[\w.+-]+@[\w.-]+\.[a-z]{2,}\b|\(?\d{2}\)?\s?9?\d{4}[- ]?\d{4}/i;
 
 export type Recusa = { ok: false; motivo: string };
 export type Aceite = { ok: true; lembranca: Lembranca };
@@ -67,10 +69,10 @@ export function anotar(lista: Lembranca[], texto: string, origem: Lembranca["ori
   const limpo = texto.trim().replace(/\s+/g, " ");
   if (limpo.length < 10) return { ok: false, motivo: "A lembrança está curta demais para ser útil." };
   if (limpo.length > MAX_TEXTO) return { ok: false, motivo: `A lembrança passa de ${MAX_TEXTO} caracteres. Escreva a regra, não o caso.` };
-  if (origem === "agente" && RE_PSEUDONIMO.test(limpo)) {
+  if (RE_PSEUDONIMO.test(limpo) || RE_DADO_PESSOAL.test(limpo)) {
     return { ok: false, motivo: "A memória é sobre como a unidade trabalha, não sobre pessoas: dado pessoal não entra." };
   }
-  if (origem === "agente" && RE_NUMERO.test(limpo)) {
+  if (RE_NUMERO.test(limpo)) {
     return { ok: false, motivo: "Isso parece um caso específico (tem número de processo ou documento). A memória guarda o hábito da unidade, não o caso." };
   }
   if (lista.some((l) => normalizar(l.texto) === normalizar(limpo))) {

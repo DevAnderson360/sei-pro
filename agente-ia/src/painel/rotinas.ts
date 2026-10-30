@@ -32,6 +32,17 @@ export interface Rotina {
   ultimaEm?: number;
   /** Resumo da última execução, mostrado na configuração. */
   ultimoResultado?: string;
+  ultimoErro?: string;
+  ultimaSituacao?: "sucesso" | "erro";
+  ultimaConversaId?: string;
+}
+
+export interface CondicoesExecucaoRotina {
+  manual: boolean;
+  pausadas: boolean;
+  temChave: boolean;
+  abaConectada: boolean;
+  gastoPermitido: boolean;
 }
 
 const CHAVE = "agenteIA_rotinas";
@@ -87,12 +98,46 @@ export function vencimento(r: Rotina, agora: Date): Date | null {
  * Quem ficou uma semana de férias volta com UMA execução pendente, não sete:
  * o que interessa é a foto de agora, não o histórico do que não foi visto.
  */
-export function vencidas(rotinas: Rotina[], agora = new Date()): Rotina[] {
+export function vencidas(rotinas: Rotina[], agora = new Date(), pausadas = false): Rotina[] {
+  if (pausadas) return [];
   return rotinas.filter((r) => {
     if (!r.ativa || !r.pergunta.trim()) return false;
     const quando = vencimento(r, agora);
     return Boolean(quando) && (!r.ultimaEm || r.ultimaEm < (quando as Date).getTime());
   });
+}
+
+/** Próxima janela futura da rotina, para a configuração. */
+export function proximaExecucao(r: Rotina, agora = new Date()): Date {
+  const [h, m] = r.hora.split(":").map((x) => Number(x) || 0);
+  if (r.frequencia === "diaria") {
+    const proxima = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate(), h, m);
+    if (proxima <= agora) proxima.setDate(proxima.getDate() + 1);
+    return proxima;
+  }
+  if (r.frequencia === "semanal") {
+    const alvo = r.diaSemana ?? 1;
+    let dias = (alvo - diaDaSemana(agora) + 7) % 7;
+    const proxima = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate() + dias, h, m);
+    if (proxima <= agora) {
+      dias += 7;
+      proxima.setDate(proxima.getDate() + 7);
+    }
+    return proxima;
+  }
+  const alvo = Math.min(Math.max(r.diaMes ?? 1, 1), 28);
+  const proxima = new Date(agora.getFullYear(), agora.getMonth(), alvo, h, m);
+  if (proxima <= agora) proxima.setMonth(proxima.getMonth() + 1);
+  return proxima;
+}
+
+/** Motivo operacional para nao executar; `null` significa que pode rodar. */
+export function impedimentoExecucaoRotina(c: CondicoesExecucaoRotina): string | null {
+  if (!c.manual && c.pausadas) return "as rotinas estão pausadas";
+  if (!c.temChave) return "configure a chave do serviço de IA";
+  if (!c.abaConectada) return "abra e conecte uma aba do SEI";
+  if (!c.gastoPermitido) return "o limite de gasto foi atingido";
+  return null;
 }
 
 /** Texto curto de quando a rotina roda, para a lista da configuração. */

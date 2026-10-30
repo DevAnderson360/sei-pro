@@ -33,6 +33,11 @@ export function somarUso(a: Partial<Uso>, b: Partial<Uso>): Uso {
   };
 }
 
+/** Soma uma chamada ao registro do auxiliar e ao total da conversa, sem divergencia. */
+export function acumularUsoAuxiliar(conversa: Partial<Uso>, execucao: Partial<Uso>, chamada: Partial<Uso>): { conversa: Uso; execucao: Uso } {
+  return { conversa: somarUso(conversa, chamada), execucao: somarUso(execucao, chamada) };
+}
+
 export function criarRegistroUsoChamada(modelo: string, uso: Partial<Uso>, criadoEm = Date.now(), id = crypto.randomUUID()): RegistroUsoChamada {
   return { id, modelo, criadoEm, ...normalizarUso(uso) };
 }

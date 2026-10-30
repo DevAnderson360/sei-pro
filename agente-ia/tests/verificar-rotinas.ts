@@ -5,7 +5,7 @@
  * acumular execuções de quem ficou uma semana fora.
  */
 
-import { descreverFrequencia, vencidas, vencimento, type Rotina } from "../src/painel/rotinas";
+import { descreverFrequencia, impedimentoExecucaoRotina, proximaExecucao, vencidas, vencimento, type Rotina } from "../src/painel/rotinas";
 import { checar, secao } from "./util";
 
 const rotina = (r: Partial<Rotina> = {}): Rotina => ({
@@ -26,6 +26,7 @@ export function verificarRotinas(): void {
   secao("rotinas: diaria");
   checar("antes da hora, nao vence", vencidas([rotina()], quarta7h).length === 0);
   checar("depois da hora, vence", vencidas([rotina()], quarta10h).length === 1);
+  checar("pausa global impede vencimento automatico", vencidas([rotina()], quarta10h, true).length === 0);
   checar("desligada nunca vence", vencidas([rotina({ ativa: false })], quarta10h).length === 0);
   checar("sem pergunta nao vence", vencidas([rotina({ pergunta: "  " })], quarta10h).length === 0);
   const jaRodouHoje = rotina({ ultimaEm: new Date(2026, 8, 23, 8, 30).getTime() });
@@ -50,6 +51,14 @@ export function verificarRotinas(): void {
   const venc25 = vencimento(dia25, quarta10h);
   checar("dia 25 ainda nao chegou: a janela e a do mes passado", venc25?.getMonth() === 7, venc25?.toISOString());
   checar("e ja rodou no mes passado, entao nao vence", vencidas([{ ...dia25, ultimaEm: new Date(2026, 7, 25, 9, 0).getTime() }], quarta10h).length === 0);
+
+  secao("rotinas: execucao manual e condicoes");
+  checar("rodar agora ignora pausa global", impedimentoExecucaoRotina({ manual: true, pausadas: true, temChave: true, abaConectada: true, gastoPermitido: true }) === null);
+  checar("automatico respeita pausa global", /pausadas/.test(impedimentoExecucaoRotina({ manual: false, pausadas: true, temChave: true, abaConectada: true, gastoPermitido: true }) ?? ""));
+  checar("rodar agora exige chave", /chave/.test(impedimentoExecucaoRotina({ manual: true, pausadas: false, temChave: false, abaConectada: true, gastoPermitido: true }) ?? ""));
+  checar("rodar agora exige aba conectada", /aba/.test(impedimentoExecucaoRotina({ manual: true, pausadas: false, temChave: true, abaConectada: false, gastoPermitido: true }) ?? ""));
+  checar("rodar agora respeita gasto", /gasto/.test(impedimentoExecucaoRotina({ manual: true, pausadas: false, temChave: true, abaConectada: true, gastoPermitido: false }) ?? ""));
+  checar("mostra a proxima execucao futura", proximaExecucao(rotina(), quarta10h) > quarta10h);
 
   secao("rotinas: como aparece para o usuario");
   checar("diaria", descreverFrequencia(rotina()) === "todo dia, a partir das 08:00");

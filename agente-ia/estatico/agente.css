@@ -543,6 +543,14 @@ dialog.modal[open]::backdrop { background: rgba(12, 16, 24, .42); backdrop-filte
 
 .skill.rotina { border-left: 3px solid var(--acento); }
 .skill.rotina .skill-texto small:not(.origem) { white-space: normal; }
+.skill.rotina { align-items: flex-start; }
+.skill.rotina > button:not(.icone) { flex: 0 0 auto; padding: 5px 8px; font-size: 11px; white-space: nowrap; }
+.skill-texto small.resultado-rotina {
+  max-height: 112px; overflow: auto; white-space: pre-wrap; padding: 6px 8px;
+  background: var(--superficie-2); border-radius: var(--r1);
+}
+.skill.agente-status.ativo { border-left: 3px solid var(--ok); }
+.skill.agente-status.inativo { border-left: 3px solid var(--ink-3); }
 
 /* Configuração em grupos: um aberto por vez, com o estado no cabeçalho. */
 .grupo { border: 1px solid var(--linha); border-radius: var(--r2); background: var(--superficie); }

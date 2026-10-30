@@ -1,3 +1,4 @@
+import { processoDaLeitura, tituloSessao } from "../src/painel/nome-sessao";
 import { estadoRetomavel, VERSAO_ESTADO_CONVERSA, type ConversaSalva, type EstadoConversa } from "../src/painel/historico";
 import { checar, secao } from "./util";
 
@@ -18,6 +19,7 @@ const estado: EstadoConversa = {
   transcricao: [{ tipo: "usuario", texto: "pedido" }],
   uso,
   registrosUso: [],
+  execucoesAuxiliares: [{ id: "aux-1", tarefa: "ler", modelo: "mini", inicioEm: 1, fimEm: 2, estado: "sucesso", uso, resumo: "feito" }],
   pseudonimos: { valores: [], rotulos: [], contadores: [], pessoas: [] },
   tarefas: [],
 };
@@ -33,8 +35,30 @@ export function verificarHistorico(): void {
     "estado versionado pode ser retomado",
     estadoRetomavel({ ...base, versaoEstado: VERSAO_ESTADO_CONVERSA, estado }) === estado,
   );
+  const antigoSemExecucoes = { ...estado, execucoesAuxiliares: undefined } as EstadoConversa;
+  checar("estado anterior sem execucoes auxiliares continua abrindo", estadoRetomavel({ ...base, versaoEstado: VERSAO_ESTADO_CONVERSA, estado: antigoSemExecucoes }) === antigoSemExecucoes);
+  checar("execucoes auxiliares sao preservadas", estadoRetomavel({ ...base, versaoEstado: VERSAO_ESTADO_CONVERSA, estado })?.execucoesAuxiliares?.[0].resumo === "feito");
   checar(
     "estado incompleto nao pode ser retomado",
     estadoRetomavel({ ...base, versaoEstado: VERSAO_ESTADO_CONVERSA, estado: { ...estado, tarefas: undefined } as unknown as EstadoConversa }) === null,
   );
+}
+
+export function verificarNomeSessao(): void {
+  secao("historico: nomes por processo");
+  const processo = "2026/000046709-00";
+  checar("prefixo completo", tituloSessao("Me situe", { processo }) === `${processo} — Me situe`);
+  checar("sem processo conserva comportamento", tituloSessao("Me   situe") === "Me situe");
+  checar("limita descricao a 70 caracteres", tituloSessao("x".repeat(90), { processo }) === `${processo} — ${"x".repeat(70)}`);
+  checar("nao duplica prefixo", tituloSessao(`${processo} Pedido`, { processo }) === `${processo} Pedido`);
+  checar("titulo antigo preservado", tituloSessao("Novo pedido", { tituloOriginal: "Titulo antigo", processo }) === "Titulo antigo");
+  checar("consulta usa protocolo retornado", processoDaLeitura("processo.consultar", { protocolo: processo }) === processo);
+  checar("arvore usa protocolo retornado", processoDaLeitura("processo.arvore", { protocolo: processo }) === processo);
+  checar("documento usa processo retornado", processoDaLeitura("documento.ler", { processo }) === processo);
+  checar("pesquisa geral nao associa processo", processoDaLeitura("pesquisar", { protocolo: processo }) === undefined);
+  checar("resultado sem identificacao nao associa", processoDaLeitura("documento.ler", {}) === undefined);
+  checar("resultado nulo nao associa", processoDaLeitura("processo.consultar", null) === undefined);
+  const comNome = { ...estado, nomeSessao: { processo }, idConversa: "conversa-1" };
+  const restaurado = estadoRetomavel({ ...base, versaoEstado: VERSAO_ESTADO_CONVERSA, estado: JSON.parse(JSON.stringify(comNome)) });
+  checar("metadados sobrevivem a serializacao e retomada", restaurado?.nomeSessao?.processo === processo && restaurado.idConversa === "conversa-1");
 }
