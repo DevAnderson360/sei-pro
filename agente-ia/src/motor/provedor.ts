@@ -466,11 +466,18 @@ export function enderecoLocal(url: string | undefined): boolean {
 
 export function mensagemDeErro(status: number, corpo: string, servico: Servico = "openrouter", retryAfter?: string | null, url?: string): string {
   let msg = corpo;
+  let codigo: string | undefined;
   try {
-    msg = (JSON.parse(corpo) as { error?: { message?: string } }).error?.message ?? corpo;
+    const erro = (JSON.parse(corpo) as { error?: { message?: string; code?: string } }).error;
+    msg = erro?.message ?? corpo;
+    codigo = erro?.code;
   } catch {
     /* não é JSON */
   }
+  // A API do Agente SEI recusa com 403 a chave válida cuja licença venceu. A
+  // chave está certa: a mensagem dela (com a data e o "renove") vale mais que
+  // o genérico "chave recusada", que mandaria o usuário trocar a chave à toa.
+  if (status === 403 && (codigo === "license_expired" || codigo === "license_inactive") && msg) return msg;
   const onde = SERVICOS[servico]?.nome.replace(/ \(.*\)$/, "") ?? "servi\u00E7o de IA";
   if (status === 403 && servico === "compativel" && enderecoLocal(url)) {
     return (

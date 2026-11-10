@@ -460,6 +460,15 @@ export async function verificarErro403Local(): Promise<void> {
   checar("403 remoto continua falando da chave", /foi recusada/.test(mensagemDeErro(403, "", "compativel", null, "https://api.groq.com/openai/v1")));
   checar("403 da OpenAI continua falando da chave", /foi recusada/.test(mensagemDeErro(403, "", "openai")));
   {
+    const corpo = JSON.stringify({ error: { message: "A licenca do Agente SEI venceu em 03/11/2026. Entre em contato para renovar.", type: "permission_error", code: "license_expired" } });
+    const m = mensagemDeErro(403, corpo, "compativel", null, "https://api.agentesei.com.br/v1");
+    checar("licenca vencida mostra a mensagem da API, com a data", /venceu em 03\/11\/2026/.test(m), m);
+    checar("licenca vencida nao manda conferir a chave", !/foi recusada/.test(m), m);
+    const inativa = JSON.stringify({ error: { message: "Esta conta nao tem licenca ativa do Agente SEI.", code: "license_inactive" } });
+    checar("conta sem licenca mostra a mensagem da API", /licenca ativa/.test(mensagemDeErro(403, inativa, "compativel")));
+    checar("licenca vencida nao e repetida", !valeRepetir(403, corpo));
+  }
+  {
     const { f } = espiao([{ status: 403, corpo: "" }]);
     const p = criarProvedor({ servico: "compativel", url: "http://localhost:11434/v1", chave: "ollama", modelo: "qwen", fetch: f });
     let msg = "";
